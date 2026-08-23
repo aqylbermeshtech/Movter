@@ -42,6 +42,8 @@ final class MediaCell: UICollectionViewCell {
         imageView.contentMode = .scaleAspectFill
         titleLabel.text = nil
         ratingLabel.attributedText = nil
+        titleLabel.isHidden = false
+        ratingLabel.isHidden = false
     }
 
     override init(frame: CGRect) {
@@ -67,7 +69,12 @@ final class MediaCell: UICollectionViewCell {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func configure(with media: Media) {
+    /// - Parameter showsCaption: false leaves just the poster, for the carousel.
+    ///   Hidden arranged subviews drop out of the stack, so the cell's height becomes
+    ///   the poster's alone.
+    func configure(with media: Media, showsCaption: Bool = true) {
+        titleLabel.isHidden = !showsCaption
+        ratingLabel.isHidden = !showsCaption
         titleLabel.text = media.displayName
         ratingLabel.attributedText = RatingFormatter.attributedRating(
             media.ratingState,

@@ -40,7 +40,7 @@ final class MovieGridViewController: UIViewController {
         return cv
     }()
 
-    private let skeletonView = SkeletonGridView()
+    private let skeletonView = SkeletonGridView(style: .grid(columns: 3, rows: 4))
 
     private let emptyLabel: UILabel = {
         let label = UILabel()

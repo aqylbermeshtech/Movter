@@ -51,6 +51,11 @@ final class MediaListViewController: UIViewController {
         }
     }
     
+    /// The carousel is a fixed-height section; articles still scroll to the bottom.
+    /// Exactly one of these is active at a time.
+    private var trendingHeight: NSLayoutConstraint!
+    private var trendingBottom: NSLayoutConstraint!
+
     private func setupUI() {
         view.addSubview(topSwitcher)
         view.addSubview(trendingView)
@@ -65,9 +70,14 @@ final class MediaListViewController: UIViewController {
                     
             trendingView.topAnchor.constraint(equalTo: topSwitcher.bottomAnchor, constant: 10),
             trendingView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            trendingView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            trendingView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            trendingView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
+
+        trendingHeight = trendingView.heightAnchor.constraint(
+            equalToConstant: TrendingMediaGridView.carouselSectionHeight
+        )
+        trendingBottom = trendingView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        setTrendingFillsScreen(false)
         trendingView.onMovieSelected = { [weak self] media in
             let detailVM = MediaDetailsViewModel(media: media)
             let detailVC = MediaDetailsViewController(viewModel: detailVM)
@@ -89,6 +99,7 @@ final class MediaListViewController: UIViewController {
             case .articles:
                 self.trendingView.setSectionTitle("Latest Film News") 
             }
+            self.setTrendingFillsScreen(type == .articles)
             self.trendingView.beginLoading()
             self.viewModel.fetchContent(type: type)
             self.trendingView.setSectionTitle(self.viewModel.sectionTitle)
@@ -103,6 +114,11 @@ final class MediaListViewController: UIViewController {
         
     deinit {
         NotificationCenter.default.removeObserver(self)
+    }
+
+    private func setTrendingFillsScreen(_ fills: Bool) {
+        trendingHeight.isActive = !fills
+        trendingBottom.isActive = fills
     }
 
     private func bindViewModel() {

@@ -7,52 +7,83 @@
 
 import UIKit
 
-/// Placeholder shapes for a poster grid that hasn't loaded yet.
+/// Placeholder shapes for poster content that hasn't loaded yet.
 ///
 /// Timing matters more than the drawing: `beginLoading` waits before showing anything,
 /// so a warm cache never flashes a skeleton, and once shown it stays for a minimum so
 /// it can't strobe either. Callers just bracket their request.
 final class SkeletonGridView: UIView {
 
+    /// Mirrors whichever layout it stands in for. A grid skeleton over a carousel is
+    /// worse than none — it promises a shape the content won't arrive in.
+    enum Style {
+        /// Fills the width; posters with a title and metadata bar beneath.
+        case grid(columns: Int, rows: Int)
+        /// One row of fixed-width posters, overflowing the trailing edge. No captions.
+        case carousel(itemWidth: CGFloat)
+    }
+
     /// Long enough that a fast response shows nothing at all.
     private static let appearDelay: TimeInterval = 0.2
     /// Once visible, stay long enough to read as deliberate.
     private static let minimumVisible: TimeInterval = 0.3
+    private static let spacing: CGFloat = 10
 
-    private let columns: Int
-    private let rows: Int
+    private let style: Style
     private var pendingShow: DispatchWorkItem?
     private var shownAt: Date?
 
     private let content: UIStackView = {
         let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 14
+        stack.spacing = SkeletonGridView.spacing
         stack.distribution = .fill
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
 
-    init(columns: Int = 3, rows: Int = 4) {
-        self.columns = columns
-        self.rows = rows
+    init(style: Style) {
+        self.style = style
         super.init(frame: .zero)
 
         isUserInteractionEnabled = false
-        // Rows overflow the frame deliberately: the caller pins this to the grid's
-        // bounds and the extra rows are simply cut off at the bottom.
+        // Rows and columns overflow the frame deliberately; the caller pins this to the
+        // content's bounds and the excess is cut off.
         clipsToBounds = true
         isHidden = true
         alpha = 0
 
         addSubview(content)
+        var leading: CGFloat = 0
+
+        switch style {
+        case let .grid(columns, rows):
+            content.axis = .vertical
+            (0..<rows).forEach { _ in
+                content.addArrangedSubview(makeRow(columns: columns, showsCaption: true))
+            }
+
+        case let .carousel(itemWidth):
+            content.axis = .horizontal
+            content.alignment = .top
+            // Matches the carousel's own content inset so the two line up exactly.
+            leading = 16
+            // One more than fits, so the row runs off the edge the way real cells do.
+            let count = Int((UIScreen.main.bounds.width / (itemWidth + Self.spacing)).rounded(.up)) + 1
+            (0..<count).forEach { _ in
+                let cell = makeCell(showsCaption: false)
+                cell.widthAnchor.constraint(equalToConstant: itemWidth).isActive = true
+                content.addArrangedSubview(cell)
+            }
+        }
+
         NSLayoutConstraint.activate([
             content.topAnchor.constraint(equalTo: topAnchor),
-            content.leadingAnchor.constraint(equalTo: leadingAnchor),
-            content.trailingAnchor.constraint(equalTo: trailingAnchor)
+            content.leadingAnchor.constraint(equalTo: leadingAnchor, constant: leading),
+            content.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
         ])
-
-        (0..<rows).forEach { _ in content.addArrangedSubview(makeRow()) }
+        if case .grid = style {
+            content.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
+        }
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -74,8 +105,9 @@ final class SkeletonGridView: UIView {
 
         guard !isHidden else { return }
         let shownFor = shownAt.map { Date().timeIntervalSince($0) } ?? Self.minimumVisible
-        let remaining = max(0, Self.minimumVisible - shownFor)
-        DispatchQueue.main.asyncAfter(deadline: .now() + remaining) { [weak self] in
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + max(0, Self.minimumVisible - shownFor)
+        ) { [weak self] in
             self?.conceal()
         }
     }
@@ -85,9 +117,8 @@ final class SkeletonGridView: UIView {
         shownAt = Date()
         isHidden = false
         UIView.animate(withDuration: 0.2) { self.alpha = 1 }
-        // A slow pulse rather than a shimmer sweep: the palette is near-black and
-        // deliberately flat, and a travelling highlight would be the loudest thing
-        // on screen. Static blocks alone read as empty cells rather than as work.
+        // A slow pulse rather than a shimmer sweep: the palette is near-black and flat,
+        // and a travelling highlight would be the loudest thing on screen.
         UIView.animate(
             withDuration: 0.9,
             delay: 0,
@@ -110,27 +141,31 @@ final class SkeletonGridView: UIView {
 
     // MARK: - Shapes
 
-    private func makeRow() -> UIView {
+    private func makeRow(columns: Int, showsCaption: Bool) -> UIView {
         let row = UIStackView()
         row.axis = .horizontal
-        row.spacing = 10
+        row.spacing = Self.spacing
         row.distribution = .fillEqually
         row.alignment = .top
-        (0..<columns).forEach { _ in row.addArrangedSubview(makeCell()) }
+        (0..<columns).forEach { _ in row.addArrangedSubview(makeCell(showsCaption: showsCaption)) }
         return row
     }
 
-    private func makeCell() -> UIView {
+    private func makeCell(showsCaption: Bool) -> UIView {
         let poster = block(cornerRadius: 12)
-        // Matches the real cells: poster is 1.5x its own width.
+        // Matches the real cells: TMDB posters are 2:3.
         poster.heightAnchor.constraint(equalTo: poster.widthAnchor, multiplier: 1.5).isActive = true
+
+        let cell = UIStackView(arrangedSubviews: [poster])
+        cell.axis = .vertical
+        cell.spacing = 8
+        guard showsCaption else { return cell }
 
         let title = block(cornerRadius: 4)
         title.heightAnchor.constraint(equalToConstant: 13).isActive = true
 
         let subtitle = block(cornerRadius: 4)
         subtitle.heightAnchor.constraint(equalToConstant: 11).isActive = true
-
         let subtitleRow = UIView()
         subtitleRow.addSubview(subtitle)
         subtitle.translatesAutoresizingMaskIntoConstraints = false
@@ -138,13 +173,12 @@ final class SkeletonGridView: UIView {
             subtitle.topAnchor.constraint(equalTo: subtitleRow.topAnchor),
             subtitle.bottomAnchor.constraint(equalTo: subtitleRow.bottomAnchor),
             subtitle.leadingAnchor.constraint(equalTo: subtitleRow.leadingAnchor),
-            // Short, so the block reads as a metadata line rather than a second title.
+            // Short, so it reads as a metadata line rather than a second title.
             subtitle.widthAnchor.constraint(equalTo: subtitleRow.widthAnchor, multiplier: 0.55)
         ])
 
-        let cell = UIStackView(arrangedSubviews: [poster, title, subtitleRow])
-        cell.axis = .vertical
-        cell.spacing = 8
+        cell.addArrangedSubview(title)
+        cell.addArrangedSubview(subtitleRow)
         return cell
     }
 
