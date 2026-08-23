@@ -19,6 +19,7 @@ final class MediaListViewController: UIViewController {
         view.backgroundColor = .canvas
         setupUI()
         bindViewModel()
+        trendingView.beginLoading()
         viewModel.fetchContent(type: .movies)
         applyTheme()
         NotificationCenter.default.addObserver(
@@ -88,6 +89,7 @@ final class MediaListViewController: UIViewController {
             case .articles:
                 self.trendingView.setSectionTitle("Latest Film News") 
             }
+            self.trendingView.beginLoading()
             self.viewModel.fetchContent(type: type)
             self.trendingView.setSectionTitle(self.viewModel.sectionTitle)
         }

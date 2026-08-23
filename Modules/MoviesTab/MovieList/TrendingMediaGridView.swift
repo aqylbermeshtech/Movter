@@ -34,6 +34,13 @@ final class TrendingMediaGridView: UIView {
         return cv
     }()
 
+    private let skeletonView = SkeletonGridView()
+
+    /// Call when a fetch is issued; `update(with:)` / `updateArticles(with:)` end it.
+    func beginLoading() {
+        skeletonView.beginLoading()
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         self.backgroundColor = .canvas
@@ -57,6 +64,15 @@ final class TrendingMediaGridView: UIView {
             collectionView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             collectionView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
+
+        skeletonView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(skeletonView)
+        NSLayoutConstraint.activate([
+            skeletonView.topAnchor.constraint(equalTo: collectionView.topAnchor),
+            skeletonView.leadingAnchor.constraint(equalTo: collectionView.leadingAnchor),
+            skeletonView.trailingAnchor.constraint(equalTo: collectionView.trailingAnchor),
+            skeletonView.bottomAnchor.constraint(equalTo: collectionView.bottomAnchor)
+        ])
     }
 
     func update(with movies: [Media]) {
@@ -64,6 +80,7 @@ final class TrendingMediaGridView: UIView {
         self.movies = movies
         DispatchQueue.main.async {
             self.collectionView.reloadData()
+            self.skeletonView.endLoading()
         }
     }
 
@@ -72,6 +89,7 @@ final class TrendingMediaGridView: UIView {
         self.articles = articles
         DispatchQueue.main.async {
             self.collectionView.reloadData()
+            self.skeletonView.endLoading()
         }
     }
     

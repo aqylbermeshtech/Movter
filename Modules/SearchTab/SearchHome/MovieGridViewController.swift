@@ -40,13 +40,7 @@ final class MovieGridViewController: UIViewController {
         return cv
     }()
 
-    private let loadingIndicator: UIActivityIndicatorView = {
-        let indicator = UIActivityIndicatorView(style: .large)
-        indicator.color = .textSecondary
-        indicator.hidesWhenStopped = true
-        indicator.translatesAutoresizingMaskIntoConstraints = false
-        return indicator
-    }()
+    private let skeletonView = SkeletonGridView()
 
     private let emptyLabel: UILabel = {
         let label = UILabel()
@@ -82,13 +76,13 @@ final class MovieGridViewController: UIViewController {
             showEmptyState("This list isn’t available yet.\nIt needs curated data the app doesn’t have.")
             return
         }
-        loadingIndicator.startAnimating()
+        skeletonView.beginLoading()
         fetchNextPage()
     }
 
     private func setupUI() {
         view.addSubview(collectionView)
-        view.addSubview(loadingIndicator)
+        view.addSubview(skeletonView)
         view.addSubview(emptyLabel)
         collectionView.delegate = self
         collectionView.dataSource = self
@@ -99,8 +93,10 @@ final class MovieGridViewController: UIViewController {
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            skeletonView.topAnchor.constraint(equalTo: collectionView.topAnchor),
+            skeletonView.leadingAnchor.constraint(equalTo: collectionView.leadingAnchor),
+            skeletonView.trailingAnchor.constraint(equalTo: collectionView.trailingAnchor),
+            skeletonView.bottomAnchor.constraint(equalTo: collectionView.bottomAnchor),
 
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
@@ -113,7 +109,7 @@ final class MovieGridViewController: UIViewController {
         emptyLabel.text = text
         emptyLabel.isHidden = false
         collectionView.isHidden = true
-        loadingIndicator.stopAnimating()
+        skeletonView.endLoading()
     }
 
     // MARK: - Loading
@@ -126,7 +122,7 @@ final class MovieGridViewController: UIViewController {
         let handler: (MediaPage?) -> Void = { [weak self] result in
             guard let self = self else { return }
             self.isFetching = false
-            self.loadingIndicator.stopAnimating()
+            self.skeletonView.endLoading()
 
             guard let result = result else {
                 // Only surface a failure if there's nothing on screen already; a failed
