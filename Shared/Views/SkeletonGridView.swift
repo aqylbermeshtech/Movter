@@ -21,15 +21,23 @@ final class SkeletonGridView: UIView {
         case grid(columns: Int, rows: Int)
         /// One row of fixed-width posters, overflowing the trailing edge. No captions.
         case carousel(itemWidth: CGFloat)
+        /// Stacked full-width article cards: a wide image with text lines beneath.
+        case articles
     }
 
     /// Long enough that a fast response shows nothing at all.
-    private static let appearDelay: TimeInterval = 0.2
+    private static let appearDelay: TimeInterval = 0.0
     /// Once visible, stay long enough to read as deliberate.
-    private static let minimumVisible: TimeInterval = 0.3
+    private static let minimumVisible: TimeInterval = 30.0
     private static let spacing: CGFloat = 10
+    private static let sideInset: CGFloat = 16
+    /// Mirrors ArticlesCell: a 240pt image above the text, in a 380pt card.
+    private static let articleCardHeight: CGFloat = 380
+    private static let articleImageHeight: CGFloat = 240
 
-    private let style: Style
+    private var style: Style
+    private var contentLeading: NSLayoutConstraint!
+    private var contentTrailing: NSLayoutConstraint!
     private var pendingShow: DispatchWorkItem?
     private var shownAt: Date?
 
@@ -53,11 +61,35 @@ final class SkeletonGridView: UIView {
         alpha = 0
 
         addSubview(content)
-        var leading: CGFloat = 0
+        contentLeading = content.leadingAnchor.constraint(equalTo: leadingAnchor)
+        contentTrailing = content.trailingAnchor.constraint(equalTo: trailingAnchor)
+        NSLayoutConstraint.activate([
+            content.topAnchor.constraint(equalTo: topAnchor),
+            contentLeading,
+            contentTrailing
+        ])
+        rebuild()
+    }
+
+    /// The style can change under a live view — one screen switches between a poster
+    /// carousel and a list of article cards — so the shapes are rebuilt, not baked in.
+    func setStyle(_ style: Style) {
+        self.style = style
+        rebuild()
+    }
+
+    private func rebuild() {
+        content.arrangedSubviews.forEach {
+            content.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
 
         switch style {
         case let .grid(columns, rows):
             content.axis = .vertical
+            content.alignment = .fill
+            contentLeading.constant = 0
+            contentTrailing.constant = 0
             (0..<rows).forEach { _ in
                 content.addArrangedSubview(makeRow(columns: columns, showsCaption: true))
             }
@@ -66,7 +98,8 @@ final class SkeletonGridView: UIView {
             content.axis = .horizontal
             content.alignment = .top
             // Matches the carousel's own content inset so the two line up exactly.
-            leading = 16
+            contentLeading.constant = Self.sideInset
+            contentTrailing.constant = 0
             // One more than fits, so the row runs off the edge the way real cells do.
             let count = Int((UIScreen.main.bounds.width / (itemWidth + Self.spacing)).rounded(.up)) + 1
             (0..<count).forEach { _ in
@@ -74,15 +107,13 @@ final class SkeletonGridView: UIView {
                 cell.widthAnchor.constraint(equalToConstant: itemWidth).isActive = true
                 content.addArrangedSubview(cell)
             }
-        }
 
-        NSLayoutConstraint.activate([
-            content.topAnchor.constraint(equalTo: topAnchor),
-            content.leadingAnchor.constraint(equalTo: leadingAnchor, constant: leading),
-            content.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
-        ])
-        if case .grid = style {
-            content.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
+        case .articles:
+            content.axis = .vertical
+            content.alignment = .fill
+            contentLeading.constant = Self.sideInset
+            contentTrailing.constant = -Self.sideInset
+            (0..<2).forEach { _ in content.addArrangedSubview(makeArticleCard()) }
         }
     }
 
@@ -180,6 +211,58 @@ final class SkeletonGridView: UIView {
         cell.addArrangedSubview(title)
         cell.addArrangedSubview(subtitleRow)
         return cell
+    }
+
+    /// The card itself is `.surface`, so its innards step up to `.hairline` — the same
+    /// tone the app already uses for edges against a surface.
+    private func makeArticleCard() -> UIView {
+        let card = UIView()
+        card.backgroundColor = .surface
+        card.layer.cornerRadius = 12
+        card.layer.cornerCurve = .continuous
+        card.clipsToBounds = true
+        card.heightAnchor.constraint(equalToConstant: Self.articleCardHeight).isActive = true
+
+        let image = UIView()
+        image.backgroundColor = .hairline
+        image.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(image)
+
+        let lines = UIStackView()
+        lines.axis = .vertical
+        lines.spacing = 8
+        lines.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(lines)
+
+        // A two-line headline, then a shorter standfirst.
+        for width in [1.0, 0.7, 0.85] {
+            let bar = UIView()
+            bar.backgroundColor = .hairline
+            bar.layer.cornerRadius = 4
+            bar.heightAnchor.constraint(equalToConstant: 14).isActive = true
+            let row = UIView()
+            row.addSubview(bar)
+            bar.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                bar.topAnchor.constraint(equalTo: row.topAnchor),
+                bar.bottomAnchor.constraint(equalTo: row.bottomAnchor),
+                bar.leadingAnchor.constraint(equalTo: row.leadingAnchor),
+                bar.widthAnchor.constraint(equalTo: row.widthAnchor, multiplier: width)
+            ])
+            lines.addArrangedSubview(row)
+        }
+
+        NSLayoutConstraint.activate([
+            image.topAnchor.constraint(equalTo: card.topAnchor),
+            image.leadingAnchor.constraint(equalTo: card.leadingAnchor),
+            image.trailingAnchor.constraint(equalTo: card.trailingAnchor),
+            image.heightAnchor.constraint(equalToConstant: Self.articleImageHeight),
+
+            lines.topAnchor.constraint(equalTo: image.bottomAnchor, constant: 14),
+            lines.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 12),
+            lines.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -12)
+        ])
+        return card
     }
 
     private func block(cornerRadius: CGFloat) -> UIView {

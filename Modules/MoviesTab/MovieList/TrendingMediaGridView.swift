@@ -51,7 +51,10 @@ final class TrendingMediaGridView: UIView {
     private let skeletonView = SkeletonGridView(style: .carousel(itemWidth: itemWidth))
 
     /// Call when a fetch is issued; `update(with:)` / `updateArticles(with:)` end it.
-    func beginLoading() {
+    /// The mode is passed in because the skeleton has to promise the right shape
+    /// before the response arrives to tell us what shape that is.
+    func beginLoading(showingArticles: Bool) {
+        skeletonView.setStyle(showingArticles ? .articles : .carousel(itemWidth: Self.itemWidth))
         skeletonView.beginLoading()
     }
 
