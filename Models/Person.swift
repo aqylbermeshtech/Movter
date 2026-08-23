@@ -36,6 +36,7 @@ struct PersonCredit: Codable {
     let character: String?
     let overview: String?
     let posterPath: String?
+    let backdropPath: String?
     let releaseDate: String?
     let firstAirDate: String?
     let voteAverage: Double?
@@ -65,6 +66,7 @@ struct PersonCredit: Codable {
             name: name,
             overview: overview ?? "",
             posterPath: posterPath,
+            backdropPath: backdropPath,
             releaseDate: releaseDate,
             firstAirDate: firstAirDate,
             voteAverage: voteAverage ?? 0,

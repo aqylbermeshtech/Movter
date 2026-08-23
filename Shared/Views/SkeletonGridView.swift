@@ -21,14 +21,16 @@ final class SkeletonGridView: UIView {
         case grid(columns: Int, rows: Int)
         /// One row of fixed-width posters, overflowing the trailing edge. No captions.
         case carousel(itemWidth: CGFloat)
+        /// A single full-bleed landscape card, matching the hero backdrop carousel.
+        case hero(itemWidth: CGFloat)
         /// Stacked full-width article cards: a wide image with text lines beneath.
         case articles
     }
 
     /// Long enough that a fast response shows nothing at all.
-    private static let appearDelay: TimeInterval = 0.0
+    private static let appearDelay: TimeInterval = 0.2
     /// Once visible, stay long enough to read as deliberate.
-    private static let minimumVisible: TimeInterval = 30.0
+    private static let minimumVisible: TimeInterval = 0.3
     private static let spacing: CGFloat = 10
     private static let sideInset: CGFloat = 16
     /// Mirrors ArticlesCell: a 240pt image above the text, in a 380pt card.
@@ -65,8 +67,7 @@ final class SkeletonGridView: UIView {
         contentTrailing = content.trailingAnchor.constraint(equalTo: trailingAnchor)
         NSLayoutConstraint.activate([
             content.topAnchor.constraint(equalTo: topAnchor),
-            contentLeading,
-            contentTrailing
+            contentLeading
         ])
         rebuild()
     }
@@ -90,6 +91,7 @@ final class SkeletonGridView: UIView {
             content.alignment = .fill
             contentLeading.constant = 0
             contentTrailing.constant = 0
+            contentTrailing.isActive = true
             (0..<rows).forEach { _ in
                 content.addArrangedSubview(makeRow(columns: columns, showsCaption: true))
             }
@@ -99,7 +101,10 @@ final class SkeletonGridView: UIView {
             content.alignment = .top
             // Matches the carousel's own content inset so the two line up exactly.
             contentLeading.constant = Self.sideInset
-            contentTrailing.constant = 0
+            // No trailing pin: the row is meant to overflow past the visible edge, and
+            // pinning both sides while every cell also carries a required fixed width
+            // over-constrains the layout, so Auto Layout silently drops one at random.
+            contentTrailing.isActive = false
             // One more than fits, so the row runs off the edge the way real cells do.
             let count = Int((UIScreen.main.bounds.width / (itemWidth + Self.spacing)).rounded(.up)) + 1
             (0..<count).forEach { _ in
@@ -108,11 +113,23 @@ final class SkeletonGridView: UIView {
                 content.addArrangedSubview(cell)
             }
 
+        case let .hero(itemWidth):
+            content.axis = .horizontal
+            content.alignment = .top
+            contentLeading.constant = Self.sideInset
+            // Same reasoning as `.carousel`: the card's own required width already
+            // determines the layout, so a required trailing pin would just conflict.
+            contentTrailing.isActive = false
+            let card = makeHeroCard()
+            card.widthAnchor.constraint(equalToConstant: itemWidth).isActive = true
+            content.addArrangedSubview(card)
+
         case .articles:
             content.axis = .vertical
             content.alignment = .fill
             contentLeading.constant = Self.sideInset
             contentTrailing.constant = -Self.sideInset
+            contentTrailing.isActive = true
             (0..<2).forEach { _ in content.addArrangedSubview(makeArticleCard()) }
         }
     }
@@ -211,6 +228,14 @@ final class SkeletonGridView: UIView {
         cell.addArrangedSubview(title)
         cell.addArrangedSubview(subtitleRow)
         return cell
+    }
+
+    /// One landscape block standing in for the backdrop image; no text lines, since the
+    /// real card's title sits over a gradient on the image itself rather than beneath it.
+    private func makeHeroCard() -> UIView {
+        let card = block(cornerRadius: 16)
+        card.heightAnchor.constraint(equalTo: card.widthAnchor, multiplier: HeroCarouselView.imageAspect).isActive = true
+        return card
     }
 
     /// The card itself is `.surface`, so its innards step up to `.hairline` — the same

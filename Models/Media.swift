@@ -13,6 +13,7 @@ struct Media: Codable {
     let name: String?
     let overview: String
     let posterPath: String?
+    let backdropPath: String?
     let releaseDate: String?
     let firstAirDate: String?
     let voteAverage: Double
@@ -45,6 +46,13 @@ struct Media: Codable {
     /// w500 is visibly soft when a poster spans the full screen width on a 3x device.
     var largePosterURL: URL? {
         guard let path = posterPath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w780\(path)")
+    }
+
+    /// Landscape art for the hero carousel. TMDB has no dedicated "horizontal poster"
+    /// field — `backdrop_path` is the intended source for 16:9 layouts.
+    var fullBackdropURL: URL? {
+        guard let path = backdropPath else { return nil }
         return URL(string: "https://image.tmdb.org/t/p/w780\(path)")
     }
 }
