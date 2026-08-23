@@ -52,8 +52,16 @@ final class TrendingMediaGridView: UIView {
 
     /// Call when a fetch is issued; `update(with:)` / `updateArticles(with:)` end it.
     /// The mode is passed in because the skeleton has to promise the right shape
-    /// before the response arrives to tell us what shape that is.
+    /// before the response arrives to tell us what shape that is — and because the
+    /// old content (still the other type, still the other scroll direction) has to
+    /// go now too, or it sits under the skeleton until the new data lands.
     func beginLoading(showingArticles: Bool) {
+        isShowingArticles = showingArticles
+        movies = []
+        articles = []
+        setScrollDirection(showingArticles ? .vertical : .horizontal)
+        collectionView.reloadData()
+
         skeletonView.setStyle(showingArticles ? .articles : .carousel(itemWidth: Self.itemWidth))
         skeletonView.beginLoading()
     }

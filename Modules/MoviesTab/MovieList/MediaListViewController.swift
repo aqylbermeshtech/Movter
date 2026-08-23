@@ -127,7 +127,6 @@ final class MediaListViewController: UIViewController {
             }
             self.trendingView.beginLoading(showingArticles: type == .articles)
             self.viewModel.fetchContent(type: type)
-            self.trendingView.setSectionTitle(self.viewModel.sectionTitle)
         }
     }
 

@@ -27,6 +27,10 @@ final class MediaListViewModel {
         self.currentType = type
         NetworkService.shared.fetchTrendingContent(type: type) { [weak self] result in
             guard let self = self else { return }
+            // Requests can resolve out of order. If the user has already switched
+            // tabs, this response is for a type nobody's looking at anymore — apply
+            // it and it clobbers the current tab with stale content.
+            guard self.currentType == type else { return }
             switch result {
             case .media(let mediaList):
                 self.mediaContent = mediaList
