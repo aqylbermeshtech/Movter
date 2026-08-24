@@ -225,6 +225,15 @@ final class NetworkService {
         return MediaPage(items: response.results, isLastPage: requested >= cap || response.results.isEmpty)
     }
 
+    /// Feeds the swipe deck. Plain `/movie/popular`, paginated the same way as
+    /// `fetchDiscover`/`searchMovies`.
+    func fetchPopularMovies(page: Int, completion: @escaping (MediaPage?) -> Void) {
+        let urlString = "\(baseURL)/movie/popular?page=\(page)&api_key=\(apiKey)&language=en-US"
+        performRequest(urlString: urlString) { (result: MovieResponse?) in
+            completion(result.map { Self.page(from: $0, requested: page) })
+        }
+    }
+
     func searchMovies(query: String, page: Int, completion: @escaping (MediaPage?) -> Void) {
         var components = URLComponents(string: baseURL + "/search/movie")
         components?.queryItems = [
