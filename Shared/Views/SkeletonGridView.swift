@@ -25,6 +25,11 @@ final class SkeletonGridView: UIView {
         case hero(itemWidth: CGFloat)
         /// Stacked full-width article cards: a wide image with text lines beneath.
         case articles
+        /// Stacked list rows: a small poster beside title / score / snippet / date bars.
+        case reviewList(rows: Int)
+        /// Stacked list rows: a small poster beside just title / date bars, centered —
+        /// simpler than `.reviewList`, matching `WatchlistCell`'s two-line layout.
+        case watchlist(rows: Int)
     }
 
     /// Long enough that a fast response shows nothing at all.
@@ -131,6 +136,22 @@ final class SkeletonGridView: UIView {
             contentTrailing.constant = -Self.sideInset
             contentTrailing.isActive = true
             (0..<2).forEach { _ in content.addArrangedSubview(makeArticleCard()) }
+
+        case let .reviewList(rows):
+            content.axis = .vertical
+            content.alignment = .fill
+            contentLeading.constant = Self.sideInset
+            contentTrailing.constant = -Self.sideInset
+            contentTrailing.isActive = true
+            (0..<rows).forEach { _ in content.addArrangedSubview(makeReviewRow()) }
+
+        case let .watchlist(rows):
+            content.axis = .vertical
+            content.alignment = .fill
+            contentLeading.constant = Self.sideInset
+            contentTrailing.constant = -Self.sideInset
+            contentTrailing.isActive = true
+            (0..<rows).forEach { _ in content.addArrangedSubview(makeWatchlistRow()) }
         }
     }
 
@@ -288,6 +309,70 @@ final class SkeletonGridView: UIView {
             lines.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -12)
         ])
         return card
+    }
+
+    /// Mirrors `ReviewCell`: a small poster beside stacked title / score / snippet /
+    /// date bars. Each bar is a different width so the row reads as text of varying
+    /// length rather than a single flat block repeated down the list.
+    private func makeReviewRow() -> UIView {
+        let poster = block(cornerRadius: 6)
+        poster.widthAnchor.constraint(equalToConstant: 48).isActive = true
+        poster.heightAnchor.constraint(equalToConstant: 72).isActive = true
+
+        let titleBar = barRow(height: 16, widthFraction: 0.65)
+        let scoreBar = barRow(height: 14, widthFraction: 0.35)
+        let snippetBar = barRow(height: 14, widthFraction: 0.85)
+        let dateBar = barRow(height: 11, widthFraction: 0.3)
+
+        let textStack = UIStackView(arrangedSubviews: [titleBar, scoreBar, snippetBar, dateBar])
+        textStack.axis = .vertical
+        textStack.spacing = 6
+        textStack.setCustomSpacing(10, after: scoreBar)
+
+        let row = UIStackView(arrangedSubviews: [poster, textStack])
+        row.axis = .horizontal
+        row.spacing = 12
+        row.alignment = .top
+        return row
+    }
+
+    /// Mirrors `WatchlistCell`: a small poster beside title / date bars, vertically
+    /// centered against the poster rather than top-aligned — `ReviewCell` has extra
+    /// score/snippet lines to anchor from the top, `WatchlistCell` doesn't.
+    private func makeWatchlistRow() -> UIView {
+        let poster = block(cornerRadius: 6)
+        poster.widthAnchor.constraint(equalToConstant: 48).isActive = true
+        poster.heightAnchor.constraint(equalToConstant: 72).isActive = true
+
+        let titleBar = barRow(height: 16, widthFraction: 0.7)
+        let dateBar = barRow(height: 11, widthFraction: 0.4)
+
+        let textStack = UIStackView(arrangedSubviews: [titleBar, dateBar])
+        textStack.axis = .vertical
+        textStack.spacing = 8
+
+        let row = UIStackView(arrangedSubviews: [poster, textStack])
+        row.axis = .horizontal
+        row.spacing = 12
+        row.alignment = .center
+        return row
+    }
+
+    /// A placeholder bar left-aligned in a full-width row, so it can be shorter than
+    /// the row without the stack collapsing around it.
+    private func barRow(height: CGFloat, widthFraction: CGFloat) -> UIView {
+        let bar = block(cornerRadius: 4)
+        bar.heightAnchor.constraint(equalToConstant: height).isActive = true
+        let row = UIView()
+        row.addSubview(bar)
+        bar.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            bar.topAnchor.constraint(equalTo: row.topAnchor),
+            bar.bottomAnchor.constraint(equalTo: row.bottomAnchor),
+            bar.leadingAnchor.constraint(equalTo: row.leadingAnchor),
+            bar.widthAnchor.constraint(equalTo: row.widthAnchor, multiplier: widthFraction)
+        ])
+        return row
     }
 
     private func block(cornerRadius: CGFloat) -> UIView {

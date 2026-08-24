@@ -12,6 +12,7 @@ final class WatchlistListViewController: UIViewController {
 
     private let viewModel: WatchlistListViewModel
     private let tableView = UITableView(frame: .zero, style: .plain)
+    private let skeletonView = SkeletonGridView(style: .watchlist(rows: 6))
 
     init(viewModel: WatchlistListViewModel) {
         self.viewModel = viewModel
@@ -71,6 +72,9 @@ final class WatchlistListViewController: UIViewController {
         view.addSubview(tableView)
         view.addSubview(emptyStateView)
 
+        skeletonView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(skeletonView)
+
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -80,17 +84,24 @@ final class WatchlistListViewController: UIViewController {
             emptyStateView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyStateView.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -40),
             emptyStateView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            emptyStateView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32)
+            emptyStateView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+
+            skeletonView.topAnchor.constraint(equalTo: tableView.topAnchor, constant: 16),
+            skeletonView.leadingAnchor.constraint(equalTo: tableView.leadingAnchor),
+            skeletonView.trailingAnchor.constraint(equalTo: tableView.trailingAnchor),
+            skeletonView.bottomAnchor.constraint(equalTo: tableView.bottomAnchor)
         ])
 
         viewModel.onChange = { [weak self] in self?.render() }
         viewModel.onError = { [weak self] message in self?.presentError(message) }
 
+        skeletonView.beginLoading()
         viewModel.load()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        skeletonView.beginLoading()
         viewModel.load()
     }
 
@@ -99,6 +110,7 @@ final class WatchlistListViewController: UIViewController {
         let isEmpty = viewModel.isEmpty
         emptyStateView.isHidden = !isEmpty
         tableView.isHidden = isEmpty
+        skeletonView.endLoading()
     }
 
     private func presentError(_ message: String) {
