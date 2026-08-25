@@ -7,40 +7,50 @@ import UIKit
 import FirebaseAuth
 
 enum MainTabBarFactory {
-    static func makeTabBar() -> UITabBarController {
-        // Built per sign-in, so the store is always scoped to the current account.
-        let reviewStore = ReviewStoreFactory.makeStore()
+    static func makeTabBar() -> UIViewController {
+        // Built per sign-in, so the stores are always scoped to the current account.
         let watchlistStore = WatchlistStoreFactory.makeStore()
         let seenFilmsStore = SeenFilmsStoreFactory.makeStore()
 
-        // Tab labels live here. Root screens must set `navigationItem.title`, never
-        // `title` — that writes through to the tab bar item too, and runs later.
+        // No Reviews tab: writing a review is reached through Profile › Reviews, which
+        // carries its own add button. Each remaining tab's own primary action lives on
+        // the bar's floating action button instead.
         let mediaListVC = MediaListViewController()
-        mediaListVC.tabBarItem = UITabBarItem(title: "Movies", image: UIImage(systemName: "film"), tag: 0)
-
         let searchMoviesVC = SearchMoviesController()
-        searchMoviesVC.tabBarItem = UITabBarItem(title: "Search", image: UIImage(systemName: "magnifyingglass"), tag: 1)
-
         let swipeDeckVC = SwipeDeckViewController(watchlistStore: watchlistStore, seenFilmsStore: seenFilmsStore)
-        swipeDeckVC.tabBarItem = UITabBarItem(title: "Swipe", image: UIImage(systemName: "flame"), tag: 2)
-
-        let reviewsVC = ReviewsListViewController(
-            viewModel: ReviewsListViewModel(store: reviewStore)
-        )
-        reviewsVC.tabBarItem = UITabBarItem(title: "Reviews", image: UIImage(systemName: "star.bubble"), tag: 3)
-
         let profileVC = ProfileViewController()
-        profileVC.tabBarItem = UITabBarItem(title: "Profile", image: UIImage(systemName: "person"), tag: 4)
 
-        let movieListNav = UINavigationController(rootViewController: mediaListVC)
-        let searchMoviesNav = UINavigationController(rootViewController: searchMoviesVC)
-        let swipeDeckNav = UINavigationController(rootViewController: swipeDeckVC)
-        let reviewsNav = UINavigationController(rootViewController: reviewsVC)
-        let profileNav = UINavigationController(rootViewController: profileVC)
+        let roots: [TabActionProviding] = [mediaListVC, searchMoviesVC, swipeDeckVC, profileVC]
+        // Each root reserves its own clearance for the floating bar. Set here on the
+        // screen itself rather than on `MainTabBarController` — nested content doesn't
+        // reliably honour safe-area insets applied several ancestors up.
+        for root in roots {
+            root.additionalSafeAreaInsets.bottom = MainTabBarController.contentClearance
+        }
 
         let tabBar = MainTabBarController()
-        tabBar.viewControllers = [movieListNav, searchMoviesNav, swipeDeckNav, reviewsNav, profileNav]
-        tabBar.enableQuickReview(nav: reviewsNav, list: reviewsVC)
+        tabBar.setTabs([
+            .init(
+                title: "Movies", symbol: "film",
+                navigationController: UINavigationController(rootViewController: mediaListVC),
+                root: mediaListVC
+            ),
+            .init(
+                title: "Search", symbol: "magnifyingglass",
+                navigationController: UINavigationController(rootViewController: searchMoviesVC),
+                root: searchMoviesVC
+            ),
+            .init(
+                title: "Swipe", symbol: "flame",
+                navigationController: UINavigationController(rootViewController: swipeDeckVC),
+                root: swipeDeckVC
+            ),
+            .init(
+                title: "Profile", symbol: "person",
+                navigationController: UINavigationController(rootViewController: profileVC),
+                root: profileVC
+            )
+        ])
         return tabBar
     }
 }

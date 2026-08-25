@@ -7,42 +7,116 @@
 
 import UIKit
 
-/// Tab bar where the Reviews tab composes instead of navigating: it opens the review
-/// sheet over the current tab and leaves the selection untouched.
-final class MainTabBarController: UITabBarController, UITabBarControllerDelegate {
+/// Hosts the app's tabs behind a custom Liquid Glass bar.
+///
+/// A plain container rather than a `UITabBarController` subclass: even with its system
+/// bar hidden, `UITabBarController` keeps reserving bottom safe-area space for it, so a
+/// custom bar pinned to the safe area ends up floating well above the screen's edge.
+/// Managing the children here sidesteps that entirely.
+final class MainTabBarController: UIViewController {
 
-    private weak var reviewsNav: UIViewController?
-    private weak var reviewsList: ReviewsListViewController?
-
-    func enableQuickReview(nav: UIViewController, list: ReviewsListViewController) {
-        reviewsNav = nav
-        reviewsList = list
-        delegate = self
+    /// One tab: the nav stack it shows, plus the root screen supplying its action.
+    struct Tab {
+        let title: String
+        let symbol: String
+        let navigationController: UINavigationController
+        let root: TabActionProviding
     }
 
-    func tabBarController(
-        _ tabBarController: UITabBarController,
-        shouldSelect viewController: UIViewController
-    ) -> Bool {
-        guard viewController === reviewsNav, viewController !== selectedViewController else {
-            return true
-        }
-        presentQuickReview()
-        return false
+    /// The gap between the bar and the bottom safe area.
+    static let barBottomInset: CGFloat = 8
+    /// What a screen must clear to sit above the floating bar.
+    static var contentClearance: CGFloat { CustomTabBarView.preferredHeight + barBottomInset }
+
+    private var tabs: [Tab] = []
+    private var customBar: CustomTabBarView?
+    private let contentContainer = UIView()
+    private(set) var selectedIndex = 0
+
+    func setTabs(_ tabs: [Tab]) {
+        self.tabs = tabs
     }
 
-    private func presentQuickReview() {
-        guard let reviewsList = reviewsList, presentedViewController == nil else { return }
-        // Saving from here leaves no trace on screen — the sheet closes onto the tab the
-        // user was already on — so the confirmation is the only signal it worked.
-        let editor = reviewsList.makeNewReviewEditor { [weak self] in
-            guard let self = self else { return }
-            ToastView.show(
-                "Added to your reviews",
-                in: self.view,
-                bottomInset: self.tabBar.frame.height
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .canvas
+        setupCustomBar()
+        setupContentContainer()
+        installChildren()
+    }
+
+    private func setupCustomBar() {
+        let bar = CustomTabBarView(tabs: tabs.map {
+            .init(
+                title: $0.title,
+                systemImage: $0.symbol,
+                actionSymbol: $0.root.tabActionSymbol,
+                actionLabel: $0.root.tabActionLabel
             )
+        })
+        bar.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(bar)
+        customBar = bar
+
+        NSLayoutConstraint.activate([
+            bar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            bar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            bar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -Self.barBottomInset),
+            bar.heightAnchor.constraint(equalToConstant: CustomTabBarView.preferredHeight)
+        ])
+
+        bar.onTabSelected = { [weak self] index in
+            self?.selectTab(at: index)
         }
-        present(UINavigationController(rootViewController: editor), animated: true)
+        bar.onActionTapped = { [weak self] in
+            self?.performCurrentTabAction()
+        }
+    }
+
+    /// Full screen, edge to edge. Clearance for the floating bar is applied as
+    /// `additionalSafeAreaInsets` on each root screen instead (see `MainTabBarFactory`)
+    /// — a nav controller hosted in a frame that stops short of the screen bottom
+    /// mispositions its own bars.
+    private func setupContentContainer() {
+        contentContainer.translatesAutoresizingMaskIntoConstraints = false
+        guard let customBar = customBar else { return }
+        view.insertSubview(contentContainer, belowSubview: customBar)
+        NSLayoutConstraint.activate([
+            contentContainer.topAnchor.constraint(equalTo: view.topAnchor),
+            contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
+
+    private func installChildren() {
+        for (index, tab) in tabs.enumerated() {
+            let child = tab.navigationController
+            addChild(child)
+            child.view.translatesAutoresizingMaskIntoConstraints = false
+            contentContainer.addSubview(child.view)
+            NSLayoutConstraint.activate([
+                child.view.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+                child.view.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
+                child.view.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+                child.view.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor)
+            ])
+            child.didMove(toParent: self)
+            child.view.isHidden = index != selectedIndex
+        }
+    }
+
+    private func selectTab(at index: Int) {
+        guard tabs.indices.contains(index), index != selectedIndex else { return }
+        tabs[selectedIndex].navigationController.view.isHidden = true
+        selectedIndex = index
+        tabs[selectedIndex].navigationController.view.isHidden = false
+    }
+
+    /// The action always belongs to the tab's root screen, even when the user has
+    /// navigated deeper — it's the tab's primary action, not the top screen's.
+    private func performCurrentTabAction() {
+        guard presentedViewController == nil else { return }
+        tabs[safe: selectedIndex]?.root.performTabAction()
     }
 }

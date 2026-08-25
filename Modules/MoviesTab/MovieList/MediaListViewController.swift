@@ -164,3 +164,21 @@ final class MediaListViewController: UIViewController {
         }
     }
 }
+
+// MARK: - Tab action
+
+extension MediaListViewController: TabActionProviding {
+
+    var tabActionSymbol: String { "shuffle" }
+    var tabActionLabel: String { "Surprise me" }
+
+    /// Opens a random title from whatever's currently trending — a way into the
+    /// catalogue for someone browsing without anything particular in mind.
+    func performTabAction() {
+        // Empty only before the first load lands; the articles segment leaves the last
+        // media list in place, so there's still something to pick from there.
+        guard let media = viewModel.mediaContent.randomElement() else { return }
+        let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
+        navigationController?.pushViewController(detailVC, animated: true)
+    }
+}

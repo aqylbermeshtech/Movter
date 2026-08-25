@@ -86,13 +86,8 @@ final class SwipeDeckViewController: UIViewController {
         navigationController?.navigationBar.standardAppearance = appearance
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
         navigationController?.navigationBar.tintColor = .textPrimary
-
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            image: UIImage(systemName: "bookmark"),
-            style: .plain,
-            target: self,
-            action: #selector(showWatchlist)
-        )
+        // The watchlist is this tab's primary action, so it lives on the tab bar's
+        // action button rather than up here.
     }
 
     private func setupLayout() {
@@ -232,7 +227,7 @@ final class SwipeDeckViewController: UIViewController {
         card.performSwipe(direction: .like)
     }
 
-    @objc private func showWatchlist() {
+    private func showWatchlist() {
         let watchlistVC = WatchlistListViewController(
             viewModel: WatchlistListViewModel(store: watchlistStore)
         )
@@ -303,5 +298,17 @@ final class SwipeDeckViewController: UIViewController {
         config.cornerStyle = .capsule
         config.contentInsets = NSDirectionalEdgeInsets(top: 18, leading: 18, bottom: 18, trailing: 18)
         return UIButton(configuration: config)
+    }
+}
+
+// MARK: - Tab action
+
+extension SwipeDeckViewController: TabActionProviding {
+
+    var tabActionSymbol: String { "bookmark" }
+    var tabActionLabel: String { "Watchlist" }
+
+    func performTabAction() {
+        showWatchlist()
     }
 }

@@ -310,3 +310,16 @@ extension ProfileViewController: UITableViewDelegate, UITableViewDataSource {
         header.textLabel?.font = .systemFont(ofSize: 13, weight: .semibold)
     }
 }
+
+// MARK: - Tab action
+
+extension ProfileViewController: TabActionProviding {
+
+    var tabActionSymbol: String { "pencil" }
+    var tabActionLabel: String { "Edit profile" }
+
+    /// A shortcut to the row of the same name — the settings list still carries it.
+    func performTabAction() {
+        showEditProfile()
+    }
+}
