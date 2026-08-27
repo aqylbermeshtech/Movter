@@ -10,9 +10,6 @@ import UIKit
 final class SearchMoviesController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     private let viewModel = SearchMoviesViewModel()
 
-    /// Raised by the tab bar's action button rather than sitting in the navigation bar,
-    /// so the browse list gets the full screen until the user asks to search.
-    private let searchController = UISearchController(searchResultsController: nil)
     private let chevronImage = UIImage(systemName: "chevron.right")
     private let tableView: UITableView = {
         let tv = UITableView(frame: .zero, style: .grouped)
@@ -22,53 +19,43 @@ final class SearchMoviesController: UIViewController, UITableViewDelegate, UITab
         tv.rowHeight = UITableView.automaticDimension
         return tv
     }()
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .canvas
         setupNavigationBar()
-        setupSearch()
         setupUI()
     }
-    
+
     //MARK: - UI
     private func setupNavigationBar() {
         navigationItem.title = "Search"
         navigationController?.navigationBar.prefersLargeTitles = false
-        
+
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = .canvas
         appearance.titleTextAttributes = [.foregroundColor: UIColor.textPrimary]
-        
+
         navigationController?.navigationBar.standardAppearance = appearance
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
         navigationController?.navigationBar.tintColor = .textPrimary
     }
-    
-    private func setupSearch() {
-        searchController.searchBar.placeholder = "Search films"
-        searchController.searchBar.delegate = self
-        searchController.delegate = self
-        searchController.searchBar.searchTextField.textColor = .textPrimary
-        searchController.searchBar.tintColor = .textPrimary
-        searchController.obscuresBackgroundDuringPresentation = false
-        // Not presented directly — see `performTabAction()`. UISearchController also
-        // rejects any `modalPresentationStyle` outside .custom / .popover / .formSheet,
-        // throwing at assignment time, so that's left alone too.
-    }
 
+    /// Pushes the results grid for a chosen query onto this tab's own stack, so it lands
+    /// back inside the normal chrome with the floating bar in place. Called back from
+    /// `SearchOverlayViewController` once the user picks or types a term.
     private func showResults(for query: String) {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 2 else { return }
 
-        // Don't stack duplicate result screens on top of one another.
-        if let top = navigationController?.topViewController, top !== self { return }
+        // A previous search may have left a results screen on top; drop back to the
+        // browse list before pushing the new one so they don't stack.
+        if let nav = navigationController, nav.topViewController !== self {
+            nav.popToViewController(self, animated: false)
+        }
 
         let resultsVC = MovieGridViewController(source: .search(trimmed), title: "“\(trimmed)”")
-        // Ends the search session; `didDismissSearchController` then takes the search
-        // bar back out of the navigation bar.
-        searchController.isActive = false
         navigationController?.pushViewController(resultsVC, animated: true)
     }
 
@@ -77,7 +64,7 @@ final class SearchMoviesController: UIViewController, UITableViewDelegate, UITab
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
         tableView.dataSource = self
-        
+
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -103,15 +90,15 @@ final class SearchMoviesController: UIViewController, UITableViewDelegate, UITab
     }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        
+
         cell.textLabel?.text = viewModel.item(at: indexPath)
         cell.textLabel?.textColor = .textPrimary
         cell.backgroundColor = .surface
-        
+
         let accessoryView = UIImageView(image: chevronImage)
         accessoryView.tintColor = .textSecondary
         cell.accessoryView = accessoryView
-        
+
         if cell.selectedBackgroundView == nil {
             let selectionView = UIView()
             selectionView.backgroundColor = .hairline
@@ -119,7 +106,7 @@ final class SearchMoviesController: UIViewController, UITableViewDelegate, UITab
         }
         return cell
     }
-    
+
     // MARK: - UITableViewDelegate
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
@@ -130,27 +117,11 @@ final class SearchMoviesController: UIViewController, UITableViewDelegate, UITab
         case .subcategory(let title, let items):
             let subCategoryVC = SubcategoryViewController(title: title, items: items)
             navigationController?.pushViewController(subCategoryVC, animated: true)
-            
+
         case .infoAction(let title, let description):
             print("Лог действия [\(title)]: \(description)")
 
         }
-    }
-}
-
-extension SearchMoviesController: UISearchBarDelegate, UISearchControllerDelegate {
-
-    /// Submit-driven rather than debounced-as-you-type: pushing results mid-keystroke
-    /// would collapse the search session out from under the user.
-    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-        searchBar.resignFirstResponder()
-        showResults(for: searchBar.text ?? "")
-    }
-
-    /// The search bar only exists while a search is in progress, so it comes back out
-    /// once the session ends and the browse list gets the full screen again.
-    func didDismissSearchController(_ searchController: UISearchController) {
-        navigationItem.searchController = nil
     }
 }
 
@@ -161,24 +132,14 @@ extension SearchMoviesController: TabActionProviding {
     var tabActionSymbol: String { "magnifyingglass" }
     var tabActionLabel: String { "Search films" }
 
-    /// Fits the search bar into the navigation bar and starts a search session, rather
-    /// than presenting the search controller itself — presented directly it arrives as
-    /// a detached panel instead of the standard bar-anchored search.
+    /// Brings up the dedicated search screen full-screen, over the floating tab bar. It
+    /// hands a chosen query back through `onSubmit`; results are pushed onto this tab.
     func performTabAction() {
-        searchController.searchBar.text = nil
-
-        if navigationItem.searchController == nil {
-            navigationItem.searchController = searchController
-            navigationItem.hidesSearchBarWhenScrolling = false
-            // Let the navigation bar lay the search bar out before activating it;
-            // activating a search bar that has no frame yet drops the focus.
-            navigationController?.navigationBar.setNeedsLayout()
-            navigationController?.navigationBar.layoutIfNeeded()
+        let overlay = SearchOverlayViewController()
+        overlay.onSubmit = { [weak self] term in
+            self?.showResults(for: term)
         }
-
-        searchController.isActive = true
-        DispatchQueue.main.async { [weak self] in
-            self?.searchController.searchBar.becomeFirstResponder()
-        }
+        overlay.modalPresentationStyle = .fullScreen
+        present(overlay, animated: true)
     }
 }
