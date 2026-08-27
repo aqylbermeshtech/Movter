@@ -36,7 +36,8 @@ final class CustomTabBarView: UIView {
     /// value as the Auto Layout gap between them, mirroring the reference project's
     /// shared `HStack(spacing:)` / `GlassEffectContainer(spacing:)` constant.
     private static let elementSpacing: CGFloat = 10
-    private static let segmentIconSize: CGFloat = 28
+    /// Gap between the icon and the title text stacked beneath it in a baked segment.
+    private static let segmentIconTitleSpacing: CGFloat = 3
     private static let capsuleInset: CGFloat = 6
 
     private let tabs: [Tab]
@@ -233,20 +234,49 @@ final class CustomTabBarView: UIView {
         return view
     }
 
-    /// Bakes a tab's symbol into a flat, pre-tinted image for its segment. Icon only —
-    /// the titles would crowd a floating capsule this size, and each symbol already
-    /// carries the meaning.
+    /// Bakes a tab's symbol with its title stacked beneath into a single flat,
+    /// pre-tinted image for its segment — a segment can't carry a live image *and* text,
+    /// so both are drawn into the one bitmap.
+    ///
+    /// Matches the reference project's tab item view (`CustomTabBar` / `ContentView`):
+    /// a `.fill` symbol at `.title3` over a 10pt-medium label, 3pt apart.
+    ///
+    /// Pre-tinted rather than a template, so the selected/unselected pair can be swapped
+    /// outright — a segment image isn't state-aware the way title attributes are.
     private static func renderSegmentImage(tab: Tab, tint: UIColor) -> UIImage {
-        let image = UIImage(
-            systemName: tab.systemImage,
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: segmentIconSize, weight: .medium)
-        )?
-        // Pre-tinted rather than a template, so the selected/unselected pair can be
-        // swapped outright — a segment image isn't state-aware.
-        .withTintColor(tint, renderingMode: .alwaysOriginal) ?? UIImage()
+        let iconConfig = UIImage.SymbolConfiguration(textStyle: .title3)
+        // Prefer the filled variant (the reference applies `.symbolVariant(.fill)`),
+        // falling back to the base symbol when there's no `.fill` counterpart.
+        let filledName = tab.systemImage.hasSuffix(".fill") ? tab.systemImage : tab.systemImage + ".fill"
+        let icon = (UIImage(systemName: filledName, withConfiguration: iconConfig)
+            ?? UIImage(systemName: tab.systemImage, withConfiguration: iconConfig))?
+            .withTintColor(tint, renderingMode: .alwaysOriginal)
 
-        // With no visible label, this is what VoiceOver reads for the segment.
-        image.accessibilityLabel = tab.title
-        return image
+        let titleAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 10, weight: .medium),
+            .foregroundColor: tint
+        ]
+        let title = tab.title as NSString
+        let titleSize = title.size(withAttributes: titleAttributes)
+        let iconSize = icon?.size ?? .zero
+
+        let width = ceil(max(iconSize.width, titleSize.width))
+        let height = ceil(iconSize.height + segmentIconTitleSpacing + titleSize.height)
+
+        let composed = UIGraphicsImageRenderer(size: CGSize(width: width, height: height)).image { _ in
+            icon?.draw(in: CGRect(
+                x: (width - iconSize.width) / 2, y: 0,
+                width: iconSize.width, height: iconSize.height
+            ))
+            title.draw(in: CGRect(
+                x: (width - titleSize.width) / 2,
+                y: iconSize.height + segmentIconTitleSpacing,
+                width: titleSize.width, height: titleSize.height
+            ), withAttributes: titleAttributes)
+        }
+
+        // The label is baked into the bitmap, so VoiceOver still needs it spelled out.
+        composed.accessibilityLabel = tab.title
+        return composed.withRenderingMode(.alwaysOriginal)
     }
 }
