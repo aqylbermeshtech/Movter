@@ -7,12 +7,6 @@
 
 import UIKit
 
-/// A catalogue title, or a name typed by hand.
-enum FilmSelection {
-    case catalogue(Media)
-    case manual(title: String)
-}
-
 /// Search TMDB for the film being reviewed, with a hand-typed fallback for titles the
 /// catalogue doesn't carry.
 final class FilmPickerViewController: UIViewController {
@@ -22,12 +16,7 @@ final class FilmPickerViewController: UIViewController {
     private let searchController = UISearchController(searchResultsController: nil)
     private let tableView = UITableView(frame: .zero, style: .plain)
 
-    private var results: [Media] = []
-    private var pendingSearch: DispatchWorkItem?
-    private var isSearching = false
-
-    /// Bumped per keystroke so a slow response can't overwrite a newer one.
-    private var currentSearchToken = 0
+    private let viewModel = FilmPickerViewModel()
 
     private let statusLabel: UILabel = {
         let label = UILabel()
@@ -94,7 +83,8 @@ final class FilmPickerViewController: UIViewController {
             spinner.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 16)
         ])
 
-        updateStatus()
+        viewModel.onChange = { [weak self] in self?.render() }
+        render()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -102,63 +92,17 @@ final class FilmPickerViewController: UIViewController {
         searchController.searchBar.becomeFirstResponder()
     }
 
-    // MARK: - Searching
-
-    private var trimmedQuery: String {
-        (searchController.searchBar.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private func scheduleSearch() {
-        pendingSearch?.cancel()
-
-        let query = trimmedQuery
-        guard query.count >= 2 else {
-            currentSearchToken += 1
-            results = []
-            isSearching = false
-            spinner.stopAnimating()
-            tableView.reloadData()
-            updateStatus()
-            return
-        }
-
-        // Debounced: one request per keystroke would burn the API budget.
-        let work = DispatchWorkItem { [weak self] in self?.performSearch(query) }
-        pendingSearch = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: work)
-    }
-
-    private func performSearch(_ query: String) {
-        currentSearchToken += 1
-        let token = currentSearchToken
-        isSearching = true
-        spinner.startAnimating()
-        updateStatus()
-
-        NetworkService.shared.searchMovies(query: query, page: 1) { [weak self] page in
-            guard let self = self, token == self.currentSearchToken else { return }
-            self.isSearching = false
-            self.spinner.stopAnimating()
-            self.results = page?.items ?? []
-            self.tableView.reloadData()
-            self.updateStatus()
-        }
-    }
-
-    private func updateStatus() {
-        let query = trimmedQuery
-        if isSearching {
-            statusLabel.text = nil
-        } else if query.isEmpty {
-            statusLabel.text = "Search for the film you want to log."
-        } else if query.count < 2 {
-            statusLabel.text = "Keep typing…"
-        } else if results.isEmpty {
-            statusLabel.text = "Nothing found for “\(query)”."
+    /// The screen is a pure function of the view model; every update lands here
+    /// rather than each callback poking at views directly.
+    private func render() {
+        if viewModel.isSearching {
+            spinner.startAnimating()
         } else {
-            statusLabel.text = nil
+            spinner.stopAnimating()
         }
-        statusLabel.isHidden = statusLabel.text == nil
+        statusLabel.text = viewModel.statusText
+        statusLabel.isHidden = viewModel.statusText == nil
+        tableView.reloadData()
     }
 
     @objc private func cancelTapped() {
@@ -184,7 +128,7 @@ final class FilmPickerViewController: UIViewController {
 
 extension FilmPickerViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
-        scheduleSearch()
+        viewModel.updateQuery(searchController.searchBar.text)
     }
 }
 
@@ -196,7 +140,7 @@ extension FilmPickerViewController: UITableViewDataSource, UITableViewDelegate {
     func numberOfSections(in tableView: UITableView) -> Int { 2 }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        section == 0 ? results.count : (trimmedQuery.isEmpty ? 0 : 1)
+        section == 0 ? viewModel.results.count : (viewModel.showsManualRow ? 1 : 0)
     }
 
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
@@ -207,7 +151,7 @@ extension FilmPickerViewController: UITableViewDataSource, UITableViewDelegate {
         if indexPath.section == 1 {
             let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
             cell.backgroundColor = .clear
-            cell.textLabel?.text = "Add “\(trimmedQuery)” manually"
+            cell.textLabel?.text = viewModel.manualRowTitle
             cell.textLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
             cell.textLabel?.textColor = .accent
             cell.textLabel?.numberOfLines = 0
@@ -219,7 +163,7 @@ extension FilmPickerViewController: UITableViewDataSource, UITableViewDelegate {
             withIdentifier: FilmResultCell.identifier,
             for: indexPath
         ) as! FilmResultCell
-        if let media = results[safe: indexPath.row] {
+        if let media = viewModel.result(at: indexPath.row) {
             cell.configure(with: media)
         }
         return cell
@@ -228,8 +172,8 @@ extension FilmPickerViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         if indexPath.section == 1 {
-            finish(with: .manual(title: trimmedQuery))
-        } else if let media = results[safe: indexPath.row] {
+            finish(with: viewModel.manualSelection)
+        } else if let media = viewModel.result(at: indexPath.row) {
             finish(with: .catalogue(media))
         }
     }
