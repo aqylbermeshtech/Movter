@@ -1,108 +1,39 @@
 # Movter
 
-Movter is an iOS application that allows users to browse trending movies, view detailed information, and explore related content using The Movie Database (TMDb) API.
+An iOS film app: browse what's trending, keep a watchlist, and score what you've seen.
 
 <div align="center">
   <video src="https://github.com/user-attachments/assets/7db2906a-34fa-4262-97bc-6d1617b28575" controls width="300"></video>
 </div>
 
-
-
-
-
 ## Features
 
-- Browse trending movies (daily)
-- View detailed movie information
-- Watch trailers (via YouTube integration)
-- Display movie posters and images
-- Smooth and responsive UI
-- Networking with real API data
-- Clean and scalable architecture
+- **Browse** — trending films and TV, plus film news from the Guardian. Details screens carry the trailer, cast, and your own rating.
+- **Search** — search the catalogue, or browse by decade, genre, streaming service, or rating.
+- **Swipe** — a deck of popular films; swipe right to save one to your watchlist.
+- **Diary** — score films 1–10 and write a review, picked from the catalogue or typed in by hand.
+- **Account** — email sign-in, editable profile, notification preferences, and three themes.
 
-## Tech Stack
+## Requirements
 
-- Swift
-- UIKit (programmatic UI)
-- MVVM
-- URLSession
-- JSONDecoder (.convertFromSnakeCase)
-- TMDb API
+Xcode 26.1 · iOS 26
 
-## Architecture
-
-The app follows the **MVVM (Model-View-ViewModel)** architecture:
-
-- **Model** — represents API data
-- **ViewModel** — handles business logic and data transformation
-- **View** — displays UI and binds to ViewModel
-
-This approach improves code readability, scalability, and testability.
-
-## API Integration
-
-Data is fetched from **TMDb API**:
-
-- Trending movies endpoint:
-- Movie videos (trailers):
-Images are loaded using:
-
-https://image.tmdb.org/t/p/w185
-
-
-## Main Screens
-
-### Movie List Screen
-
-Displays trending movies in a scrollable list.
-
-### Movie Details Screen
-
-Shows detailed information about a selected movie:
-- Title
-- Description
-- Poster
-- Trailer
-
-## What I Learned
-
-While building this project, I improved my skills in:
-
-- Working with REST APIs
-- Networking using URLSession
-- Parsing JSON with JSONDecoder
-- Using `.convertFromSnakeCase`
-- Building scalable apps with MVVM
-- Creating smooth UIKit interfaces programmatically
-- Handling asynchronous data loading
-
-## Installation
+## Setup
 
 1. Clone the repository:
 
-```bash
-git clone https://github.com/aqylbermeshtech/Movter.git
-```
+   ```bash
+   git clone https://github.com/aqylbermeshtech/Movter.git
+   ```
 
-2. Add the two local-only files that are intentionally not committed:
+2. Create `Config/Secrets.xcconfig` next to `Movter.xcodeproj` — copy `Movter/Config/Secrets.xcconfig.example` and fill in your own [TMDb](https://www.themoviedb.org/settings/api) and [Guardian](https://open-platform.theguardian.com/access/) API keys.
 
-   - **`Config/Secrets.xcconfig`** — create this file next to `Movter.xcodeproj` (i.e. a
-     sibling of the `Movter` and `Movter.xcodeproj` folders, *not* inside either of
-     them) by copying `Movter/Config/Secrets.xcconfig.example` and filling in your own
-     [TMDb](https://www.themoviedb.org/settings/api) and
-     [Guardian](https://open-platform.theguardian.com/access/) API keys.
-   - **`GoogleService-Info.plist`** — download this from the
-     [Firebase console](https://console.firebase.google.com/) for the `movielistapp-13a53`
-     project and place it in `Movter/`.
+3. Add `GoogleService-Info.plist` from the [Firebase console](https://console.firebase.google.com/) to `Movter/`.
 
-   > **What this does and doesn't protect.** Keeping `Secrets.xcconfig` out of git keeps
-   > the keys out of the repository — it does not keep them out of the app. Xcode
-   > substitutes both values into `Info.plist` at build time, so they are present in
-   > cleartext in every build and readable from any copy of it. Use keys you are willing
-   > to have public, and rotate any key that has ever been committed. The Firebase
-   > `API_KEY` in `GoogleService-Info.plist` is a different case: it is a project
-   > identifier rather than a credential and Google documents it as safe to ship —
-   > access there is controlled by Firebase Security Rules, not by keeping the key
-   > secret.
+4. Open `Movter.xcodeproj` and run.
 
-3. Open `Movter.xcodeproj` in Xcode and run.
+> Both API keys are substituted into `Info.plist` at build time, so they ship inside the app and can be read from any build. Use keys you are willing to have public. The Firebase key in `GoogleService-Info.plist` is a project identifier rather than a credential — Google documents it as safe to ship, and access is controlled by Firebase Security Rules.
+
+## Built with
+
+Swift and UIKit, laid out in code with no storyboards. MVVM, `URLSession`, and Firebase Auth. Film data from [TMDb](https://www.themoviedb.org/), news from the [Guardian Open Platform](https://open-platform.theguardian.com/).
