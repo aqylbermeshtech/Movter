@@ -27,23 +27,23 @@ final class GenreProvider {
         self.service = service
     }
 
-    private var cache: [Bool: [Int: String]] = [:]        // isTV -> [id: name]
-    private var inFlight: [Bool: [(  [Int: String]) -> Void]] = [:]
+    private var cache: [MediaType: [Int: String]] = [:]
+    private var inFlight: [MediaType: [([Int: String]) -> Void]] = [:]
     private let queue = DispatchQueue(label: "GenreProvider", attributes: .concurrent)
 
     /// First name only; TMDB orders them most-representative first.
-    func primaryGenreName(for ids: [Int]?, isTV: Bool, completion: @escaping (String?) -> Void) {
+    func primaryGenreName(for ids: [Int]?, type: MediaType, completion: @escaping (String?) -> Void) {
         guard let ids = ids, !ids.isEmpty else {
             completion(nil)
             return
         }
-        table(isTV: isTV) { table in
+        table(type: type) { table in
             completion(ids.compactMap { table[$0] }.first)
         }
     }
 
-    private func table(isTV: Bool, completion: @escaping ([Int: String]) -> Void) {
-        if let cached = queue.sync(execute: { cache[isTV] }) {
+    private func table(type: MediaType, completion: @escaping ([Int: String]) -> Void) {
+        if let cached = queue.sync(execute: { cache[type] }) {
             completion(cached)
             return
         }
@@ -51,24 +51,24 @@ final class GenreProvider {
         // Coalesce concurrent callers so a screenful of cells triggers one request.
         var shouldFetch = false
         queue.sync(flags: .barrier) {
-            if inFlight[isTV] == nil {
-                inFlight[isTV] = []
+            if inFlight[type] == nil {
+                inFlight[type] = []
                 shouldFetch = true
             }
-            inFlight[isTV]?.append(completion)
+            inFlight[type]?.append(completion)
         }
         guard shouldFetch else { return }
 
-        service.fetchGenres(isTV: isTV) { [weak self] genres in
+        service.fetchGenres(type: type) { [weak self] genres in
             guard let self = self else { return }
             let table = Dictionary(uniqueKeysWithValues: (genres ?? []).map { ($0.id, $0.name) })
 
             var waiting: [([Int: String]) -> Void] = []
             self.queue.sync(flags: .barrier) {
                 // Only cache a real answer, so a failed request retries next time.
-                if !table.isEmpty { self.cache[isTV] = table }
-                waiting = self.inFlight[isTV] ?? []
-                self.inFlight[isTV] = nil
+                if !table.isEmpty { self.cache[type] = table }
+                waiting = self.inFlight[type] ?? []
+                self.inFlight[type] = nil
             }
             waiting.forEach { $0(table) }
         }

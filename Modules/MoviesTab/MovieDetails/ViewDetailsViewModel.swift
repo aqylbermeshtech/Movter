@@ -26,7 +26,7 @@ final class MediaDetailsViewModel {
     var ratingState: RatingState { media.ratingState }
     var year: String? { media.year }
     var largeImageURL: URL? { media.largePosterURL ?? media.fullPosterURL }
-    private var isTV: Bool { media.name != nil }
+    private var mediaType: MediaType { media.mediaType }
 
     private(set) var genreName: String?
     var onGenreUpdate: (() -> Void)?
@@ -85,7 +85,7 @@ final class MediaDetailsViewModel {
     }
 
     func fetchGenre() {
-        genreProvider.primaryGenreName(for: media.genreIds, isTV: isTV) { [weak self] name in
+        genreProvider.primaryGenreName(for: media.genreIds, type: mediaType) { [weak self] name in
             guard let self = self, let name = name else { return }
             self.genreName = name
             self.onGenreUpdate?()
@@ -117,13 +117,13 @@ final class MediaDetailsViewModel {
     
     
     func fetchTrailer() {
-        service.fetchVideo(for: media.id, isTV: isTV) { [weak self] key in
+        service.fetchVideo(for: media.id, type: mediaType) { [weak self] key in
             self?.onVideoUpdate?(key)
         }
     }
     
     func fetchActors() {
-        service.fetchActors(for: media.id, isTV: isTV) { [weak self] fetchedActors in
+        service.fetchActors(for: media.id, type: mediaType) { [weak self] fetchedActors in
             guard let self = self else { return }
             // A nil result means the request or decode failed. Bailing out here (as this
             // used to) left the screen with no way to know the fetch was ever attempted.

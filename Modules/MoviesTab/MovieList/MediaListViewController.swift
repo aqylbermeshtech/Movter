@@ -110,16 +110,9 @@ final class MediaListViewController: UIViewController {
             safariVC.preferredControlTintColor = .accent
             self?.present(safariVC, animated: true)
         }
-        topSwitcher.onSegmentChanged = { [weak self] index in
-            guard let self = self, let type = ContentType(rawValue: index) else { return }
-            switch type {
-            case .movies:
-                self.trendingView.setSectionTitle("Trending Movies")
-            case .tvSeries:
-                self.trendingView.setSectionTitle("Trending TV Shows")
-            case .articles:
-                self.trendingView.setSectionTitle("Latest Film News")
-            }
+        topSwitcher.onSelect = { [weak self] type in
+            guard let self = self else { return }
+            self.trendingView.setSectionTitle(type.sectionTitle)
             self.setTrendingFillsScreen(type == .articles)
             self.setHeroVisible(type != .articles)
             if type != .articles {

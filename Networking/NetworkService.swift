@@ -96,9 +96,8 @@ final class NetworkService {
         }.resume()
     }
 
-    func fetchVideo(for id: Int, isTV: Bool, completion: @escaping @MainActor (String?) -> Void) {
-        let category = isTV ? "tv" : "movie"
-        let urlString = "\(baseURL)/\(category)/\(id)/videos?api_key=\(apiKey)"
+    func fetchVideo(for id: Int, type: MediaType, completion: @escaping @MainActor (String?) -> Void) {
+        let urlString = "\(baseURL)/\(type.path)/\(id)/videos?api_key=\(apiKey)"
         performRequest(urlString: urlString) { (result: VideoResponse?) in
             // Prefer an actual trailer, then any YouTube clip — TMDB also returns
             // teasers, featurettes and clips under the same endpoint.
@@ -108,17 +107,15 @@ final class NetworkService {
         }
     }
     
-    func fetchActors(for id: Int, isTV: Bool, completion: @escaping @MainActor ([Actor]?) -> Void) {
-        let type = isTV ? "tv" : "movie"
-        let urlString = "\(baseURL)/\(type)/\(id)/credits?api_key=\(apiKey)"
+    func fetchActors(for id: Int, type: MediaType, completion: @escaping @MainActor ([Actor]?) -> Void) {
+        let urlString = "\(baseURL)/\(type.path)/\(id)/credits?api_key=\(apiKey)"
         performRequest(urlString: urlString) { (result: MovieCredits?) in
             completion(result?.cast)
         }
     }
     
-    func fetchGenres(isTV: Bool, completion: @escaping @MainActor ([GenreListResponse.Genre]?) -> Void) {
-        let type = isTV ? "tv" : "movie"
-        let urlString = "\(baseURL)/genre/\(type)/list?api_key=\(apiKey)&language=en-US"
+    func fetchGenres(type: MediaType, completion: @escaping @MainActor ([GenreListResponse.Genre]?) -> Void) {
+        let urlString = "\(baseURL)/genre/\(type.path)/list?api_key=\(apiKey)&language=en-US"
         performRequest(urlString: urlString) { (result: GenreListResponse?) in
             completion(result?.genres)
         }

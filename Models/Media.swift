@@ -26,6 +26,10 @@ struct Media: Codable {
         return title ?? name ?? "Unknown"
     }
 
+    /// TMDB sends `title` for films and `name` for series; whichever is present is
+    /// what distinguishes them.
+    var mediaType: MediaType { name != nil ? .tv : .movie }
+
     /// Movies carry `release_date`, TV carries `first_air_date`.
     var releaseDateString: String? { releaseDate ?? firstAirDate }
 

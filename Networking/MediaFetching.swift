@@ -23,17 +23,17 @@ protocol MediaFetching: AnyObject {
     )
 
     func fetchVideo(
-        for id: Int, isTV: Bool,
+        for id: Int, type: MediaType,
         completion: @escaping @MainActor (String?) -> Void
     )
 
     func fetchActors(
-        for id: Int, isTV: Bool,
+        for id: Int, type: MediaType,
         completion: @escaping @MainActor ([Actor]?) -> Void
     )
 
     func fetchGenres(
-        isTV: Bool,
+        type: MediaType,
         completion: @escaping @MainActor ([GenreListResponse.Genre]?) -> Void
     )
 
@@ -71,7 +71,7 @@ extension NetworkService: MediaFetching {}
 /// caching and request coalescing on top of the raw endpoint.
 protocol GenreProviding: AnyObject {
     func primaryGenreName(
-        for ids: [Int]?, isTV: Bool,
+        for ids: [Int]?, type: MediaType,
         completion: @escaping (String?) -> Void
     )
 }

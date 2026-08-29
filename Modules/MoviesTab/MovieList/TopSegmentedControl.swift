@@ -8,10 +8,13 @@
 import UIKit
 
 final class TopSegmentedControlView: UIView {
-    var onSegmentChanged: ((Int) -> Void)?
-    
+
+    /// The feed the user picked, typed rather than an index — the control and the list
+    /// can't disagree about what segment 1 means when both come from `allCases`.
+    var onSelect: ((ContentType) -> Void)?
+
     private let segmentedControl: UISegmentedControl = {
-        let sc = UISegmentedControl(items: ["Movies", "TV Series", "Articles"])
+        let sc = UISegmentedControl(items: ContentType.allCases.map(\.segmentTitle))
         sc.selectedSegmentIndex = 0
         sc.backgroundColor = .surface
         sc.selectedSegmentTintColor = .accent
@@ -52,7 +55,8 @@ final class TopSegmentedControlView: UIView {
     }
 
     @objc private func handleSegmentChange() {
-        onSegmentChanged?(segmentedControl.selectedSegmentIndex)
+        guard let type = ContentType.allCases[safe: segmentedControl.selectedSegmentIndex] else { return }
+        onSelect?(type)
     }
 
     func updateTheme(with color: UIColor) {

@@ -19,16 +19,6 @@ final class MediaListViewModel {
     private(set) var articleContent: [Article] = []
     var onUpdate: ((TrendingResult) -> Void)?
     private(set) var currentType: ContentType = .movies
-    var sectionTitle: String {
-        switch currentType {
-        case .movies:
-            return "Trending Movies"
-        case .tvSeries:
-            return "Trending TV Shows"
-        case .articles:
-            return "Latest Film News"
-        }
-    }
 
     func fetchContent(type: ContentType) {
         self.currentType = type
@@ -52,10 +42,4 @@ final class MediaListViewModel {
     func getUrl(for article: Article) -> URL? {
         return URL(string: article.webUrl)
     }
-}
-
-enum ContentType: Int {
-    case movies = 0
-    case tvSeries = 1
-    case articles = 2
 }
