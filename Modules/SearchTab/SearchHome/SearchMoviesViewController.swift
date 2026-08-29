@@ -1,5 +1,5 @@
 //
-//  SearchMoviesController.swift
+//  SearchMoviesViewController.swift
 //  Movter
 //
 //  Created by Nurtore on 01.05.2026.
@@ -7,7 +7,7 @@
 
 import UIKit
 
-final class SearchMoviesController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+final class SearchMoviesViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     private let viewModel = SearchMoviesViewModel()
 
     private let chevronImage = UIImage(systemName: "chevron.right")
@@ -127,7 +127,7 @@ final class SearchMoviesController: UIViewController, UITableViewDelegate, UITab
 
 // MARK: - Tab action
 
-extension SearchMoviesController: TabActionProviding {
+extension SearchMoviesViewController: TabActionProviding {
 
     var tabActionSymbol: String { "magnifyingglass" }
     var tabActionLabel: String { "Search films" }

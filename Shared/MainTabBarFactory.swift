@@ -16,7 +16,7 @@ enum MainTabBarFactory {
         // carries its own add button. Each remaining tab's own primary action lives on
         // the bar's floating action button instead.
         let mediaListVC = MediaListViewController()
-        let searchMoviesVC = SearchMoviesController()
+        let searchMoviesVC = SearchMoviesViewController()
         let swipeDeckVC = SwipeDeckViewController(watchlistStore: watchlistStore, seenFilmsStore: seenFilmsStore)
         let profileVC = ProfileViewController()
 
