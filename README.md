@@ -84,7 +84,7 @@ While building this project, I improved my skills in:
 git clone https://github.com/aqylbermeshtech/Movter.git
 ```
 
-2. Add the two local-only files that are intentionally not committed (they hold secrets):
+2. Add the two local-only files that are intentionally not committed:
 
    - **`Config/Secrets.xcconfig`** — create this file next to `Movter.xcodeproj` (i.e. a
      sibling of the `Movter` and `Movter.xcodeproj` folders, *not* inside either of
@@ -94,5 +94,15 @@ git clone https://github.com/aqylbermeshtech/Movter.git
    - **`GoogleService-Info.plist`** — download this from the
      [Firebase console](https://console.firebase.google.com/) for the `movielistapp-13a53`
      project and place it in `Movter/`.
+
+   > **What this does and doesn't protect.** Keeping `Secrets.xcconfig` out of git keeps
+   > the keys out of the repository — it does not keep them out of the app. Xcode
+   > substitutes both values into `Info.plist` at build time, so they are present in
+   > cleartext in every build and readable from any copy of it. Use keys you are willing
+   > to have public, and rotate any key that has ever been committed. The Firebase
+   > `API_KEY` in `GoogleService-Info.plist` is a different case: it is a project
+   > identifier rather than a credential and Google documents it as safe to ship —
+   > access there is controlled by Firebase Security Rules, not by keeping the key
+   > secret.
 
 3. Open `Movter.xcodeproj` in Xcode and run.

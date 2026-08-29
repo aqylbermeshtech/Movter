@@ -29,6 +29,9 @@ enum TrendingResult {
     case articles([Article])
 }
 
+/// Every completion is `@MainActor`: callers are UI code, and the contract is on the
+/// parameter type rather than in a comment so the compiler rejects a callback fired
+/// from URLSession's queue instead of leaving it to be noticed in review.
 final class NetworkService {
     static let shared = NetworkService()
     private let baseURL = "https://api.themoviedb.org/3"
@@ -47,7 +50,7 @@ final class NetworkService {
         return value
     }
     
-    func fetchTrendingContent(type: ContentType, completion: @escaping (TrendingResult) -> Void) {
+    func fetchTrendingContent(type: ContentType, completion: @escaping @MainActor (TrendingResult) -> Void) {
         let endpoint: String
         switch type {
         case .movies:
@@ -66,7 +69,7 @@ final class NetworkService {
         }
     }
 
-    private func performRequest<T: Decodable>(urlString: String, completion: @escaping (T?) -> Void) {
+    private func performRequest<T: Decodable>(urlString: String, completion: @escaping @MainActor (T?) -> Void) {
         guard let url = URL(string: urlString) else {
             completion(nil)
             return
@@ -93,7 +96,7 @@ final class NetworkService {
         }.resume()
     }
 
-    func fetchVideo(for id: Int, isTV: Bool, completion: @escaping (String?) -> Void) {
+    func fetchVideo(for id: Int, isTV: Bool, completion: @escaping @MainActor (String?) -> Void) {
         let category = isTV ? "tv" : "movie"
         let urlString = "\(baseURL)/\(category)/\(id)/videos?api_key=\(apiKey)"
         guard let url = URL(string: urlString) else {
@@ -129,7 +132,7 @@ final class NetworkService {
         }.resume()
     }
     
-    func fetchActors(for id: Int, isTV: Bool, completion: @escaping ([Actor]?) -> Void) {
+    func fetchActors(for id: Int, isTV: Bool, completion: @escaping @MainActor ([Actor]?) -> Void) {
         let type = isTV ? "tv" : "movie"
         let urlString = "\(baseURL)/\(type)/\(id)/credits?api_key=\(apiKey)"
         guard let url = URL(string: urlString) else {
@@ -138,7 +141,7 @@ final class NetworkService {
         }
         URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data, error == nil else {
-                completion(nil)
+                DispatchQueue.main.async { completion(nil) }
                 return
             }
             do {
@@ -156,7 +159,7 @@ final class NetworkService {
         }.resume()
     }
     
-    func fetchGenres(isTV: Bool, completion: @escaping ([GenreListResponse.Genre]?) -> Void) {
+    func fetchGenres(isTV: Bool, completion: @escaping @MainActor ([GenreListResponse.Genre]?) -> Void) {
         let type = isTV ? "tv" : "movie"
         let urlString = "\(baseURL)/genre/\(type)/list?api_key=\(apiKey)&language=en-US"
         performRequest(urlString: urlString) { (result: GenreListResponse?) in
@@ -164,19 +167,19 @@ final class NetworkService {
         }
     }
 
-    func fetchPersonDetails(for id: Int, completion: @escaping (PersonDetails?) -> Void) {
+    func fetchPersonDetails(for id: Int, completion: @escaping @MainActor (PersonDetails?) -> Void) {
         let urlString = "\(baseURL)/person/\(id)?api_key=\(apiKey)&language=en-US"
         performRequest(urlString: urlString, completion: completion)
     }
 
-    func fetchPersonCredits(for id: Int, completion: @escaping ([PersonCredit]) -> Void) {
+    func fetchPersonCredits(for id: Int, completion: @escaping @MainActor ([PersonCredit]) -> Void) {
         let urlString = "\(baseURL)/person/\(id)/combined_credits?api_key=\(apiKey)&language=en-US"
         performRequest(urlString: urlString) { (result: PersonCreditsResponse?) in
             completion(result?.cast ?? [])
         }
     }
 
-    func fetchArticles(completion: @escaping ([Article]?) -> Void) {
+    func fetchArticles(completion: @escaping @MainActor ([Article]?) -> Void) {
         let urlString = "\(guardianBaseURL)/search?section=film&show-fields=thumbnail,trailText&api-key=\(guardianApiKey)"
         guard let url = URL(string: urlString) else {
             completion(nil)
@@ -185,7 +188,7 @@ final class NetworkService {
         URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data, error == nil else {
                 print("Network error: \(String(describing: error))")
-                completion(nil)
+                DispatchQueue.main.async { completion(nil) }
                 return
             }
             do {
@@ -203,7 +206,7 @@ final class NetworkService {
         }.resume()
     }
     
-    func fetchDiscover(query: DiscoverQuery, page: Int, completion: @escaping (MediaPage?) -> Void) {
+    func fetchDiscover(query: DiscoverQuery, page: Int, completion: @escaping @MainActor (MediaPage?) -> Void) {
         var components = URLComponents(string: baseURL + query.path)
         components?.queryItems = query.queryItems + [
             URLQueryItem(name: "page", value: "\(page)"),
@@ -227,14 +230,14 @@ final class NetworkService {
 
     /// Feeds the swipe deck. Plain `/movie/popular`, paginated the same way as
     /// `fetchDiscover`/`searchMovies`.
-    func fetchPopularMovies(page: Int, completion: @escaping (MediaPage?) -> Void) {
+    func fetchPopularMovies(page: Int, completion: @escaping @MainActor (MediaPage?) -> Void) {
         let urlString = "\(baseURL)/movie/popular?page=\(page)&api_key=\(apiKey)&language=en-US"
         performRequest(urlString: urlString) { (result: MovieResponse?) in
             completion(result.map { Self.page(from: $0, requested: page) })
         }
     }
 
-    func searchMovies(query: String, page: Int, completion: @escaping (MediaPage?) -> Void) {
+    func searchMovies(query: String, page: Int, completion: @escaping @MainActor (MediaPage?) -> Void) {
         var components = URLComponents(string: baseURL + "/search/movie")
         components?.queryItems = [
             URLQueryItem(name: "query", value: query),
