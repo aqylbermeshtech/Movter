@@ -40,15 +40,8 @@ struct WatchlistItem: Codable, Equatable {
         self.init(tmdbID: media.id, title: media.displayName, year: media.year, posterPath: media.posterPath)
     }
 
-    /// Same width as `Media.fullPosterURL`, so both share one cache entry.
-    var posterURL: URL? {
-        guard let posterPath = posterPath else { return nil }
-        return URL(string: "https://image.tmdb.org/t/p/w500\(posterPath)")
-    }
+    var posterURL: URL? { TMDBImageURL.url(path: posterPath, width: .poster) }
 
     /// "Dune  ·  2021", or just the title when the year is unknown.
-    var titleWithYear: String {
-        guard let year = year, !year.isEmpty else { return title }
-        return "\(title)  ·  \(year)"
-    }
+    var titleWithYear: String { title.withYear(year) }
 }

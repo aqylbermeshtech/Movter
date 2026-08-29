@@ -17,10 +17,7 @@ struct PersonDetails: Codable {
     let profilePath: String?
     let knownForDepartment: String?
 
-    var profileURL: URL? {
-        guard let path = profilePath else { return nil }
-        return URL(string: "https://image.tmdb.org/t/p/w342\(path)")
-    }
+    var profileURL: URL? { TMDBImageURL.url(path: profilePath, width: .headshot) }
 }
 
 struct PersonCreditsResponse: Codable {

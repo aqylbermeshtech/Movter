@@ -61,17 +61,10 @@ struct Review: Codable, Equatable {
         )
     }
 
-    /// Same width as `Media.fullPosterURL`, so both share one cache entry.
-    var posterURL: URL? {
-        guard let posterPath = posterPath else { return nil }
-        return URL(string: "https://image.tmdb.org/t/p/w500\(posterPath)")
-    }
+    var posterURL: URL? { TMDBImageURL.url(path: posterPath, width: .poster) }
 
     /// "Dune  ·  2021", or just the title when the year is unknown.
-    var titleWithYear: String {
-        guard let filmYear = filmYear, !filmYear.isEmpty else { return filmTitle }
-        return "\(filmTitle)  ·  \(filmYear)"
-    }
+    var titleWithYear: String { filmTitle.withYear(filmYear) }
 
     var hasReviewText: Bool {
         !reviewText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

@@ -17,8 +17,5 @@ struct Actor: Codable {
     let character: String
     let profilePath: String?
 
-    var profileURL: URL? {
-        guard let path = profilePath else { return nil }
-        return URL(string: "https://image.tmdb.org/t/p/w185\(path)")
-    }
+    var profileURL: URL? { TMDBImageURL.url(path: profilePath, width: .thumbnail) }
 }

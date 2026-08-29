@@ -38,21 +38,12 @@ struct Media: Codable {
         RatingState(voteAverage: voteAverage, voteCount: voteCount ?? 0, releaseDate: releaseDateString)
     }
 
-    var fullPosterURL: URL? {
-        guard let path = posterPath else { return nil }
-        return URL(string: "https://image.tmdb.org/t/p/w500\(path)")
-    }
+    var fullPosterURL: URL? { TMDBImageURL.url(path: posterPath, width: .poster) }
 
     /// w500 is visibly soft when a poster spans the full screen width on a 3x device.
-    var largePosterURL: URL? {
-        guard let path = posterPath else { return nil }
-        return URL(string: "https://image.tmdb.org/t/p/w780\(path)")
-    }
+    var largePosterURL: URL? { TMDBImageURL.url(path: posterPath, width: .wide) }
 
     /// Landscape art for the hero carousel. TMDB has no dedicated "horizontal poster"
     /// field — `backdrop_path` is the intended source for 16:9 layouts.
-    var fullBackdropURL: URL? {
-        guard let path = backdropPath else { return nil }
-        return URL(string: "https://image.tmdb.org/t/p/w780\(path)")
-    }
+    var fullBackdropURL: URL? { TMDBImageURL.url(path: backdropPath, width: .wide) }
 }

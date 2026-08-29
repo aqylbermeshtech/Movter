@@ -99,64 +99,21 @@ final class NetworkService {
     func fetchVideo(for id: Int, isTV: Bool, completion: @escaping @MainActor (String?) -> Void) {
         let category = isTV ? "tv" : "movie"
         let urlString = "\(baseURL)/\(category)/\(id)/videos?api_key=\(apiKey)"
-        guard let url = URL(string: urlString) else {
-            print("Invalid URL")
-            completion(nil)
-            return
+        performRequest(urlString: urlString) { (result: VideoResponse?) in
+            // Prefer an actual trailer, then any YouTube clip — TMDB also returns
+            // teasers, featurettes and clips under the same endpoint.
+            let trailer = result?.results.first { $0.site == "YouTube" && $0.type == "Trailer" }
+                       ?? result?.results.first { $0.site == "YouTube" }
+            completion(trailer?.key)
         }
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            if let error = error {
-                print("Network error: \(error.localizedDescription)")
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
-            guard let data = data else {
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
-            do {
-                let decoder = JSONDecoder()
-                decoder.keyDecodingStrategy = .convertFromSnakeCase
-                let result = try decoder.decode(VideoResponse.self, from: data)
-
-                let trailer = result.results.first { $0.site == "YouTube" && $0.type == "Trailer" }
-                             ?? result.results.first { $0.site == "YouTube" }
-                
-                DispatchQueue.main.async {
-                    completion(trailer?.key)
-                }
-            } catch {
-                print("Decoding error: \(error)")
-                DispatchQueue.main.async { completion(nil) }
-            }
-        }.resume()
     }
     
     func fetchActors(for id: Int, isTV: Bool, completion: @escaping @MainActor ([Actor]?) -> Void) {
         let type = isTV ? "tv" : "movie"
         let urlString = "\(baseURL)/\(type)/\(id)/credits?api_key=\(apiKey)"
-        guard let url = URL(string: urlString) else {
-            completion(nil)
-            return
+        performRequest(urlString: urlString) { (result: MovieCredits?) in
+            completion(result?.cast)
         }
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data, error == nil else {
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
-            do {
-                let decoder = JSONDecoder()
-                decoder.keyDecodingStrategy = .convertFromSnakeCase
-                let result = try decoder.decode(MovieCredits.self, from: data)
-                
-                DispatchQueue.main.async {
-                    completion(result.cast)
-                }
-            } catch {
-                print("Decoding error for \(type): \(error)")
-                DispatchQueue.main.async { completion(nil) }
-            }
-        }.resume()
     }
     
     func fetchGenres(isTV: Bool, completion: @escaping @MainActor ([GenreListResponse.Genre]?) -> Void) {
@@ -181,29 +138,11 @@ final class NetworkService {
 
     func fetchArticles(completion: @escaping @MainActor ([Article]?) -> Void) {
         let urlString = "\(guardianBaseURL)/search?section=film&show-fields=thumbnail,trailText&api-key=\(guardianApiKey)"
-        guard let url = URL(string: urlString) else {
-            completion(nil)
-            return
+        // The Guardian's keys are already camelCase and carry no underscores, so
+        // `performRequest`'s `.convertFromSnakeCase` passes them through unchanged.
+        performRequest(urlString: urlString) { (result: GuardianResponse?) in
+            completion(result?.response.results)
         }
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data, error == nil else {
-                print("Network error: \(String(describing: error))")
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
-            do {
-                let decoder = JSONDecoder()
-                let result = try decoder.decode(GuardianResponse.self, from: data)
-                DispatchQueue.main.async {
-                    completion(result.response.results)
-                }
-            } catch {
-                print("Decoding error for Guardian: \(error)")
-                DispatchQueue.main.async {
-                    completion(nil)
-                }
-            }
-        }.resume()
     }
     
     func fetchDiscover(query: DiscoverQuery, page: Int, completion: @escaping @MainActor (MediaPage?) -> Void) {

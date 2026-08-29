@@ -59,10 +59,7 @@ final class ReviewEditorViewModel {
 
     var hasFilm: Bool { !filmTitle.isEmpty }
 
-    var posterURL: URL? {
-        guard let posterPath = posterPath else { return nil }
-        return URL(string: "https://image.tmdb.org/t/p/w500\(posterPath)")
-    }
+    var posterURL: URL? { TMDBImageURL.url(path: posterPath, width: .poster) }
 
     var filmSubtitle: String {
         guard hasFilm else { return "Search the catalogue, or add one by hand" }

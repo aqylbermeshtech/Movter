@@ -10,6 +10,9 @@ import UIKit
 
 final class ArticlesCell: UICollectionViewCell {
     static let identifier = "ArticlesCell"
+
+    /// Guards against a slow thumbnail landing in a cell that has been reused.
+    private var imageURL: URL?
     private let articleImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
@@ -73,12 +76,25 @@ final class ArticlesCell: UICollectionViewCell {
         ])
     }
     
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        articleImageView.image = nil
+        imageURL = nil
+    }
+
     func configure(with article: Article) {
         titleLabel.text = article.webTitle
         descriptionLabel.text = article.description
-        
-        if let urlString = article.thumbnailURL, let url = URL(string: urlString) {
-            articleImageView.loadImage(from: url)
+
+        articleImageView.image = nil
+        guard let urlString = article.thumbnailURL, let url = URL(string: urlString) else {
+            imageURL = nil
+            return
+        }
+        imageURL = url
+        ImageLoader.load(url: url) { [weak self] image in
+            guard let self = self, self.imageURL == url else { return }
+            self.articleImageView.image = image
         }
     }
 }
