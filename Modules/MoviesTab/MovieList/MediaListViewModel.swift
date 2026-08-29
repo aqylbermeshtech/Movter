@@ -8,6 +8,13 @@
 import Foundation
 
 final class MediaListViewModel {
+
+    private let service: MediaFetching
+
+    init(service: MediaFetching = NetworkService.shared) {
+        self.service = service
+    }
+
     private(set) var mediaContent: [Media] = []
     private(set) var articleContent: [Article] = []
     var onUpdate: ((TrendingResult) -> Void)?
@@ -25,7 +32,7 @@ final class MediaListViewModel {
 
     func fetchContent(type: ContentType) {
         self.currentType = type
-        NetworkService.shared.fetchTrendingContent(type: type) { [weak self] result in
+        service.fetchTrendingContent(type: type) { [weak self] result in
             guard let self = self else { return }
             // Requests can resolve out of order. If the user has already switched
             // tabs, this response is for a type nobody's looking at anymore — apply

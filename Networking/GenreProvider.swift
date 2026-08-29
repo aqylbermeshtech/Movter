@@ -20,7 +20,12 @@ struct GenreListResponse: Codable {
 final class GenreProvider {
 
     static let shared = GenreProvider()
-    private init() {}
+
+    private let service: MediaFetching
+
+    init(service: MediaFetching = NetworkService.shared) {
+        self.service = service
+    }
 
     private var cache: [Bool: [Int: String]] = [:]        // isTV -> [id: name]
     private var inFlight: [Bool: [(  [Int: String]) -> Void]] = [:]
@@ -54,7 +59,7 @@ final class GenreProvider {
         }
         guard shouldFetch else { return }
 
-        NetworkService.shared.fetchGenres(isTV: isTV) { [weak self] genres in
+        service.fetchGenres(isTV: isTV) { [weak self] genres in
             guard let self = self else { return }
             let table = Dictionary(uniqueKeysWithValues: (genres ?? []).map { ($0.id, $0.name) })
 

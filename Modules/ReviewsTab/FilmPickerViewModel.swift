@@ -27,6 +27,12 @@ final class FilmPickerViewModel {
     private static let minimumQueryLength = 2
     private static let debounceInterval: TimeInterval = 0.35
 
+    private let service: MediaFetching
+
+    init(service: MediaFetching = NetworkService.shared) {
+        self.service = service
+    }
+
     private var pendingSearch: DispatchWorkItem?
     /// Bumped per keystroke so a slow response can't overwrite a newer one.
     private var currentSearchToken = 0
@@ -60,7 +66,7 @@ final class FilmPickerViewModel {
         isSearching = true
         onChange?()
 
-        NetworkService.shared.searchMovies(query: query, page: 1) { [weak self] page in
+        service.searchMovies(query: query, page: 1) { [weak self] page in
             guard let self = self, token == self.currentSearchToken else { return }
             self.isSearching = false
             self.results = page?.items ?? []

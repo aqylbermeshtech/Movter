@@ -41,8 +41,11 @@ final class MovieGridViewModel {
     private var isFetching = false
     private var hasMorePages = true
 
-    init(source: MediaQuerySource) {
+    private let service: MediaFetching
+
+    init(source: MediaQuerySource, service: MediaFetching = NetworkService.shared) {
         self.source = source
+        self.service = service
     }
 
     // MARK: - Loading
@@ -75,9 +78,9 @@ final class MovieGridViewModel {
 
         switch source {
         case let .discover(query):
-            NetworkService.shared.fetchDiscover(query: query, page: page, completion: handler)
+            service.fetchDiscover(query: query, page: page, completion: handler)
         case let .search(text):
-            NetworkService.shared.searchMovies(query: text, page: page, completion: handler)
+            service.searchMovies(query: text, page: page, completion: handler)
         case .unsupported:
             isFetching = false
         }

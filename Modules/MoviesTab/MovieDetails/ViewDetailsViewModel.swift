@@ -85,16 +85,26 @@ final class MediaDetailsViewModel {
     }
 
     func fetchGenre() {
-        GenreProvider.shared.primaryGenreName(for: media.genreIds, isTV: isTV) { [weak self] name in
+        genreProvider.primaryGenreName(for: media.genreIds, isTV: isTV) { [weak self] name in
             guard let self = self, let name = name else { return }
             self.genreName = name
             self.onGenreUpdate?()
         }
     }
 
-    init(media: Media, reviewStore: ReviewStoring = ReviewStoreFactory.makeStore()) {
+    private let service: MediaFetching
+    private let genreProvider: GenreProviding
+
+    init(
+        media: Media,
+        reviewStore: ReviewStoring = ReviewStoreFactory.makeStore(),
+        service: MediaFetching = NetworkService.shared,
+        genreProvider: GenreProviding = GenreProvider.shared
+    ) {
         self.media = media
         self.reviewStore = reviewStore
+        self.service = service
+        self.genreProvider = genreProvider
     }
 
     func youtubeRequest(for key: String) -> URLRequest? {
@@ -107,13 +117,13 @@ final class MediaDetailsViewModel {
     
     
     func fetchTrailer() {
-        NetworkService.shared.fetchVideo(for: media.id, isTV: isTV) { [weak self] key in
+        service.fetchVideo(for: media.id, isTV: isTV) { [weak self] key in
             self?.onVideoUpdate?(key)
         }
     }
     
     func fetchActors() {
-        NetworkService.shared.fetchActors(for: media.id, isTV: isTV) { [weak self] fetchedActors in
+        service.fetchActors(for: media.id, isTV: isTV) { [weak self] fetchedActors in
             guard let self = self else { return }
             // A nil result means the request or decode failed. Bailing out here (as this
             // used to) left the screen with no way to know the fetch was ever attempted.

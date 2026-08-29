@@ -37,9 +37,16 @@ final class SwipeDeckViewModel {
     var onQueueChange: (() -> Void)?
     var onError: ((String) -> Void)?
 
-    init(watchlistStore: WatchlistStoring, seenFilmsStore: SeenFilmsStoring) {
+    private let service: MediaFetching
+
+    init(
+        watchlistStore: WatchlistStoring,
+        seenFilmsStore: SeenFilmsStoring,
+        service: MediaFetching = NetworkService.shared
+    ) {
         self.watchlistStore = watchlistStore
         self.seenFilmsStore = seenFilmsStore
+        self.service = service
     }
 
     var isExhausted: Bool { queue.isEmpty && isLastPage && !isFetching }
@@ -86,7 +93,7 @@ final class SwipeDeckViewModel {
     private func fetchNextPage() {
         guard !isFetching, !isLastPage, !isSessionComplete else { return }
         isFetching = true
-        NetworkService.shared.fetchPopularMovies(page: page) { [weak self] result in
+        service.fetchPopularMovies(page: page) { [weak self] result in
             guard let self = self else { return }
             self.isFetching = false
             guard let result = result else {

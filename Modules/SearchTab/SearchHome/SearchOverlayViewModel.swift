@@ -51,6 +51,7 @@ final class SearchOverlayViewModel {
     var onChange: (() -> Void)?
 
     private let store: RecentSearchesStoring
+    private let service: MediaFetching
 
     /// Whitespace-trimmed, and the only copy of the query the screen should read.
     private(set) var query = ""
@@ -58,8 +59,12 @@ final class SearchOverlayViewModel {
     private(set) var trending: [String] = []
     private(set) var isLoadingTrending = true
 
-    init(store: RecentSearchesStoring = RecentSearchesStoreFactory.makeStore()) {
+    init(
+        store: RecentSearchesStoring = RecentSearchesStoreFactory.makeStore(),
+        service: MediaFetching = NetworkService.shared
+    ) {
         self.store = store
+        self.service = service
         self.recents = store.all()
     }
 
@@ -142,7 +147,7 @@ final class SearchOverlayViewModel {
     // MARK: - Trending
 
     func loadTrending() {
-        NetworkService.shared.fetchTrendingContent(type: .movies) { [weak self] result in
+        service.fetchTrendingContent(type: .movies) { [weak self] result in
             guard let self = self else { return }
             self.isLoadingTrending = false
             guard case let .media(items) = result else {

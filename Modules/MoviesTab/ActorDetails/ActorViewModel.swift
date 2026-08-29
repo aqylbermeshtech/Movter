@@ -21,9 +21,12 @@ final class ActorViewModel {
 
     var onUpdate: (() -> Void)?
 
-    init(actorId: Int, name: String) {
+    private let service: MediaFetching
+
+    init(actorId: Int, name: String, service: MediaFetching = NetworkService.shared) {
         self.actorId = actorId
         self.fallbackName = name
+        self.service = service
     }
 
     // MARK: - Display text
@@ -110,14 +113,14 @@ final class ActorViewModel {
         let group = DispatchGroup()
 
         group.enter()
-        NetworkService.shared.fetchPersonDetails(for: actorId) { [weak self] details in
+        service.fetchPersonDetails(for: actorId) { [weak self] details in
             self?.details = details
             self?.didFailToLoadDetails = (details == nil)
             group.leave()
         }
 
         group.enter()
-        NetworkService.shared.fetchPersonCredits(for: actorId) { [weak self] credits in
+        service.fetchPersonCredits(for: actorId) { [weak self] credits in
             self?.credits = Self.sortedUniqueCredits(from: credits)
             group.leave()
         }
