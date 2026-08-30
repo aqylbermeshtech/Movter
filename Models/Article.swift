@@ -7,15 +7,15 @@
 
 import Foundation
 
-struct GuardianResponse: Codable {
+nonisolated struct GuardianResponse: Codable {
     let response: GuardianContent
 }
 
-struct GuardianContent: Codable {
+nonisolated struct GuardianContent: Codable {
     let results: [Article]
 }
 
-struct Article: Codable {
+nonisolated struct Article: Codable {
     let id: String
     let webTitle: String
     let webUrl: String
@@ -30,7 +30,7 @@ struct Article: Codable {
     }
 }
 
-struct ArticleFields: Codable {
+nonisolated struct ArticleFields: Codable {
     let thumbnail: String?
     let trailText: String?
 }

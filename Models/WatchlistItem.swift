@@ -11,7 +11,7 @@ import Foundation
 ///
 /// A flat snapshot like `Review`, not a `Media`: it has to render without the network,
 /// and outlives whatever TMDB list it was originally swiped from.
-struct WatchlistItem: Codable, Equatable {
+nonisolated struct WatchlistItem: Codable, Equatable {
     let id: UUID
     let tmdbID: Int
     var title: String

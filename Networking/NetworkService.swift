@@ -8,7 +8,7 @@
 import Foundation
 
 //MARK: - Struct
-struct MovieResponse: Codable {
+nonisolated struct MovieResponse: Codable {
     let results: [Media]
     /// TMDB caps paging at 500; without this the grid kept requesting pages forever.
     let totalPages: Int?
@@ -20,7 +20,7 @@ struct MediaPage {
     let isLastPage: Bool
 }
 
-struct VideoResponse: Codable {
+nonisolated struct VideoResponse: Codable {
     let results: [Video]
 }
 
@@ -69,7 +69,10 @@ final class NetworkService {
         }
     }
 
-    private func performRequest<T: Decodable>(urlString: String, completion: @escaping @MainActor (T?) -> Void) {
+    /// `Sendable` as well as `Decodable`: the value is decoded on URLSession's queue and
+    /// handed to a main-actor completion, which Swift 6 will not allow for a type it
+    /// cannot prove is safe to send. Every response model satisfies it already.
+    private func performRequest<T: Decodable & Sendable>(urlString: String, completion: @escaping @MainActor (T?) -> Void) {
         guard let url = URL(string: urlString) else {
             completion(nil)
             return

@@ -10,7 +10,7 @@ import Foundation
 /// What a title's score actually means. TMDB reports `vote_average: 0.0` for both
 /// unrated and unreleased titles, and a headline 10.0 off a single vote — so the
 /// average is only meaningful against `vote_count` and the release date.
-enum RatingState {
+nonisolated enum RatingState {
     /// Enough votes to show the score plainly.
     case rated(score: Double, votes: Int)
     /// A real score, but off so few votes that it shouldn't stand next to a real one.

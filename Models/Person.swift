@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct PersonDetails: Codable {
+nonisolated struct PersonDetails: Codable {
     let id: Int
     let name: String
     let biography: String?
@@ -20,13 +20,13 @@ struct PersonDetails: Codable {
     var profileURL: URL? { TMDBImageURL.url(path: profilePath, width: .headshot) }
 }
 
-struct PersonCreditsResponse: Codable {
+nonisolated struct PersonCreditsResponse: Codable {
     let cast: [PersonCredit]
 }
 
 /// One credit in a person's combined filmography. Everything past `id` is optional —
 /// TMDB omits fields freely across media types.
-struct PersonCredit: Codable {
+nonisolated struct PersonCredit: Codable {
     let id: Int
     let title: String?
     let name: String?

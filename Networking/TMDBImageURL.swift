@@ -13,7 +13,7 @@ import Foundation
 /// full URL string, so two screens showing the same artwork have to agree on the width
 /// or each fetches and stores its own copy — a named case is harder to get wrong than a
 /// `w500` repeated across seven files.
-enum TMDBImageURL {
+nonisolated enum TMDBImageURL {
 
     /// The widths in use, named for the job rather than the pixel count.
     enum Width: String {

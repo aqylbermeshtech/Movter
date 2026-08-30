@@ -7,11 +7,11 @@
 
 import Foundation
 
-struct MovieCredits: Codable {
+nonisolated struct MovieCredits: Codable {
     let cast: [Actor]
 }
 
-struct Actor: Codable {
+nonisolated struct Actor: Codable {
     let id: Int
     let name: String
     let character: String

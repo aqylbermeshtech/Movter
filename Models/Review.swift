@@ -11,7 +11,7 @@ import Foundation
 ///
 /// Deliberately not a `Media`: this has to render without the network, so it keeps a
 /// flat snapshot. `tmdbID` and `posterPath` are nil for hand-typed entries.
-struct Review: Codable, Equatable {
+nonisolated struct Review: Codable, Equatable {
 
     /// Whole numbers. Not `RatingState` — a personal score has no vote count and no
     /// provisional case.
@@ -72,7 +72,7 @@ struct Review: Codable, Equatable {
 }
 
 extension Comparable {
-    func clamped(to range: ClosedRange<Self>) -> Self {
+    nonisolated func clamped(to range: ClosedRange<Self>) -> Self {
         min(max(self, range.lowerBound), range.upperBound)
     }
 }

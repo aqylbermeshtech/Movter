@@ -15,17 +15,17 @@ import FirebaseAuth
 /// day sync is added. Callbacks land on the main queue.
 protocol ReviewStoring: AnyObject {
     /// Newest first.
-    func fetchAll(completion: @escaping (Result<[Review], Error>) -> Void)
+    func fetchAll(completion: @escaping @MainActor (Result<[Review], Error>) -> Void)
     /// Inserts, or replaces the existing review with the same `id`.
-    func save(_ review: Review, completion: @escaping (Result<Void, Error>) -> Void)
-    func delete(_ reviewID: UUID, completion: @escaping (Result<Void, Error>) -> Void)
+    func save(_ review: Review, completion: @escaping @MainActor (Result<Void, Error>) -> Void)
+    func delete(_ reviewID: UUID, completion: @escaping @MainActor (Result<Void, Error>) -> Void)
 }
 
 extension ReviewStoring {
 
     /// Defaulted rather than required so a remote backend can override it with an
     /// indexed query instead of fetching the whole diary.
-    func fetchReview(forTMDBID tmdbID: Int, completion: @escaping (Result<Review?, Error>) -> Void) {
+    func fetchReview(forTMDBID tmdbID: Int, completion: @escaping @MainActor (Result<Review?, Error>) -> Void) {
         fetchAll { result in
             completion(result.map { reviews in
                 reviews.first { $0.tmdbID == tmdbID }
@@ -43,7 +43,7 @@ enum ReviewStoreFactory {
 
 /// Reviews as a JSON file in Documents, one file per account so switching users can't
 /// expose the previous user's diary.
-final class LocalReviewStore: ReviewStoring {
+nonisolated final class LocalReviewStore: ReviewStoring, Sendable {
 
     private let fileURL: URL
     /// Serial: every operation rewrites the whole file.
@@ -70,7 +70,7 @@ final class LocalReviewStore: ReviewStoring {
 
     // MARK: - ReviewStoring
 
-    func fetchAll(completion: @escaping (Result<[Review], Error>) -> Void) {
+    func fetchAll(completion: @escaping @MainActor (Result<[Review], Error>) -> Void) {
         queue.async {
             let result = Result { try self.readFromDisk() }
                 .map { $0.sorted { $0.updatedAt > $1.updatedAt } }
@@ -78,7 +78,7 @@ final class LocalReviewStore: ReviewStoring {
         }
     }
 
-    func save(_ review: Review, completion: @escaping (Result<Void, Error>) -> Void) {
+    func save(_ review: Review, completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
         mutate(completion: completion) { reviews in
             var updated = review
             updated.updatedAt = Date()
@@ -90,7 +90,7 @@ final class LocalReviewStore: ReviewStoring {
         }
     }
 
-    func delete(_ reviewID: UUID, completion: @escaping (Result<Void, Error>) -> Void) {
+    func delete(_ reviewID: UUID, completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
         mutate(completion: completion) { reviews in
             reviews.removeAll { $0.id == reviewID }
         }
@@ -101,8 +101,8 @@ final class LocalReviewStore: ReviewStoring {
     /// Read-modify-write on the serial queue so concurrent saves can't clobber
     /// each other.
     private func mutate(
-        completion: @escaping (Result<Void, Error>) -> Void,
-        _ changes: @escaping (inout [Review]) -> Void
+        completion: @escaping @MainActor (Result<Void, Error>) -> Void,
+        _ changes: @escaping @Sendable (inout [Review]) -> Void
     ) {
         queue.async {
             let result = Result {

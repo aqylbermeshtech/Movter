@@ -7,9 +7,14 @@
 
 import UIKit
 
-let imageCache = NSCache<NSString, UIImage>()
+/// `nonisolated(unsafe)` rather than main-actor: it is written from URLSession's queue
+/// and read from the main one, which `NSCache` is documented to allow. The compiler
+/// can't verify that, hence the marker; the alternative would be forcing every cache
+/// read through a main-actor hop for no benefit.
+nonisolated(unsafe) let imageCache = NSCache<NSString, UIImage>()
+
 final class ImageLoader {
-    static func load(url: URL, completion: @escaping (UIImage?) -> Void) {
+    static func load(url: URL, completion: @escaping @MainActor (UIImage?) -> Void) {
         if let cached = imageCache.object(forKey: url.absoluteString as NSString) {
             completion(cached)
             return

@@ -102,7 +102,7 @@ final class ReviewEditorViewModel {
         }
     }
 
-    func save(completion: @escaping (Result<Void, Error>) -> Void) {
+    func save(completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
         guard canSave else { return }
 
         let review: Review

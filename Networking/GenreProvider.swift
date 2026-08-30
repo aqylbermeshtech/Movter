@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct GenreListResponse: Codable {
+nonisolated struct GenreListResponse: Codable {
     struct Genre: Codable {
         let id: Int
         let name: String

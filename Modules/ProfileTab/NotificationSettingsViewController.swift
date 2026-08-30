@@ -53,8 +53,11 @@ final class NotificationSettingsViewController: UIViewController {
 
     @objc private func refreshAuthorizationStatus() {
         UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
+            // Read the enum out here: `UNNotificationSettings` is a non-Sendable class,
+            // so the object itself can't cross to the main actor — the status can.
+            let status = settings.authorizationStatus
             DispatchQueue.main.async {
-                self?.authorizationStatus = settings.authorizationStatus
+                self?.authorizationStatus = status
                 self?.tableView.reloadData()
             }
         }
@@ -80,7 +83,7 @@ final class NotificationSettingsViewController: UIViewController {
                 if let error = error {
                     print("Notification authorization error: \(error.localizedDescription)")
                 }
-                self?.refreshAuthorizationStatus()
+                DispatchQueue.main.async { self?.refreshAuthorizationStatus() }
             }
     }
 

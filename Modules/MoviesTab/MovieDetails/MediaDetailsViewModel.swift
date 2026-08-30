@@ -46,7 +46,7 @@ final class MediaDetailsViewModel {
         }
     }
 
-    func saveReview(score: Int, text: String, completion: @escaping (Result<Void, Error>) -> Void) {
+    func saveReview(score: Int, text: String, completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Same id and createdAt, so this updates the existing record in place.
