@@ -176,7 +176,23 @@ final class MediaDetailsViewController: UIViewController {
         return container
     }()
 
-    private let trailerPlaceholderView: UIView = {
+    private let trailerPlaceholderTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 19, weight: .semibold)
+        label.textColor = .textPrimary
+        return label
+    }()
+
+    private let trailerPlaceholderSubtitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 14, weight: .regular)
+        label.textColor = .textSecondary
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        return label
+    }()
+
+    private lazy var trailerPlaceholderView: UIView = {
         let container = UIView()
         container.backgroundColor = .surface
         container.layer.cornerRadius = 12
@@ -193,19 +209,11 @@ final class MediaDetailsViewController: UIViewController {
         iconView.tintColor = .textSecondary
         iconView.contentMode = .scaleAspectFit
 
-        let titleLabel = UILabel()
-        titleLabel.text = "No trailer yet"
-        titleLabel.font = .systemFont(ofSize: 19, weight: .semibold)
-        titleLabel.textColor = .textPrimary
-
-        let subtitleLabel = UILabel()
-        subtitleLabel.text = "We’ll show it here as soon as one is available"
-        subtitleLabel.font = .systemFont(ofSize: 14, weight: .regular)
-        subtitleLabel.textColor = .textSecondary
-        subtitleLabel.textAlignment = .center
-        subtitleLabel.numberOfLines = 0
-
-        let stack = UIStackView(arrangedSubviews: [iconView, titleLabel, subtitleLabel])
+        let stack = UIStackView(arrangedSubviews: [
+            iconView,
+            self.trailerPlaceholderTitleLabel,
+            self.trailerPlaceholderSubtitleLabel
+        ])
         stack.axis = .vertical
         stack.alignment = .center
         stack.spacing = 6
@@ -229,6 +237,11 @@ final class MediaDetailsViewController: UIViewController {
         castCollectionView.dataSource = self
         castCollectionView.register(ActorsCell.self, forCellWithReuseIdentifier: ActorsCell.identifier)
         setupUI()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(connectivityChanged),
+            name: NetworkMonitor.connectivityDidChangeNotification, object: nil
+        )
+        renderTrailerPlaceholder()
         configure()
         bindViewModel()
         viewModel.fetchTrailer()
@@ -279,6 +292,7 @@ final class MediaDetailsViewController: UIViewController {
                 self.videoPlayerView.load(request)
             } else {
                 self.videoPlayerView.isHidden = true
+                self.renderTrailerPlaceholder()
                 self.trailerPlaceholderView.isHidden = false
             }
         }
@@ -321,6 +335,17 @@ final class MediaDetailsViewController: UIViewController {
 
     @objc private func themeDidChange() {
         renderMetadata()
+    }
+
+    @objc private func connectivityChanged() {
+        viewModel.connectivityDidChange()
+        renderCastState()
+        renderTrailerPlaceholder()
+    }
+
+    private func renderTrailerPlaceholder() {
+        trailerPlaceholderTitleLabel.text = viewModel.trailerPlaceholderTitle
+        trailerPlaceholderSubtitleLabel.text = viewModel.trailerPlaceholderSubtitle
     }
 
     private func renderCastState() {

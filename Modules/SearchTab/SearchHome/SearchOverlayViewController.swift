@@ -144,6 +144,10 @@ final class SearchOverlayViewController: UIViewController {
         ])
 
         configureDataSource()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(connectivityChanged),
+            name: NetworkMonitor.connectivityDidChangeNotification, object: nil
+        )
         applySnapshot(animated: false)
         viewModel.onChange = { [weak self] in self?.applySnapshot(animated: true) }
         viewModel.loadTrending()
@@ -171,6 +175,10 @@ final class SearchOverlayViewController: UIViewController {
     }
 
     // MARK: - Actions
+
+    @objc private func connectivityChanged() {
+        viewModel.connectivityDidChange()
+    }
 
     @objc private func textChanged() {
         viewModel.updateQuery(searchField.text)
@@ -207,6 +215,7 @@ final class SearchOverlayViewController: UIViewController {
             snapshot.appendItems(group.items, toSection: group.section)
         }
         dataSource.apply(snapshot, animatingDifferences: animated)
+        emptyLabel.text = viewModel.emptyPlaceholderText
         emptyLabel.isHidden = !viewModel.showsEmptyPlaceholder
     }
 

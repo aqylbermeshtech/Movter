@@ -28,9 +28,23 @@ final class FilmPickerViewModel {
     private static let debounceInterval: TimeInterval = 0.35
 
     private let service: MediaFetching
+    private let monitor: NetworkMonitoring
 
-    init(service: MediaFetching = NetworkService.shared) {
+    init(
+        service: MediaFetching = NetworkService.shared,
+        monitor: NetworkMonitoring = NetworkMonitor.shared
+    ) {
         self.service = service
+        self.monitor = monitor
+    }
+
+    /// Re-runs the query that connectivity prevented.
+    func connectivityDidChange() {
+        guard monitor.isOnline, !query.isEmpty else {
+            onChange?()
+            return
+        }
+        updateQuery(query)
     }
 
     private var pendingSearch: DispatchWorkItem?
@@ -47,6 +61,13 @@ final class FilmPickerViewModel {
             // Bumping the token here too, so a request already in flight can't land and
             // repopulate a list the user has just cleared.
             currentSearchToken += 1
+            results = []
+            isSearching = false
+            onChange?()
+            return
+        }
+
+        guard monitor.isOnline else {
             results = []
             isSearching = false
             onChange?()
@@ -80,6 +101,7 @@ final class FilmPickerViewModel {
     /// itself in both cases.
     var statusText: String? {
         if isSearching { return nil }
+        if !monitor.isOnline { return "You're offline. Searching the catalogue needs a connection." }
         if query.isEmpty { return "Search for the film you want to log." }
         if query.count < Self.minimumQueryLength { return "Keep typing…" }
         if results.isEmpty { return "Nothing found for “\(query)”." }

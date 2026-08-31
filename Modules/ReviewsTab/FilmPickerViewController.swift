@@ -84,6 +84,10 @@ final class FilmPickerViewController: UIViewController {
         ])
 
         viewModel.onChange = { [weak self] in self?.render() }
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(connectivityChanged),
+            name: NetworkMonitor.connectivityDidChangeNotification, object: nil
+        )
         render()
     }
 
@@ -103,6 +107,10 @@ final class FilmPickerViewController: UIViewController {
         statusLabel.text = viewModel.statusText
         statusLabel.isHidden = viewModel.statusText == nil
         tableView.reloadData()
+    }
+
+    @objc private func connectivityChanged() {
+        viewModel.connectivityDidChange()
     }
 
     @objc private func cancelTapped() {

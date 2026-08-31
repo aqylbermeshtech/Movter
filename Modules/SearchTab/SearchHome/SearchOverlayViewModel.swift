@@ -52,6 +52,7 @@ final class SearchOverlayViewModel {
 
     private let store: RecentSearchesStoring
     private let service: MediaFetching
+    private let monitor: NetworkMonitoring
 
     /// Whitespace-trimmed, and the only copy of the query the screen should read.
     private(set) var query = ""
@@ -61,11 +62,30 @@ final class SearchOverlayViewModel {
 
     init(
         store: RecentSearchesStoring = RecentSearchesStoreFactory.makeStore(),
-        service: MediaFetching = NetworkService.shared
+        service: MediaFetching = NetworkService.shared,
+        monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.store = store
         self.service = service
+        self.monitor = monitor
         self.recents = store.all()
+    }
+
+    /// Recents come from `UserDefaults`, so the screen stays useful offline — only the
+    /// trending section needs the network, and only it goes away.
+    var emptyPlaceholderText: String {
+        monitor.isOnline
+            ? "Search for films by title"
+            : "You're offline. Trending returns with your connection."
+    }
+
+    func connectivityDidChange() {
+        if monitor.isOnline, trending.isEmpty {
+            isLoadingTrending = true
+            loadTrending()
+        } else {
+            onChange?()
+        }
     }
 
     // MARK: - Composition
@@ -81,6 +101,11 @@ final class SearchOverlayViewModel {
         var plan: [SectionPlan] = []
         if !recents.isEmpty {
             plan.append(SectionPlan(section: .chips, items: recents.map { .term($0) }))
+        }
+        // Skip the trending section entirely when offline rather than leaving skeleton
+        // rows shimmering over a request that will never land.
+        if !monitor.isOnline {
+            return plan
         }
         if isLoadingTrending {
             plan.append(SectionPlan(
@@ -147,6 +172,11 @@ final class SearchOverlayViewModel {
     // MARK: - Trending
 
     func loadTrending() {
+        guard monitor.isOnline else {
+            isLoadingTrending = false
+            onChange?()
+            return
+        }
         service.fetchTrendingContent(type: .movies) { [weak self] result in
             guard let self = self else { return }
             self.isLoadingTrending = false

@@ -125,8 +125,16 @@ final class ActorViewController: UIViewController {
 
     // MARK: - Lifecycle
 
+    @objc private func connectivityChanged() {
+        viewModel.connectivityDidChange()
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(connectivityChanged),
+            name: NetworkMonitor.connectivityDidChangeNotification, object: nil
+        )
         view.backgroundColor = .canvas
         title = viewModel.name
 

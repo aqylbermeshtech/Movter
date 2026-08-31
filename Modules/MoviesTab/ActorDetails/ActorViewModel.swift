@@ -23,10 +23,25 @@ final class ActorViewModel {
 
     private let service: MediaFetching
 
-    init(actorId: Int, name: String, service: MediaFetching = NetworkService.shared) {
+    private let monitor: NetworkMonitoring
+
+    init(
+        actorId: Int,
+        name: String,
+        service: MediaFetching = NetworkService.shared,
+        monitor: NetworkMonitoring = NetworkMonitor.shared
+    ) {
         self.actorId = actorId
         self.fallbackName = name
         self.service = service
+        self.monitor = monitor
+    }
+
+    /// Reloads once a connection returns, if the first attempt came back empty.
+    func connectivityDidChange() {
+        guard monitor.isOnline, credits.isEmpty else { return }
+        hasLoaded = false
+        load()
     }
 
     // MARK: - Display text
@@ -70,7 +85,10 @@ final class ActorViewModel {
     }
 
     var emptyFilmographyText: String {
-        didFailToLoadDetails ? "Couldn’t load filmography." : "No credits listed for \(name) yet."
+        // Offline first: "no credits listed" would be a claim about TMDB's data when the
+        // truth is that we never got to ask.
+        if !monitor.isOnline { return "You're offline. Filmography loads when you reconnect." }
+        return didFailToLoadDetails ? "Couldn’t load filmography." : "No credits listed for \(name) yet."
     }
 
     private var lifespanText: String? {

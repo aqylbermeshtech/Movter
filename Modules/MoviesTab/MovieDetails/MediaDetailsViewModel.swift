@@ -75,13 +75,33 @@ final class MediaDetailsViewModel {
     }
 
     var castPlaceholderTitle: String {
-        didFailToLoadActors ? "Couldn't load the cast" : "No cast information"
+        if !monitor.isOnline { return "You're offline" }
+        return didFailToLoadActors ? "Couldn't load the cast" : "No cast information"
     }
 
     var castPlaceholderSubtitle: String {
-        didFailToLoadActors
-            ? "Check your connection and try again"
+        if !monitor.isOnline { return "The cast will load when you reconnect" }
+        return didFailToLoadActors
+            ? "Please try again"
             : "TMDB doesn't list a cast for this title yet"
+    }
+
+    /// Same distinction for the trailer: offline is not the same as "no trailer exists".
+    var trailerPlaceholderTitle: String {
+        monitor.isOnline ? "No trailer yet" : "You're offline"
+    }
+
+    var trailerPlaceholderSubtitle: String {
+        monitor.isOnline
+            ? "We'll show it here as soon as one is available"
+            : "The trailer will load when you reconnect"
+    }
+
+    /// Retries whichever pieces came back empty once a connection returns.
+    func connectivityDidChange() {
+        guard monitor.isOnline else { return }
+        if actors.isEmpty { fetchActors() }
+        fetchTrailer()
     }
 
     func fetchGenre() {
@@ -94,17 +114,20 @@ final class MediaDetailsViewModel {
 
     private let service: MediaFetching
     private let genreProvider: GenreProviding
+    private let monitor: NetworkMonitoring
 
     init(
         media: Media,
         reviewStore: ReviewStoring = ReviewStoreFactory.makeStore(),
         service: MediaFetching = NetworkService.shared,
-        genreProvider: GenreProviding = GenreProvider.shared
+        genreProvider: GenreProviding = GenreProvider.shared,
+        monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.media = media
         self.reviewStore = reviewStore
         self.service = service
         self.genreProvider = genreProvider
+        self.monitor = monitor
     }
 
     func youtubeRequest(for key: String) -> URLRequest? {
