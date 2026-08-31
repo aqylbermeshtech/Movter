@@ -38,15 +38,31 @@ final class SwipeDeckViewModel {
     var onError: ((String) -> Void)?
 
     private let service: MediaFetching
+    private let monitor: NetworkMonitoring
 
     init(
         watchlistStore: WatchlistStoring,
         seenFilmsStore: SeenFilmsStoring,
-        service: MediaFetching = NetworkService.shared
+        service: MediaFetching = NetworkService.shared,
+        monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.watchlistStore = watchlistStore
         self.seenFilmsStore = seenFilmsStore
         self.service = service
+        self.monitor = monitor
+    }
+
+    /// The deck can't be dealt without a connection, and unlike a list it has no
+    /// already-loaded content to fall back on once the queue drains.
+    var isOffline: Bool { !monitor.isOnline }
+
+    /// Deals the cards that connectivity prevented.
+    func connectivityDidChange() {
+        guard monitor.isOnline else {
+            onQueueChange?()
+            return
+        }
+        fetchNextPage()
     }
 
     var isExhausted: Bool { queue.isEmpty && isLastPage && !isFetching }
@@ -92,6 +108,10 @@ final class SwipeDeckViewModel {
 
     private func fetchNextPage() {
         guard !isFetching, !isLastPage, !isSessionComplete else { return }
+        guard monitor.isOnline else {
+            onQueueChange?()
+            return
+        }
         isFetching = true
         service.fetchPopularMovies(page: page) { [weak self] result in
             guard let self = self else { return }

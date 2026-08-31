@@ -27,6 +27,16 @@ final class MovieGridViewController: UIViewController {
 
     private let skeletonView = SkeletonGridView(style: .grid(columns: 3, rows: 4))
 
+    private lazy var offlineView: OfflinePlaceholderView = {
+        let view = OfflinePlaceholderView(
+            message: "These results need a connection. Reconnect and they'll load."
+        )
+        view.onRetry = { [weak self] in self?.viewModel.retry() }
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
     private let emptyLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 16, weight: .regular)
@@ -57,6 +67,10 @@ final class MovieGridViewController: UIViewController {
         view.backgroundColor = .canvas
         setupUI()
         viewModel.onChange = { [weak self] in self?.render() }
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(connectivityChanged),
+            name: NetworkMonitor.connectivityDidChangeNotification, object: nil
+        )
         viewModel.start()
     }
 
@@ -64,6 +78,7 @@ final class MovieGridViewController: UIViewController {
         view.addSubview(collectionView)
         view.addSubview(skeletonView)
         view.addSubview(emptyLabel)
+        view.addSubview(offlineView)
         collectionView.delegate = self
         collectionView.dataSource = self
 
@@ -81,14 +96,30 @@ final class MovieGridViewController: UIViewController {
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             emptyLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            emptyLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32)
+            emptyLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+
+            offlineView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            offlineView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            offlineView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            offlineView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
     }
 
     /// The screen is a pure function of `viewModel.state`; every update comes through
     /// here rather than each callback poking at views directly.
+    @objc private func connectivityChanged() {
+        viewModel.connectivityDidChange()
+        offlineView.setRetryAvailable(NetworkMonitor.shared.isOnline)
+    }
+
     private func render() {
+        offlineView.isHidden = viewModel.state != .offline
         switch viewModel.state {
+        case .offline:
+            skeletonView.endLoading()
+            collectionView.isHidden = true
+            emptyLabel.isHidden = true
+            offlineView.setRetryAvailable(NetworkMonitor.shared.isOnline)
         case .loading:
             skeletonView.beginLoading()
             emptyLabel.isHidden = true

@@ -13,6 +13,16 @@ final class MediaListViewController: UIViewController {
     private let heroView = HeroCarouselView()
     private let trendingView = TrendingMediaGridView()
     private let topSwitcher = TopSegmentedControlView()
+
+    private lazy var offlineView: OfflinePlaceholderView = {
+        let view = OfflinePlaceholderView(
+            message: "Trending needs a connection. It'll load as soon as you're back."
+        )
+        view.onRetry = { [weak self] in self?.viewModel.retry() }
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     /// Only the first handful feed the banner; the row below still shows the full list.
     private static let heroItemCount = 5
 
@@ -67,6 +77,7 @@ final class MediaListViewController: UIViewController {
         view.addSubview(topSwitcher)
         view.addSubview(heroView)
         view.addSubview(trendingView)
+        view.addSubview(offlineView)
 
         topSwitcher.translatesAutoresizingMaskIntoConstraints = false
         heroView.translatesAutoresizingMaskIntoConstraints = false
@@ -84,6 +95,13 @@ final class MediaListViewController: UIViewController {
             trendingView.topAnchor.constraint(equalTo: heroView.bottomAnchor, constant: 10),
             trendingView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             trendingView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+
+        NSLayoutConstraint.activate([
+            offlineView.topAnchor.constraint(equalTo: topSwitcher.bottomAnchor),
+            offlineView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            offlineView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            offlineView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
         heroHeight = heroView.heightAnchor.constraint(equalToConstant: HeroCarouselView.sectionHeight)
@@ -143,7 +161,21 @@ final class MediaListViewController: UIViewController {
         trendingBottom.isActive = fills
     }
 
+    @objc private func connectivityChanged() {
+        viewModel.connectivityDidChange()
+    }
+
+    private func renderOfflineState() {
+        offlineView.isHidden = !viewModel.showsOfflinePlaceholder
+        offlineView.setRetryAvailable(NetworkMonitor.shared.isOnline)
+    }
+
     private func bindViewModel() {
+        viewModel.onOfflineChange = { [weak self] in self?.renderOfflineState() }
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(connectivityChanged),
+            name: NetworkMonitor.connectivityDidChangeNotification, object: nil
+        )
         viewModel.onUpdate = { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
@@ -153,6 +185,7 @@ final class MediaListViewController: UIViewController {
                 case .articles(let articles):
                     self?.trendingView.updateArticles(with: articles)
                 }
+                self?.renderOfflineState()
             }
         }
     }

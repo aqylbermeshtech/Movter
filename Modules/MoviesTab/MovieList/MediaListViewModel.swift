@@ -10,9 +10,37 @@ import Foundation
 final class MediaListViewModel {
 
     private let service: MediaFetching
+    private let monitor: NetworkMonitoring
 
-    init(service: MediaFetching = NetworkService.shared) {
+    init(
+        service: MediaFetching = NetworkService.shared,
+        monitor: NetworkMonitoring = NetworkMonitor.shared
+    ) {
         self.service = service
+        self.monitor = monitor
+    }
+
+    /// Only when the feed is both empty and unfetchable — an offline placeholder over
+    /// content the user is already reading would be worse than saying nothing.
+    var showsOfflinePlaceholder: Bool { !monitor.isOnline && !hasContent }
+
+    private var hasContent: Bool {
+        currentType == .articles ? !articleContent.isEmpty : !mediaContent.isEmpty
+    }
+
+    var onOfflineChange: (() -> Void)?
+
+    func retry() {
+        fetchContent(type: currentType)
+    }
+
+    /// Refills the feed once a connection returns, if it never loaded.
+    func connectivityDidChange() {
+        if monitor.isOnline, !hasContent {
+            fetchContent(type: currentType)
+        } else {
+            onOfflineChange?()
+        }
     }
 
     private(set) var mediaContent: [Media] = []
@@ -22,6 +50,11 @@ final class MediaListViewModel {
 
     func fetchContent(type: ContentType) {
         self.currentType = type
+        guard monitor.isOnline else {
+            onOfflineChange?()
+            return
+        }
+        onOfflineChange?()
         service.fetchTrendingContent(type: type) { [weak self] result in
             guard let self = self else { return }
             // Requests can resolve out of order. If the user has already switched

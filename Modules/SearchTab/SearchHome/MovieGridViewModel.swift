@@ -26,11 +26,15 @@ final class MovieGridViewModel {
         case loading
         case results
         case message(String)
+        /// Nothing to show *and* no network path. Separate from `.message` so the screen
+        /// can offer a retry and refresh itself when the connection comes back.
+        case offline
     }
 
     var onChange: (() -> Void)?
 
     private let source: MediaQuerySource
+    private let monitor: NetworkMonitoring
     private(set) var items: [Media] = []
     private(set) var state: State = .loading
     /// Separates a failed request from a genuinely empty one. The grid renders both the
@@ -43,9 +47,14 @@ final class MovieGridViewModel {
 
     private let service: MediaFetching
 
-    init(source: MediaQuerySource, service: MediaFetching = NetworkService.shared) {
+    init(
+        source: MediaQuerySource,
+        service: MediaFetching = NetworkService.shared,
+        monitor: NetworkMonitoring = NetworkMonitor.shared
+    ) {
         self.source = source
         self.service = service
+        self.monitor = monitor
     }
 
     // MARK: - Loading
@@ -57,15 +66,45 @@ final class MovieGridViewModel {
             onChange?()
             return
         }
+        guard monitor.isOnline else {
+            state = .offline
+            onChange?()
+            return
+        }
         state = .loading
         onChange?()
         loadNextPage()
+    }
+
+    /// Re-runs the request that connectivity prevented. Safe to call when online and
+    /// idle; a no-op otherwise.
+    func retry() {
+        guard state == .offline || didFail else { return }
+        didFail = false
+        hasMorePages = true
+        start()
+    }
+
+    /// The screen calls this when connectivity flips, so a deck sitting on the offline
+    /// placeholder fills itself in rather than waiting to be prodded.
+    func connectivityDidChange() {
+        guard monitor.isOnline, state == .offline else { return }
+        retry()
     }
 
     /// Safe to call from every scroll event: it no-ops while a page is in flight, and
     /// once TMDB has run out of pages.
     func loadNextPage() {
         guard !isFetching, hasMorePages else { return }
+        guard monitor.isOnline else {
+            // Only take the screen over when there's nothing on it: a page that can't
+            // load shouldn't wipe out the ones already scrolled through.
+            if items.isEmpty {
+                state = .offline
+                onChange?()
+            }
+            return
+        }
         isFetching = true
         let page = currentPage
 
@@ -93,7 +132,9 @@ final class MovieGridViewModel {
             hasMorePages = false
             guard items.isEmpty else { return }
             didFail = true
-            state = .message("Couldn’t load results.\nCheck your connection and try again.")
+            state = monitor.isOnline
+                ? .message("Couldn’t load results.\nPlease try again.")
+                : .offline
             return
         }
 

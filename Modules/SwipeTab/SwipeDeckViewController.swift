@@ -52,6 +52,13 @@ final class SwipeDeckViewController: UIViewController {
         body: "Check back later for more films to swipe through."
     )
 
+    /// A third paused-card state, in the same shape as the other two: the deck can't
+    /// be dealt offline, and it refills itself once a connection returns.
+    private lazy var offlineCard = SwipeDeckViewController.makePlaceholderCard(
+        title: "You're offline",
+        body: "The deck needs a connection. It'll start dealing as soon as you're back."
+    )
+
     private lazy var sessionCompleteCard = SwipeDeckViewController.makePlaceholderCard(
         title: "That's 10 for now",
         body: "Come back later for another round of films to swipe through."
@@ -96,6 +103,7 @@ final class SwipeDeckViewController: UIViewController {
         view.addSubview(loadingIndicator)
         cardContainer.addSubview(emptyStateCard)
         cardContainer.addSubview(sessionCompleteCard)
+        cardContainer.addSubview(offlineCard)
 
         let buttonStack = UIStackView(arrangedSubviews: [passButton, likeButton])
         buttonStack.axis = .horizontal
@@ -120,7 +128,7 @@ final class SwipeDeckViewController: UIViewController {
             buttonStack.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
 
-        for card in [emptyStateCard, sessionCompleteCard] {
+        for card in [emptyStateCard, sessionCompleteCard, offlineCard] {
             NSLayoutConstraint.activate([
                 card.topAnchor.constraint(equalTo: cardContainer.topAnchor),
                 card.leadingAnchor.constraint(equalTo: cardContainer.leadingAnchor),
@@ -130,7 +138,16 @@ final class SwipeDeckViewController: UIViewController {
         }
     }
 
+    @objc private func connectivityChanged() {
+        viewModel.connectivityDidChange()
+        updateEmptyState()
+    }
+
     private func bindViewModel() {
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(connectivityChanged),
+            name: NetworkMonitor.connectivityDidChangeNotification, object: nil
+        )
         viewModel.onQueueChange = { [weak self] in self?.syncCardsFromQueue() }
         viewModel.onError = { [weak self] message in
             self?.loadingIndicator.stopAnimating()
@@ -204,7 +221,11 @@ final class SwipeDeckViewController: UIViewController {
 
     private func updateEmptyState() {
         let sessionComplete = viewModel.isSessionComplete
-        let ranOut = cardViews.isEmpty && viewModel.isExhausted && !sessionComplete
+        // Offline outranks "ran out": with no connection the deck hasn't run out of
+        // films, it just can't reach them, and saying otherwise would be a lie.
+        let offline = cardViews.isEmpty && viewModel.isOffline && !sessionComplete
+        let ranOut = cardViews.isEmpty && viewModel.isExhausted && !sessionComplete && !offline
+        offlineCard.isHidden = !offline
         sessionCompleteCard.isHidden = !(sessionComplete && cardViews.isEmpty)
         emptyStateCard.isHidden = !ranOut
         passButton.isHidden = sessionComplete
