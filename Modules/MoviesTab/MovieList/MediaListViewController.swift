@@ -175,7 +175,7 @@ final class MediaListViewController: UIViewController {
         ])
 
         headerView.onSearch = { [weak self] in
-            self?.showSearchTab()
+            self?.presentSearch()
         }
         heroView.onMovieSelected = { [weak self] media in
             self?.showDetails(for: media)
@@ -232,11 +232,6 @@ final class MediaListViewController: UIViewController {
             title: genre.sectionTitle
         )
         navigationController?.pushViewController(gridVC, animated: true)
-    }
-
-    private func showSearchTab() {
-        (navigationController?.parent as? MainTabBarController)?
-            .selectTab(titled: MainTabBarFactory.searchTabTitle)
     }
 
     // MARK: - Watchlist
@@ -333,6 +328,10 @@ final class MediaListViewController: UIViewController {
         }
     }
 }
+
+// MARK: - Search
+
+extension MediaListViewController: SearchPresenting {}
 
 // MARK: - Tab action
 

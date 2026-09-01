@@ -44,23 +44,6 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
         navigationController?.navigationBar.tintColor = .textPrimary
     }
 
-    /// Pushes the results grid for a chosen query onto this tab's own stack, so it lands
-    /// back inside the normal chrome with the floating bar in place. Called back from
-    /// `SearchOverlayViewController` once the user picks or types a term.
-    private func showResults(for query: String) {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count >= 2 else { return }
-
-        // A previous search may have left a results screen on top; drop back to the
-        // browse list before pushing the new one so they don't stack.
-        if let nav = navigationController, nav.topViewController !== self {
-            nav.popToViewController(self, animated: false)
-        }
-
-        let resultsVC = MovieGridViewController(source: .search(trimmed), title: "“\(trimmed)”")
-        navigationController?.pushViewController(resultsVC, animated: true)
-    }
-
     private func setupUI() {
         view.addSubview(tableView)
         tableView.translatesAutoresizingMaskIntoConstraints = false
@@ -141,6 +124,10 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
     }
 }
 
+// MARK: - Search
+
+extension SearchMoviesViewController: SearchPresenting {}
+
 // MARK: - Tab action
 
 extension SearchMoviesViewController: TabActionProviding {
@@ -148,14 +135,7 @@ extension SearchMoviesViewController: TabActionProviding {
     var tabActionSymbol: String { "magnifyingglass" }
     var tabActionLabel: String { "Search films" }
 
-    /// Brings up the dedicated search screen full-screen, over the floating tab bar. It
-    /// hands a chosen query back through `onSubmit`; results are pushed onto this tab.
     func performTabAction() {
-        let overlay = SearchOverlayViewController()
-        overlay.onSubmit = { [weak self] term in
-            self?.showResults(for: term)
-        }
-        overlay.modalPresentationStyle = .fullScreen
-        present(overlay, animated: true)
+        presentSearch()
     }
 }

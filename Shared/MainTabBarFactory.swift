@@ -8,10 +8,6 @@ import FirebaseAuth
 
 enum MainTabBarFactory {
 
-    /// Home's search button switches to this tab, so the title is shared rather than
-    /// spelled out twice.
-    static let searchTabTitle = "Search"
-
     static func makeTabBar() -> UIViewController {
         // Built per sign-in, so the stores are always scoped to the current account.
         let watchlistStore = WatchlistStoreFactory.makeStore()
@@ -41,7 +37,7 @@ enum MainTabBarFactory {
                 root: mediaListVC
             ),
             .init(
-                title: searchTabTitle, symbol: "magnifyingglass",
+                title: "Search", symbol: "magnifyingglass",
                 navigationController: UINavigationController(rootViewController: searchMoviesVC),
                 root: searchMoviesVC
             ),

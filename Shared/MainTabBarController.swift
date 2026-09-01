@@ -106,15 +106,6 @@ final class MainTabBarController: UIViewController {
         }
     }
 
-    /// Switches tabs from code rather than from a tap on the bar — Home's search button
-    /// hands off to the Search tab. The bar only moves its own selection when it is the
-    /// one that was tapped, so it has to be told.
-    func selectTab(titled title: String) {
-        guard let index = tabs.firstIndex(where: { $0.title == title }) else { return }
-        customBar?.setSelectedIndex(index)
-        selectTab(at: index)
-    }
-
     private func selectTab(at index: Int) {
         guard tabs.indices.contains(index), index != selectedIndex else { return }
         tabs[selectedIndex].navigationController.view.isHidden = true
