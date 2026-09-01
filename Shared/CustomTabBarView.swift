@@ -79,13 +79,6 @@ final class CustomTabBarView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func setSelectedIndex(_ index: Int) {
-        guard segmentedControl.selectedSegmentIndex != index else { return }
-        segmentedControl.selectedSegmentIndex = index
-        applySegmentImages()
-        updateActionIcon(animated: true)
-    }
-
     /// The glass is a backdrop only. The segmented control and action button are
     /// siblings layered *over* it rather than children of its content views: touches
     /// don't reach controls nested inside a `UIGlassContainerEffect`'s content view,
