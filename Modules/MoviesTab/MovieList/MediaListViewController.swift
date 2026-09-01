@@ -12,6 +12,9 @@ final class MediaListViewController: UIViewController {
     private let viewModel = MediaListViewModel()
     private let heroView = HeroCarouselView()
     private let trendingView = TrendingMediaGridView()
+    private let posterTransition = PosterTransitionController()
+    /// Which carousel the last tapped poster came from; see `PosterHost`.
+    private var posterHost: PosterHost = .trending
     private let topSwitcher = TopSegmentedControlView()
 
     private lazy var offlineView: OfflinePlaceholderView = {
@@ -113,14 +116,10 @@ final class MediaListViewController: UIViewController {
         trendingBottom = trendingView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         setTrendingFillsScreen(false)
         heroView.onMovieSelected = { [weak self] media in
-            let detailVM = MediaDetailsViewModel(media: media)
-            let detailVC = MediaDetailsViewController(viewModel: detailVM)
-            self?.navigationController?.pushViewController(detailVC, animated: true)
+            self?.showDetails(for: media, from: .hero)
         }
         trendingView.onMovieSelected = { [weak self] media in
-            let detailVM = MediaDetailsViewModel(media: media)
-            let detailVC = MediaDetailsViewController(viewModel: detailVM)
-            self?.navigationController?.pushViewController(detailVC, animated: true)
+            self?.showDetails(for: media, from: .trending)
         }
         trendingView.onArticleSelected = { [weak self] article in
             guard let url = self?.viewModel.getUrl(for: article) else { return }
@@ -204,7 +203,36 @@ extension MediaListViewController: TabActionProviding {
         // Empty only before the first load lands; the articles segment leaves the last
         // media list in place, so there's still something to pick from there.
         guard let media = viewModel.mediaContent.randomElement() else { return }
+        // Plain push: the title is picked at random, so there's no tapped poster for it
+        // to grow out of.
         let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
         navigationController?.pushViewController(detailVC, animated: true)
+    }
+}
+
+
+// MARK: - Poster transition
+
+extension MediaListViewController: PosterTransitionSource {
+
+    /// Which carousel the poster in flight came from. The same title can sit in both the
+    /// hero banner and the trending row, so matching on id alone could fly it back into
+    /// the wrong one.
+    enum PosterHost {
+        case hero
+        case trending
+    }
+
+    private func showDetails(for media: Media, from host: PosterHost) {
+        posterHost = host
+        let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
+        posterTransition.push(detailVC, for: media, from: self)
+    }
+
+    func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
+        switch posterHost {
+        case .hero: return heroView.transitionPoster(forMediaID: id)
+        case .trending: return trendingView.transitionPoster(forMediaID: id)
+        }
     }
 }

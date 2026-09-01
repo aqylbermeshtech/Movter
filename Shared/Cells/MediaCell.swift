@@ -69,6 +69,13 @@ final class MediaCell: UICollectionViewCell {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    /// The artwork alone, handed to the details transition to fly out of. The radius is
+    /// read off the layer so the flight can't drift out of step with the cell's own
+    /// rounding if that changes.
+    var posterAnchor: PosterTransitionAnchor {
+        PosterTransitionAnchor(view: imageView, cornerRadius: imageView.layer.cornerRadius)
+    }
+
     /// - Parameter showsCaption: false leaves just the poster, for the carousel.
     ///   Hidden arranged subviews drop out of the stack, so the cell's height becomes
     ///   the poster's alone.

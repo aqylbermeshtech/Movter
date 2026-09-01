@@ -77,9 +77,20 @@ final class SwipeCardView: UIView {
         setupUI()
         configure()
         addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:))))
+        // A still tap never moves far enough to start the pan, so the pan never reaches
+        // `.ended` and its tap branch below never runs. That branch still covers a drag
+        // that returns to where it started; this covers an actual tap.
+        addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleTap)))
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    /// The artwork alone, handed to the details transition to fly out of. The radius is
+    /// read off the layer so the flight can't drift out of step with the card's own
+    /// rounding if that changes.
+    var posterAnchor: PosterTransitionAnchor {
+        PosterTransitionAnchor(view: imageView, cornerRadius: imageView.layer.cornerRadius)
+    }
 
     private func setupUI() {
         backgroundColor = .surface
@@ -178,6 +189,10 @@ final class SwipeCardView: UIView {
     }
 
     // MARK: - Gesture
+
+    @objc private func handleTap() {
+        onTapped?(media)
+    }
 
     @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
         guard let superview = superview else { return }

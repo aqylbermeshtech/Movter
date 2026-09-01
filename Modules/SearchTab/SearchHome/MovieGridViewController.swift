@@ -27,6 +27,8 @@ final class MovieGridViewController: UIViewController {
 
     private let skeletonView = SkeletonGridView(style: .grid(columns: 3, rows: 4))
 
+    private let posterTransition = PosterTransitionController()
+
     private lazy var offlineView: OfflinePlaceholderView = {
         let view = OfflinePlaceholderView(
             message: "These results need a connection. Reconnect and they'll load."
@@ -169,6 +171,17 @@ extension MovieGridViewController: UICollectionViewDataSource, UICollectionViewD
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let media = viewModel.item(at: indexPath.item) else { return }
         let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
-        navigationController?.pushViewController(detailVC, animated: true)
+        posterTransition.push(detailVC, for: media, from: self)
+    }
+}
+
+// MARK: - Poster transition
+
+extension MovieGridViewController: PosterTransitionSource {
+
+    func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
+        collectionView.mediaPosterAnchor(forMediaID: id) { [weak self] index in
+            self?.viewModel.item(at: index)?.id
+        }
     }
 }

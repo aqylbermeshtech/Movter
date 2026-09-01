@@ -171,3 +171,18 @@ extension TrendingMediaGridView: UICollectionViewDataSource, UICollectionViewDel
         }
     }
 }
+
+// MARK: - Poster transition
+
+extension TrendingMediaGridView {
+
+    /// The poster `id` is showing in this carousel, if it's scrolled into view. Nil while
+    /// the articles segment is up: the indices then address `articles`, and the cells
+    /// aren't posters at all.
+    func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
+        guard !isShowingArticles else { return nil }
+        return collectionView.mediaPosterAnchor(forMediaID: id) { [weak self] index in
+            self?.movies[safe: index]?.id
+        }
+    }
+}

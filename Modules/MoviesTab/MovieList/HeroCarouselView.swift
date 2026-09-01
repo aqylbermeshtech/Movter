@@ -131,6 +131,17 @@ extension HeroCarouselView: UICollectionViewDataSource, UICollectionViewDelegate
         onMovieSelected?(items[indexPath.item])
     }
 
+    /// The backdrop card `id` is showing, if it's the page currently on screen. This
+    /// carousel has its own cell type rather than `MediaCell`, so it can't share the
+    /// collection-view helper.
+    func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
+        for indexPath in collectionView.indexPathsForVisibleItems where items[safe: indexPath.item]?.id == id {
+            guard let cell = collectionView.cellForItem(at: indexPath) as? HeroCarouselCell else { continue }
+            return cell.posterAnchor
+        }
+        return nil
+    }
+
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView.bounds.width > 0 else { return }
         let page = Int((scrollView.contentOffset.x / scrollView.bounds.width).rounded())
@@ -207,6 +218,13 @@ final class HeroCarouselCell: UICollectionViewCell {
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    /// The artwork alone, handed to the details transition to fly out of. The radius is
+    /// read off the layer so the flight can't drift out of step with the card's own
+    /// rounding if that changes.
+    var posterAnchor: PosterTransitionAnchor {
+        PosterTransitionAnchor(view: imageView, cornerRadius: imageView.layer.cornerRadius)
+    }
 
     override func layoutSubviews() {
         super.layoutSubviews()

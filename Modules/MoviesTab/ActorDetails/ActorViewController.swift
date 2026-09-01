@@ -23,6 +23,7 @@ final class ActorViewController: UIViewController {
     // MARK: - Views
 
     private let scrollView = UIScrollView()
+    private let posterTransition = PosterTransitionController()
 
     private let profileImageView: UIImageView = {
         let iv = UIImageView()
@@ -326,8 +327,19 @@ extension ActorViewController: UICollectionViewDataSource, UICollectionViewDeleg
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let credit = viewModel.credit(at: indexPath.item) else { return }
-        let detailVM = MediaDetailsViewModel(media: credit.asMedia)
-        let detailVC = MediaDetailsViewController(viewModel: detailVM)
-        navigationController?.pushViewController(detailVC, animated: true)
+        let media = credit.asMedia
+        let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
+        posterTransition.push(detailVC, for: media, from: self)
+    }
+}
+
+// MARK: - Poster transition
+
+extension ActorViewController: PosterTransitionSource {
+
+    func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
+        filmographyCollectionView.mediaPosterAnchor(forMediaID: id) { [weak self] index in
+            self?.viewModel.credit(at: index)?.asMedia.id
+        }
     }
 }

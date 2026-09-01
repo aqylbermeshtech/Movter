@@ -580,3 +580,15 @@ extension MediaDetailsViewController: UIGestureRecognizerDelegate {
         return !touched.isDescendant(of: miniReviewView)
     }
 }
+
+
+// MARK: - Poster transition
+
+extension MediaDetailsViewController: PosterTransitionDestination {
+
+    /// The header artwork the tapped poster flies into. It sits at the top of the scroll
+    /// view's content rather than the screen, so once the view has scrolled this frame
+    /// travels with it — which is what lets the pop fly back out of wherever the poster
+    /// actually is, and what lets the transition bow out when it's scrolled away.
+    var transitionPoster: UIImageView { imageView }
+}

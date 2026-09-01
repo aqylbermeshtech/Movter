@@ -30,6 +30,7 @@ final class SwipeDeckViewController: UIViewController {
 
     /// Front-to-back: index 0 is the interactive top card.
     private var cardViews: [SwipeCardView] = []
+    private let posterTransition = PosterTransitionController()
 
     private let cardContainer = UIView()
     private let loadingIndicator: UIActivityIndicatorView = {
@@ -257,7 +258,7 @@ final class SwipeDeckViewController: UIViewController {
 
     private func showDetails(for media: Media) {
         let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
-        navigationController?.pushViewController(detailVC, animated: true)
+        posterTransition.push(detailVC, for: media, from: self)
     }
 
     private func presentError(_ message: String) {
@@ -331,5 +332,19 @@ extension SwipeDeckViewController: TabActionProviding {
 
     func performTabAction() {
         showWatchlist()
+    }
+}
+
+
+// MARK: - Poster transition
+
+extension SwipeDeckViewController: PosterTransitionSource {
+
+    /// Only the top card counts. The ones behind it are stacked, scaled and partly
+    /// covered, so flying a poster back into one would land it somewhere the viewer
+    /// never saw it.
+    func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
+        guard let top = cardViews.first, top.media.id == id else { return nil }
+        return top.posterAnchor
     }
 }
