@@ -8,73 +8,78 @@
 import Foundation
 import UIKit
 
-enum SearchNavigationTarget {
-    case subcategory(title: String, items: [String])
-    case infoAction(title: String, description: String)
-}
-
 final class SearchMoviesViewModel {
-    private let sections: [(title: String, items: [String])] = [
-        (
+
+    /// What a section of the browse screen draws. The two are shaped differently — a
+    /// list of rows that push a category, and a single cell holding a wrapping grid of
+    /// chips — so the table asks the section rather than assuming every row is a title
+    /// with a chevron.
+    enum Section {
+        case browse(title: String, items: [String])
+        case genres(title: String)
+    }
+
+    private let sections: [Section] = [
+        .browse(
             title: "Browse by",
             items: ["Release date", "Genre, country or language", "Service", "Most popular", "Highest Rated", "Most anticipated", "Coming soon", "Featured lists", "Official lists"]
         ),
-        (
-            title: "MoviesApp",
-            items: ["New here?", "About Us", "Journal/Editorial", "Showdown Challenges", "Year in Review", "Contacts", "Social Accounts / Follow us", "Community Policy"]
-        )
+        .genres(title: "Popular Genres")
     ]
+
     var numberOfSections: Int {
-        return sections.count
+        sections.count
     }
+
+    func section(at index: Int) -> Section? {
+        sections[safe: index]
+    }
+
     func numberOfRows(in section: Int) -> Int {
-        guard section < sections.count else { return 0 }
-        return sections[section].items.count
+        switch sections[safe: section] {
+        case let .browse(_, items): return items.count
+        // The grid is one cell however many chips wrap onto however many lines.
+        case .genres:               return 1
+        case nil:                   return 0
+        }
     }
+
     func titleForHeader(in section: Int) -> String? {
-        guard section < sections.count else { return nil }
-        return sections[section].title
+        switch sections[safe: section] {
+        case let .browse(title, _): return title
+        case let .genres(title):    return title
+        case nil:                   return nil
+        }
     }
-    func item(at indexPath: IndexPath) -> String {
-        return sections[indexPath.section].items[indexPath.row]
+
+    func item(at indexPath: IndexPath) -> String? {
+        guard case let .browse(_, items) = sections[safe: indexPath.section] else { return nil }
+        return items[safe: indexPath.row]
     }
-    func handleSelection(at indexPath: IndexPath) -> SearchNavigationTarget? {
-        let selectedItem = item(at: indexPath)
+
+    /// The values behind a browse row, for the list it pushes. Nil for a row with
+    /// nothing under it, so the screen stays put rather than pushing an empty list.
+    func subcategory(at indexPath: IndexPath) -> (title: String, items: [String])? {
+        guard let selectedItem = item(at: indexPath) else { return nil }
         switch selectedItem {
         case "Release date":
-            return .subcategory(title: selectedItem, items: ["2026", "2025", "2024", "2023", "2022", "2020s", "2010s", "2000s"])
+            return (selectedItem, ["2026", "2025", "2024", "2023", "2022", "2020s", "2010s", "2000s"])
         case "Genre, country or language":
-            return .subcategory(title: selectedItem, items: ["Action", "Comedy", "Drama", "Sci-Fi", "Thriller", "Horror", "Animation"])
+            return (selectedItem, ["Action", "Comedy", "Drama", "Sci-Fi", "Thriller", "Horror", "Animation"])
         case "Service":
-            return .subcategory(title: selectedItem, items: ["Netflix", "HBO Max", "Apple TV+", "Disney+", "Amazon Prime"])
+            return (selectedItem, ["Netflix", "HBO Max", "Apple TV+", "Disney+", "Amazon Prime"])
         case "Most popular":
-            return .subcategory(title: selectedItem, items: ["Popular Today", "Popular This Week", "All Time Popular"])
+            return (selectedItem, ["Popular Today", "Popular This Week", "All Time Popular"])
         case "Highest Rated":
-            return .subcategory(title: selectedItem, items: ["Top 250 Movies", "Top IMDb", "Critically Acclaimed"])
+            return (selectedItem, ["Top 250 Movies", "Top IMDb", "Critically Acclaimed"])
         case "Most anticipated":
-            return .subcategory(title: selectedItem, items: ["Coming This Month", "Most Hyped 2026", "Trending Preorders"])
+            return (selectedItem, ["Coming This Month", "Most Hyped 2026", "Trending Preorders"])
         case "Coming soon":
-            return .subcategory(title: selectedItem, items: ["Theaters This Friday", "Streaming Next Week", "Announced Projects"])
+            return (selectedItem, ["Theaters This Friday", "Streaming Next Week", "Announced Projects"])
         case "Featured lists":
-            return .subcategory(title: selectedItem, items: ["Oscar Winners", "Cannes Festival", "Best of Marvel", "Christopher Nolan Collection"])
+            return (selectedItem, ["Oscar Winners", "Cannes Festival", "Best of Marvel", "Christopher Nolan Collection"])
         case "Official lists":
-            return .subcategory(title: selectedItem, items: ["TMDB Top Rated", "Letterboxd Top 250", "App Users Choice"])
-        case "New here?":
-            return .infoAction(title: selectedItem, description: "Открыть экран-приветствие или онбординг")
-        case "About Us":
-            return .infoAction(title: selectedItem, description: "Открыть экран с информацией о команде")
-        case "Journal/Editorial":
-            return .infoAction(title: selectedItem, description: "Открыть блог или статьи редакции")
-        case "Showdown Challenges":
-            return .infoAction(title: selectedItem, description: "Открыть игровой режим / челленджи приложения")
-        case "Year in Review":
-            return .infoAction(title: selectedItem, description: "Открыть итоги года для пользователя")
-        case "Contacts":
-            return .infoAction(title: selectedItem, description: "Открыть экран обратной связи")
-        case "Social Accounts / Follow us":
-            return .infoAction(title: selectedItem, description: "Открыть ссылки на Telegram / Instagram приложения")
-        case "Community Policy":
-            return .infoAction(title: selectedItem, description: "Открыть документ с правилами сообщества")
+            return (selectedItem, ["TMDB Top Rated", "Letterboxd Top 250", "App Users Choice"])
         default:
             return nil
         }

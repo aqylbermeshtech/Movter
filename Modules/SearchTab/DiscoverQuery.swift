@@ -26,11 +26,19 @@ struct DiscoverQuery {
     /// The home screen's default feed, and what its "See all" opens.
     static let trendingToday = DiscoverQuery("/trending/movie/day")
 
-    /// A single genre by id, for the home chip row — it carries TMDB's ids already and
-    /// so has no display name for `genre(_:)` to look up.
+    /// A single genre by id, for the chip rows — they carry TMDB's ids already and so
+    /// have no display name for `genre(_:)` to look up.
     static func genre(id: Int) -> DiscoverQuery {
         discover(["with_genres": "\(id)", "sort_by": "popularity.desc"])
     }
+
+    /// Animation made in Japanese. TMDB has no anime genre, and the language is what
+    /// separates it from Western animation under the one id they share.
+    static let anime = discover([
+        "with_genres": "16",
+        "with_original_language": "ja",
+        "sort_by": "popularity.desc"
+    ])
 
     static func make(category: String, value: String) -> DiscoverQuery? {
         switch category {

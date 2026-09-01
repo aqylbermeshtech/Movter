@@ -15,6 +15,7 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
         let tv = UITableView(frame: .zero, style: .grouped)
         tv.backgroundColor = .clear
         tv.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        tv.register(GenreChipsCell.self, forCellReuseIdentifier: GenreChipsCell.identifier)
         tv.estimatedRowHeight = 44.0
         tv.rowHeight = UITableView.automaticDimension
         return tv
@@ -89,6 +90,16 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
         header.textLabel?.textColor = .textPrimary
     }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        if case .genres = viewModel.section(at: indexPath.section) {
+            let cell = tableView.dequeueReusableCell(
+                withIdentifier: GenreChipsCell.identifier, for: indexPath
+            ) as! GenreChipsCell
+            cell.gridView.onSelect = { [weak self] genre in
+                self?.showGenre(genre)
+            }
+            return cell
+        }
+
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
 
         cell.textLabel?.text = viewModel.item(at: indexPath)
@@ -107,21 +118,34 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
         return cell
     }
 
+    /// The chip grid wraps, so its height is a function of the width it is given rather
+    /// than something the cell can size itself to.
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        guard case .genres = viewModel.section(at: indexPath.section) else {
+            return UITableView.automaticDimension
+        }
+        return GenreChipsCell.height(forTableWidth: tableView.bounds.width)
+    }
+
     // MARK: - UITableViewDelegate
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
 
-        guard let target = viewModel.handleSelection(at: indexPath) else { return }
+        guard let subcategory = viewModel.subcategory(at: indexPath) else { return }
+        let subCategoryVC = SubcategoryViewController(
+            title: subcategory.title, items: subcategory.items
+        )
+        navigationController?.pushViewController(subCategoryVC, animated: true)
+    }
 
-        switch target {
-        case .subcategory(let title, let items):
-            let subCategoryVC = SubcategoryViewController(title: title, items: items)
-            navigationController?.pushViewController(subCategoryVC, animated: true)
-
-        case .infoAction(let title, let description):
-            print("Лог действия [\(title)]: \(description)")
-
-        }
+    /// Straight to the results, skipping the value list the browse rows go through —
+    /// the chip already names exactly one thing to show. The same screen home's
+    /// "See all" opens, under the same title.
+    private func showGenre(_ genre: MovieGenre) {
+        let gridVC = MovieGridViewController(
+            source: .discover(genre.query), title: genre.sectionTitle
+        )
+        navigationController?.pushViewController(gridVC, animated: true)
     }
 }
 
