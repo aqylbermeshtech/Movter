@@ -145,7 +145,9 @@ final class MediaDetailsViewController: UIViewController {
         container.backgroundColor = .surface
         container.layer.cornerRadius = 12
         container.layer.borderWidth = 1
-        container.layer.borderColor = UIColor.textPrimary.withAlphaComponent(0.16).cgColor
+        container.trackInterfaceStyle {
+            $0.layer.borderColor = UIColor.textPrimary.withAlphaComponent(0.16).cgColor
+        }
         container.isHidden = true
         container.translatesAutoresizingMaskIntoConstraints = false
 
@@ -197,7 +199,9 @@ final class MediaDetailsViewController: UIViewController {
         container.backgroundColor = .surface
         container.layer.cornerRadius = 12
         container.layer.borderWidth = 1
-        container.layer.borderColor = UIColor.textPrimary.withAlphaComponent(0.16).cgColor
+        container.trackInterfaceStyle {
+            $0.layer.borderColor = UIColor.textPrimary.withAlphaComponent(0.16).cgColor
+        }
         container.isHidden = true
         container.translatesAutoresizingMaskIntoConstraints = false
 

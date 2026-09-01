@@ -47,19 +47,34 @@ final class CustomTabBarView: UIView {
     /// One icon per tab, stacked; all but the active one are faded and scaled down.
     private var actionIconViews: [UIImageView] = []
 
-    /// Unselected and selected renderings of every segment, baked once. A segment image
-    /// isn't state-aware the way title attributes are, so the whole set is swapped
-    /// whenever the selection changes.
-    private let unselectedImages: [UIImage]
-    private let selectedImages: [UIImage]
+    /// Unselected and selected renderings of every segment. A segment image isn't
+    /// state-aware the way title attributes are, so the whole set is swapped whenever the
+    /// selection changes — and rebuilt whenever the interface style changes, since the
+    /// tint is burned into the bitmap and cannot re-resolve on its own.
+    private var unselectedImages: [UIImage] = []
+    private var selectedImages: [UIImage] = []
 
     init(tabs: [Tab]) {
         self.tabs = tabs
         self.segmentedControl = UISegmentedControl(items: tabs.map { _ in "" })
-        self.unselectedImages = tabs.map { CustomTabBarView.renderSegmentImage(tab: $0, tint: .textPrimary) }
-        self.selectedImages = tabs.map { CustomTabBarView.renderSegmentImage(tab: $0, tint: .onAccent) }
         super.init(frame: .zero)
+        renderSegmentImages()
         setupUI()
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (bar: CustomTabBarView, _) in
+            bar.renderSegmentImages()
+            bar.applySegmentImages()
+        }
+    }
+
+    /// Bakes both sets against the style in force right now. A dynamic colour stops being
+    /// dynamic the moment it is drawn into a bitmap, so the tints are resolved explicitly
+    /// and the whole set is thrown away and redrawn when the style changes — otherwise the
+    /// labels keep the tone they were born with and vanish into the opposite palette.
+    private func renderSegmentImages() {
+        let idle = UIColor.textPrimary.resolvedColor(with: traitCollection)
+        let active = UIColor.onAccent.resolvedColor(with: traitCollection)
+        unselectedImages = tabs.map { Self.renderSegmentImage(tab: $0, tint: idle) }
+        selectedImages = tabs.map { Self.renderSegmentImage(tab: $0, tint: active) }
     }
 
     required init?(coder: NSCoder) { fatalError() }

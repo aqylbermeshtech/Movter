@@ -143,7 +143,7 @@ final class ProfileViewController: UIViewController {
 
     private func showPrivacyPolicy() {
         let safariVC = SFSafariViewController(url: ProfileViewModel.privacyPolicyURL)
-        safariVC.preferredControlTintColor = ThemeManager.shared.currentTheme.mainColor
+        safariVC.preferredControlTintColor = .accent
         present(safariVC, animated: true)
     }
 
@@ -178,14 +178,14 @@ final class ProfileViewController: UIViewController {
 
     private func showThemeSelectionAlert() {
         let alert = UIAlertController(
-            title: "Select App Theme",
-            message: "One accent, used everywhere",
+            title: "App Theme",
+            message: "Automatic follows your device's appearance",
             preferredStyle: .actionSheet
         )
 
         // No checkmark: the row's detail text already shows the active theme, and
         // marking one would mean poking a private UIAlertAction key.
-        for theme in [AppTheme.mono, .amber, .slate] {
+        for theme in AppTheme.allCases {
             alert.addAction(UIAlertAction(title: theme.displayName, style: .default) { [weak self] _ in
                 guard let self = self else { return }
                 self.viewModel.changeTheme(to: theme)

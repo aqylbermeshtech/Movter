@@ -51,7 +51,7 @@ final class ToastView: UIView {
         backgroundColor = .surface
         layer.cornerCurve = .continuous
         layer.borderWidth = 1
-        layer.borderColor = UIColor.hairline.cgColor
+        trackInterfaceStyle { $0.layer.borderColor = UIColor.hairline.cgColor }
         // Never intercepts a tap — it can be sitting over anything.
         isUserInteractionEnabled = false
 

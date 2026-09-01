@@ -115,6 +115,10 @@ final class ExpandableTextLabel: UIView {
         ])
 
         applyFadeColor()
+        // The gradient is CGColor, so it does not re-resolve on its own.
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (label: ExpandableTextLabel, _) in
+            label.applyFadeColor()
+        }
         fadeView.alpha = 0
 
         addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(toggle)))

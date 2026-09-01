@@ -147,9 +147,8 @@ final class MediaListViewController: UIViewController {
     }
     
     private func applyTheme() {
-        let theme = ThemeManager.shared.currentTheme
-        navigationController?.navigationBar.tintColor = theme.mainColor
-        topSwitcher.updateTheme(with: theme.mainColor)
+        navigationController?.navigationBar.tintColor = .accent
+        topSwitcher.updateTheme(with: .accent)
     }
         
     deinit {

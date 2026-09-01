@@ -296,7 +296,7 @@ final class ChipCell: UICollectionViewCell {
         contentView.layer.cornerRadius = 17
         contentView.layer.cornerCurve = .continuous
         contentView.layer.borderWidth = 1
-        contentView.layer.borderColor = UIColor.hairline.cgColor
+        contentView.trackInterfaceStyle { $0.layer.borderColor = UIColor.hairline.cgColor }
 
         label.font = Self.font
         label.textColor = .textPrimary

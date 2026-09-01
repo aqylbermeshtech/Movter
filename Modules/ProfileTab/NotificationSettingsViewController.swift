@@ -151,7 +151,7 @@ extension NotificationSettingsViewController: UITableViewDelegate, UITableViewDa
             cell.accessoryView = toggle
             cell.selectionStyle = .none
             // Dim the row so it's clear why the toggles don't respond.
-            content.textProperties.color = isAuthorized ? .white : .textSecondary
+            content.textProperties.color = isAuthorized ? .textPrimary : .textSecondary
         }
 
         cell.contentConfiguration = content

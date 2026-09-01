@@ -23,10 +23,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             window.rootViewController = loginNav
         }
         self.window = window
-        window.tintColor = ThemeManager.shared.currentTheme.mainColor
-        // Every screen is designed dark; without this, semantic colours like `.label`
-        // resolve light and render invisible.
-        window.overrideUserInterfaceStyle = .dark
+        ThemeManager.shared.apply(to: window)
         window.makeKeyAndVisible()
     }
 }
