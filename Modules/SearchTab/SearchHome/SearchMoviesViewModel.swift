@@ -22,7 +22,7 @@ final class SearchMoviesViewModel {
     private let sections: [Section] = [
         .browse(
             title: "Browse by",
-            items: ["Release date", "Genre, country or language", "Service", "Most popular", "Highest Rated", "Most anticipated", "Coming soon", "Featured lists", "Official lists"]
+            items: ["Release date", "Service", "Most popular", "Highest Rated", "Most anticipated", "Coming soon", "Featured lists", "Official lists"]
         ),
         .genres(title: "Popular Genres")
     ]
@@ -64,8 +64,6 @@ final class SearchMoviesViewModel {
         switch selectedItem {
         case "Release date":
             return (selectedItem, ["2026", "2025", "2024", "2023", "2022", "2020s", "2010s", "2000s"])
-        case "Genre, country or language":
-            return (selectedItem, ["Action", "Comedy", "Drama", "Sci-Fi", "Thriller", "Horror", "Animation"])
         case "Service":
             return (selectedItem, ["Netflix", "HBO Max", "Apple TV+", "Disney+", "Amazon Prime"])
         case "Most popular":

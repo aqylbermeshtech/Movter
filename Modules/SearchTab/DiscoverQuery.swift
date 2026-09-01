@@ -26,8 +26,7 @@ struct DiscoverQuery {
     /// The home screen's default feed, and what its "See all" opens.
     static let trendingToday = DiscoverQuery("/trending/movie/day")
 
-    /// A single genre by id, for the chip rows — they carry TMDB's ids already and so
-    /// have no display name for `genre(_:)` to look up.
+    /// A single genre by id, for the chip rows — `MovieGenre` carries TMDB's ids.
     static func genre(id: Int) -> DiscoverQuery {
         discover(["with_genres": "\(id)", "sort_by": "popularity.desc"])
     }
@@ -43,7 +42,6 @@ struct DiscoverQuery {
     static func make(category: String, value: String) -> DiscoverQuery? {
         switch category {
         case "Release date":       return releaseDate(value)
-        case "Genre, country or language": return genre(value)
         case "Service":            return service(value)
         case "Most popular":       return mostPopular(value)
         case "Highest Rated":      return highestRated(value)
@@ -68,11 +66,6 @@ struct DiscoverQuery {
         }
         guard let year = Int(value) else { return nil }
         return discover(["primary_release_year": "\(year)", "sort_by": "popularity.desc"])
-    }
-
-    private static func genre(_ value: String) -> DiscoverQuery? {
-        guard let id = genreIds[value.lowercased()] else { return nil }
-        return discover(["with_genres": id, "sort_by": "popularity.desc"])
     }
 
     private static func service(_ value: String) -> DiscoverQuery? {
@@ -162,11 +155,6 @@ struct DiscoverQuery {
     }
 
     // MARK: - Lookups
-
-    private static let genreIds: [String: String] = [
-        "action": "28", "comedy": "35", "drama": "18", "sci-fi": "878",
-        "thriller": "53", "horror": "27", "animation": "16"
-    ]
 
     private static let providerIds: [String: String] = [
         "netflix": "8", "hbo max": "384", "apple tv+": "350",
