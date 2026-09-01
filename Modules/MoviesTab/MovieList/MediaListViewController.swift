@@ -113,7 +113,6 @@ final class MediaListViewController: UIViewController {
 
     private func setupUI() {
         view.addSubview(headerView)
-        view.addSubview(chipsView)
         view.addSubview(scrollView)
         view.addSubview(offlineView)
         // Last, so it covers the feed it is explaining the absence of.
@@ -124,28 +123,26 @@ final class MediaListViewController: UIViewController {
         heroView.translatesAutoresizingMaskIntoConstraints = false
         trendingView.translatesAutoresizingMaskIntoConstraints = false
 
-        // The header and chips stay put; only the feed under them scrolls, so the
-        // filter is always one tap away however far down the row you are.
+        // Only the title bar stays put. The chips scroll away with the feed they filter
+        // — pinned, they clipped the hero card against the scroll view's top edge the
+        // moment anything moved, which read as the artwork being cut off rather than
+        // scrolled.
         NSLayoutConstraint.activate([
             headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             headerView.heightAnchor.constraint(equalToConstant: HomeHeaderView.preferredHeight),
 
-            chipsView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 16),
-            chipsView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            chipsView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            chipsView.heightAnchor.constraint(equalToConstant: GenreChipsView.preferredHeight),
-
-            scrollView.topAnchor.constraint(equalTo: chipsView.bottomAnchor),
+            scrollView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        let content = UIStackView(arrangedSubviews: [heroView, trendingView])
+        let content = UIStackView(arrangedSubviews: [chipsView, heroView, trendingView])
         content.axis = .vertical
         content.spacing = 24
+        content.setCustomSpacing(16, after: chipsView)
         content.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(content)
 
@@ -156,21 +153,22 @@ final class MediaListViewController: UIViewController {
             content.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -16),
             content.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
 
+            chipsView.heightAnchor.constraint(equalToConstant: GenreChipsView.preferredHeight),
             heroView.heightAnchor.constraint(equalToConstant: HeroCarouselView.sectionHeight),
             trendingView.heightAnchor.constraint(equalToConstant: TrendingMediaGridView.carouselSectionHeight)
         ])
 
         NSLayoutConstraint.activate([
-            offlineView.topAnchor.constraint(equalTo: chipsView.bottomAnchor),
+            offlineView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
             offlineView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             offlineView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             offlineView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        // Same footprint as the offline placeholder: the content area below the chips,
-        // leaving the filter reachable.
+        // Same footprint as the offline placeholder: the scrolling area below the title
+        // bar, which the chips now live inside.
         NSLayoutConstraint.activate([
-            actionUnavailableView.topAnchor.constraint(equalTo: chipsView.bottomAnchor),
+            actionUnavailableView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
             actionUnavailableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             actionUnavailableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             actionUnavailableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
