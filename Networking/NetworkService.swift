@@ -12,7 +12,6 @@ nonisolated struct MovieResponse: Codable {
     let results: [Media]
     /// TMDB caps paging at 500; without this the grid kept requesting pages forever.
     let totalPages: Int?
-    let totalResults: Int?
 }
 
 struct MediaPage {

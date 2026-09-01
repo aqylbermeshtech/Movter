@@ -179,17 +179,6 @@ final class ReviewsListViewController: UIViewController {
         presentEditor(for: nil)
     }
 
-    /// Built but not presented, so the tab bar can raise it over another tab.
-    /// `onSaved` runs after the editor has dismissed.
-    func makeNewReviewEditor(onSaved: @escaping () -> Void = {}) -> ReviewEditorViewController {
-        let editor = ReviewEditorViewController(viewModel: viewModel.makeEditorViewModel(for: nil))
-        editor.onSave = { [weak self] in
-            self?.viewModel.load()
-            onSaved()
-        }
-        return editor
-    }
-
     private func presentEditor(for review: Review?) {
         let editorViewModel = viewModel.makeEditorViewModel(for: review)
         let editor = ReviewEditorViewController(viewModel: editorViewModel)

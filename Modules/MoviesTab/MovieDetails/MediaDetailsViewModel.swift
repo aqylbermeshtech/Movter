@@ -22,7 +22,6 @@ final class MediaDetailsViewModel {
     var posterPath: String { media.posterPath ?? "" }
     var releaseDate: String { media.releaseDate ?? media.firstAirDate ?? "N/A" }
     var voteAverage: Double { media.voteAverage }
-    var imageURL: URL? { media.fullPosterURL }
     var ratingState: RatingState { media.ratingState }
     var year: String? { media.year }
     var largeImageURL: URL? { media.largePosterURL ?? media.fullPosterURL }
