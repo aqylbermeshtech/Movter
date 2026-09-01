@@ -433,7 +433,7 @@ final class HeroCarouselCell: UICollectionViewCell {
                 DispatchQueue.main.async {
                     guard let self = self, self.mediaID == media.id else { return }
                     guard let image = image else {
-                        self.showArtworkPlaceholder()
+                        self.showArtworkPlaceholder(isUpcoming: media.ratingState.isUpcoming)
                         return
                     }
                     self.imageView.contentMode = .scaleAspectFill
@@ -441,7 +441,7 @@ final class HeroCarouselCell: UICollectionViewCell {
                 }
             }
         } else {
-            showArtworkPlaceholder()
+            showArtworkPlaceholder(isUpcoming: media.ratingState.isUpcoming)
         }
     }
 
@@ -464,10 +464,12 @@ final class HeroCarouselCell: UICollectionViewCell {
         metaBadge.isHidden = parts.isEmpty
     }
 
-    private func showArtworkPlaceholder() {
+    /// The card carries the year in its own chip, so the symbol alone is enough here to
+    /// separate "no artwork yet" from "no artwork at all".
+    private func showArtworkPlaceholder(isUpcoming: Bool) {
         imageView.contentMode = .center
         imageView.image = UIImage(
-            systemName: "film",
+            systemName: isUpcoming ? "calendar" : "film",
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 40, weight: .regular)
         )
     }

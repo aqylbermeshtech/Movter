@@ -166,6 +166,13 @@ enum RatingFormatter {
         return result
     }
 
+    /// What a badge says in place of a score for a title that isn't out. The month when
+    /// TMDB has a date for it, and a plain "SOON" when all it has is an announcement.
+    static func upcomingBadgeText(releaseDate: Date?) -> String {
+        guard let releaseDate = releaseDate else { return "SOON" }
+        return monthYearFormatter.string(from: releaseDate).uppercased()
+    }
+
     private static let monthYearFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "LLL yyyy"

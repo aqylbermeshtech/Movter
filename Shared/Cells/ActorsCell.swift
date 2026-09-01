@@ -9,7 +9,10 @@ import UIKit
 
 class ActorsCell:UICollectionViewCell {
     static let identifier = "ActorsCell"
-    
+
+    /// Guards against a slow headshot landing in a cell that has been reused.
+    private var profileURL: URL?
+
     private let profileImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
@@ -65,6 +68,7 @@ class ActorsCell:UICollectionViewCell {
         profileImageView.image = nil
         nameLabel.text = nil
         characterLabel.text = nil
+        profileURL = nil
     }
     
     required init?(coder: NSCoder) { fatalError() }
@@ -73,11 +77,11 @@ class ActorsCell:UICollectionViewCell {
         nameLabel.text = actor.name
         characterLabel.text = actor.character
         
-        if let url = actor.profileURL {
+        profileURL = actor.profileURL
+        if let url = profileURL {
             ImageLoader.load(url: url) { [weak self] image in
-                DispatchQueue.main.async {
-                    self?.profileImageView.image = image
-                }
+                guard let self = self, self.profileURL == url, let image = image else { return }
+                self.profileImageView.image = image
             }
         } else {
             profileImageView.image = UIImage(systemName: "person.fill")

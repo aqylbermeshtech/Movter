@@ -10,6 +10,10 @@ import UIKit
 final class MediaCell: UICollectionViewCell {
     static let identifier = "MediaCell"
 
+    /// Guards against a slow poster landing in a cell that has been reused. Without it
+    /// a film scrolled past can paint its artwork over whatever took its place.
+    private var posterURL: URL?
+
     private let imageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
@@ -47,6 +51,37 @@ final class MediaCell: UICollectionViewCell {
         return label
     }()
 
+    /// Stands in for artwork TMDB hasn't got. A film with no release date yet usually
+    /// has no poster either, and "no artwork" is the wrong reason to give for that — so
+    /// an unreleased title says what it actually is instead of showing a film reel.
+    private let placeholderIcon: UIImageView = {
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFit
+        iv.tintColor = .textSecondary
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let placeholderLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 11, weight: .semibold)
+        label.textColor = .textSecondary
+        label.textAlignment = .center
+        label.numberOfLines = 2
+        return label
+    }()
+
+    private lazy var placeholderView: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [placeholderIcon, placeholderLabel])
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 6
+        stack.isHidden = true
+        stack.isUserInteractionEnabled = false
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
     private lazy var ratingBadge: UIView = {
         let badge = UIView()
         badge.backgroundColor = UIColor.black.withAlphaComponent(0.55)
@@ -74,6 +109,8 @@ final class MediaCell: UICollectionViewCell {
         ratingLabel.isHidden = false
         ratingBadge.isHidden = true
         ratingBadgeLabel.attributedText = nil
+        placeholderView.isHidden = true
+        posterURL = nil
     }
 
     override init(frame: CGRect) {
@@ -96,8 +133,17 @@ final class MediaCell: UICollectionViewCell {
             imageView.heightAnchor.constraint(equalTo: stack.widthAnchor, multiplier: 1.5)
         ])
 
+        // Added before the badge so a score still reads over a placeholder.
+        contentView.addSubview(placeholderView)
         contentView.addSubview(ratingBadge)
         NSLayoutConstraint.activate([
+            placeholderView.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
+            placeholderView.centerYAnchor.constraint(equalTo: imageView.centerYAnchor),
+            placeholderView.leadingAnchor.constraint(greaterThanOrEqualTo: imageView.leadingAnchor, constant: 8),
+            placeholderView.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -8),
+            placeholderIcon.widthAnchor.constraint(equalToConstant: 26),
+            placeholderIcon.heightAnchor.constraint(equalToConstant: 26),
+
             ratingBadge.topAnchor.constraint(equalTo: imageView.topAnchor, constant: 8),
             ratingBadge.leadingAnchor.constraint(equalTo: imageView.leadingAnchor, constant: 8)
         ])
@@ -115,9 +161,10 @@ final class MediaCell: UICollectionViewCell {
     /// - Parameter showsCaption: false leaves just the poster, for the carousel.
     ///   Hidden arranged subviews drop out of the stack, so the cell's height becomes
     ///   the poster's alone.
-    /// - Parameter showsRatingBadge: puts the score on the artwork instead. Only for a
-    ///   title that actually has one — an "Announced" chip over a poster is noise, so
-    ///   unrated and unreleased titles show nothing rather than a badge apologising.
+    /// - Parameter showsRatingBadge: puts the score on the artwork instead. A title that
+    ///   isn't out yet has no score to show, so it gets its release month there instead;
+    ///   one that is out but unvoted shows nothing, since neither a score nor a date
+    ///   would be true of it.
     func configure(with media: Media, showsCaption: Bool = true, showsRatingBadge: Bool = false) {
         titleLabel.isHidden = !showsCaption
         ratingLabel.isHidden = !showsCaption
@@ -129,19 +176,19 @@ final class MediaCell: UICollectionViewCell {
             textColor: .textPrimary,
             compact: true
         )
-        if let url = media.fullPosterURL {
+        posterURL = media.fullPosterURL
+        if let url = posterURL {
             ImageLoader.load(url: url) { [weak self] image in
-                DispatchQueue.main.async {
-                    guard let image = image else {
-                        self?.showPosterPlaceholder()
-                        return
-                    }
-                    self?.imageView.contentMode = .scaleAspectFill
-                    self?.imageView.image = image
+                guard let self = self, self.posterURL == url else { return }
+                guard let image = image else {
+                    self.showPosterPlaceholder(isUpcoming: media.ratingState.isUpcoming)
+                    return
                 }
+                self.placeholderView.isHidden = true
+                self.imageView.image = image
             }
         } else {
-            showPosterPlaceholder()
+            showPosterPlaceholder(isUpcoming: media.ratingState.isUpcoming)
         }
     }
 
@@ -160,17 +207,28 @@ final class MediaCell: UICollectionViewCell {
                 compact: true
             )
             ratingBadge.isHidden = false
-        case .unrated, .upcoming:
+        case let .upcoming(releaseDate):
+            // No score, and none coming for a while — so say when instead of hiding.
+            ratingBadgeLabel.text = RatingFormatter.upcomingBadgeText(releaseDate: releaseDate)
+            ratingBadge.isHidden = false
+
+        case .unrated:
+            // Out already, just not voted on. "Soon" would be a lie and an empty score
+            // chip says nothing, so the artwork carries the cell alone.
             ratingBadge.isHidden = true
         }
     }
 
-    /// Plenty of TMDB credits — talk-show appearances especially — ship without artwork.
-    private func showPosterPlaceholder() {
-        imageView.contentMode = .center
-        imageView.image = UIImage(
-            systemName: "film",
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 28, weight: .regular)
+    /// Plenty of TMDB entries ship without artwork — talk-show credits especially, and
+    /// almost everything announced but not yet shot.
+    private func showPosterPlaceholder(isUpcoming: Bool) {
+        imageView.image = nil
+        placeholderIcon.image = UIImage(
+            systemName: isUpcoming ? "calendar" : "film",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 24, weight: .regular)
         )
+        placeholderLabel.text = isUpcoming ? "Coming soon" : nil
+        placeholderLabel.isHidden = !isUpcoming
+        placeholderView.isHidden = false
     }
 }
