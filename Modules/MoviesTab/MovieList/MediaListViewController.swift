@@ -25,8 +25,8 @@ final class MediaListViewController: UIViewController {
         return scrollView
     }()
 
-    /// The user's saved titles, by TMDB id, so the hero's eye button knows which way
-    /// round it is and the toggle knows which stored item to delete.
+    /// The user's saved titles, by TMDB id, so the hero's bookmark knows which way round
+    /// it is and the toggle knows which stored item to delete.
     private var watchlistItemIDs: [Int: UUID] = [:]
 
     init(watchlistStore: WatchlistStoring) {

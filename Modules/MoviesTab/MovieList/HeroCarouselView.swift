@@ -16,7 +16,7 @@ final class HeroCarouselView: UIView {
     var onWatchlistToggled: ((Media) -> Void)?
 
     private var items: [Media] = []
-    /// TMDB ids the user already has saved, so the eye button starts in the right state.
+    /// TMDB ids the user already has saved, so the bookmark starts in the right state.
     private var watchlistedIDs: Set<Int> = []
 
     private static let horizontalInset: CGFloat = 16
@@ -448,7 +448,7 @@ final class HeroCarouselCell: UICollectionViewCell {
     func setWatchlisted(_ isWatchlisted: Bool) {
         watchlistButton.setImage(
             UIImage(
-                systemName: isWatchlisted ? "eye.fill" : "eye",
+                systemName: isWatchlisted ? "bookmark.fill" : "bookmark",
                 withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
             ),
             for: .normal
