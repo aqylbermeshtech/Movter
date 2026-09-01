@@ -7,14 +7,8 @@
 
 import Foundation
 
-/// One film the user has scored and written about.
-///
-/// Deliberately not a `Media`: this has to render without the network, so it keeps a
-/// flat snapshot. `tmdbID` and `posterPath` are nil for hand-typed entries.
 nonisolated struct Review: Codable, Equatable {
 
-    /// Whole numbers. Not `RatingState` — a personal score has no vote count and no
-    /// provisional case.
     static let scoreRange = 1...10
 
     let id: UUID
@@ -49,7 +43,6 @@ nonisolated struct Review: Codable, Equatable {
         self.updatedAt = updatedAt
     }
 
-    /// Snapshots a catalogue title so the entry renders later without a network call.
     init(from media: Media, score: Int, reviewText: String = "") {
         self.init(
             filmTitle: media.displayName,
@@ -63,7 +56,6 @@ nonisolated struct Review: Codable, Equatable {
 
     var posterURL: URL? { TMDBImageURL.url(path: posterPath, width: .poster) }
 
-    /// "Dune  ·  2021", or just the title when the year is unknown.
     var titleWithYear: String { filmTitle.withYear(filmYear) }
 
     var hasReviewText: Bool {

@@ -7,10 +7,6 @@
 
 import Foundation
 
-/// One film the user swiped right on.
-///
-/// A flat snapshot like `Review`, not a `Media`: it has to render without the network,
-/// and outlives whatever TMDB list it was originally swiped from.
 nonisolated struct WatchlistItem: Codable, Equatable {
     let id: UUID
     let tmdbID: Int
@@ -35,13 +31,11 @@ nonisolated struct WatchlistItem: Codable, Equatable {
         self.addedAt = addedAt
     }
 
-    /// Snapshots a catalogue title so the entry renders later without a network call.
     init(from media: Media) {
         self.init(tmdbID: media.id, title: media.displayName, year: media.year, posterPath: media.posterPath)
     }
 
     var posterURL: URL? { TMDBImageURL.url(path: posterPath, width: .poster) }
 
-    /// "Dune  ·  2021", or just the title when the year is unknown.
     var titleWithYear: String { title.withYear(year) }
 }

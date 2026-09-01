@@ -24,8 +24,6 @@ nonisolated struct PersonCreditsResponse: Codable {
     let cast: [PersonCredit]
 }
 
-/// One credit in a person's combined filmography. Everything past `id` is optional —
-/// TMDB omits fields freely across media types.
 nonisolated struct PersonCredit: Codable {
     let id: Int
     let title: String?
@@ -46,7 +44,6 @@ nonisolated struct PersonCredit: Codable {
         RatingState(voteAverage: voteAverage ?? 0, voteCount: voteCount ?? 0, releaseDate: releaseDate ?? firstAirDate)
     }
 
-    /// ISO "yyyy-MM-dd", so string ordering is chronological. Undated sorts last.
     var sortDate: String { releaseDate ?? firstAirDate ?? "" }
 
     var year: String? {
@@ -55,7 +52,6 @@ nonisolated struct PersonCredit: Codable {
         return String(date.prefix(4))
     }
 
-    /// `name` stays nil for films, so the details screen treats them as movies.
     var asMedia: Media {
         Media(
             id: id,

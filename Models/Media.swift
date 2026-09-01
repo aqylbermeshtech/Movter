@@ -17,20 +17,15 @@ nonisolated struct Media: Codable {
     let releaseDate: String?
     let firstAirDate: String?
     let voteAverage: Double
-    /// Optional: TMDB omits it on some payloads, and that would fail the whole decode.
     let voteCount: Int?
-    /// List endpoints only; the detail endpoint returns full objects under another key.
     let genreIds: [Int]?
 
     var displayName: String {
         return title ?? name ?? "Unknown"
     }
 
-    /// TMDB sends `title` for films and `name` for series; whichever is present is
-    /// what distinguishes them.
     var mediaType: MediaType { name != nil ? .tv : .movie }
 
-    /// Movies carry `release_date`, TV carries `first_air_date`.
     var releaseDateString: String? { releaseDate ?? firstAirDate }
 
     var year: String? {
@@ -44,10 +39,7 @@ nonisolated struct Media: Codable {
 
     var fullPosterURL: URL? { TMDBImageURL.url(path: posterPath, width: .poster) }
 
-    /// w500 is visibly soft when a poster spans the full screen width on a 3x device.
     var largePosterURL: URL? { TMDBImageURL.url(path: posterPath, width: .wide) }
 
-    /// Landscape art for the hero carousel. TMDB has no dedicated "horizontal poster"
-    /// field — `backdrop_path` is the intended source for 16:9 layouts.
     var fullBackdropURL: URL? { TMDBImageURL.url(path: backdropPath, width: .wide) }
 }
