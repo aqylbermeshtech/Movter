@@ -7,6 +7,11 @@ import UIKit
 import FirebaseAuth
 
 enum MainTabBarFactory {
+
+    /// Home's search button switches to this tab, so the title is shared rather than
+    /// spelled out twice.
+    static let searchTabTitle = "Search"
+
     static func makeTabBar() -> UIViewController {
         // Built per sign-in, so the stores are always scoped to the current account.
         let watchlistStore = WatchlistStoreFactory.makeStore()
@@ -15,7 +20,7 @@ enum MainTabBarFactory {
         // No Reviews tab: writing a review is reached through Profile › Reviews, which
         // carries its own add button. Each remaining tab's own primary action lives on
         // the bar's floating action button instead.
-        let mediaListVC = MediaListViewController()
+        let mediaListVC = MediaListViewController(watchlistStore: watchlistStore)
         let searchMoviesVC = SearchMoviesViewController()
         let swipeDeckVC = SwipeDeckViewController(watchlistStore: watchlistStore, seenFilmsStore: seenFilmsStore)
         let profileVC = ProfileViewController()
@@ -36,7 +41,7 @@ enum MainTabBarFactory {
                 root: mediaListVC
             ),
             .init(
-                title: "Search", symbol: "magnifyingglass",
+                title: searchTabTitle, symbol: "magnifyingglass",
                 navigationController: UINavigationController(rootViewController: searchMoviesVC),
                 root: searchMoviesVC
             ),

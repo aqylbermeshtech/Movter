@@ -36,6 +36,34 @@ final class MediaCell: UICollectionViewCell {
         return label
     }()
 
+    /// The score over the artwork, for carousels with no caption line to carry it.
+    /// White on a scrim rather than the accent: the accent inverts with the appearance,
+    /// and half of its range is invisible against a dark chip.
+    private let ratingBadgeLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.textColor = .white
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private lazy var ratingBadge: UIView = {
+        let badge = UIView()
+        badge.backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        badge.layer.cornerRadius = 9
+        badge.layer.cornerCurve = .continuous
+        badge.isHidden = true
+        badge.translatesAutoresizingMaskIntoConstraints = false
+        badge.addSubview(ratingBadgeLabel)
+        NSLayoutConstraint.activate([
+            ratingBadgeLabel.topAnchor.constraint(equalTo: badge.topAnchor, constant: 3),
+            ratingBadgeLabel.bottomAnchor.constraint(equalTo: badge.bottomAnchor, constant: -3),
+            ratingBadgeLabel.leadingAnchor.constraint(equalTo: badge.leadingAnchor, constant: 8),
+            ratingBadgeLabel.trailingAnchor.constraint(equalTo: badge.trailingAnchor, constant: -8)
+        ])
+        return badge
+    }()
+
     override func prepareForReuse() {
         super.prepareForReuse()
         imageView.image = nil
@@ -44,6 +72,8 @@ final class MediaCell: UICollectionViewCell {
         ratingLabel.attributedText = nil
         titleLabel.isHidden = false
         ratingLabel.isHidden = false
+        ratingBadge.isHidden = true
+        ratingBadgeLabel.attributedText = nil
     }
 
     override init(frame: CGRect) {
@@ -65,6 +95,12 @@ final class MediaCell: UICollectionViewCell {
             stack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             imageView.heightAnchor.constraint(equalTo: stack.widthAnchor, multiplier: 1.5)
         ])
+
+        contentView.addSubview(ratingBadge)
+        NSLayoutConstraint.activate([
+            ratingBadge.topAnchor.constraint(equalTo: imageView.topAnchor, constant: 8),
+            ratingBadge.leadingAnchor.constraint(equalTo: imageView.leadingAnchor, constant: 8)
+        ])
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -79,9 +115,13 @@ final class MediaCell: UICollectionViewCell {
     /// - Parameter showsCaption: false leaves just the poster, for the carousel.
     ///   Hidden arranged subviews drop out of the stack, so the cell's height becomes
     ///   the poster's alone.
-    func configure(with media: Media, showsCaption: Bool = true) {
+    /// - Parameter showsRatingBadge: puts the score on the artwork instead. Only for a
+    ///   title that actually has one — an "Announced" chip over a poster is noise, so
+    ///   unrated and unreleased titles show nothing rather than a badge apologising.
+    func configure(with media: Media, showsCaption: Bool = true, showsRatingBadge: Bool = false) {
         titleLabel.isHidden = !showsCaption
         ratingLabel.isHidden = !showsCaption
+        configureRatingBadge(with: media, visible: showsRatingBadge)
         titleLabel.text = media.displayName
         ratingLabel.attributedText = RatingFormatter.attributedRating(
             media.ratingState,
@@ -102,6 +142,26 @@ final class MediaCell: UICollectionViewCell {
             }
         } else {
             showPosterPlaceholder()
+        }
+    }
+
+    private func configureRatingBadge(with media: Media, visible: Bool) {
+        guard visible else {
+            ratingBadge.isHidden = true
+            return
+        }
+        switch media.ratingState {
+        case .rated, .provisional:
+            ratingBadgeLabel.attributedText = RatingFormatter.attributedRating(
+                media.ratingState,
+                font: ratingBadgeLabel.font,
+                textColor: .white,
+                starColor: .white,
+                compact: true
+            )
+            ratingBadge.isHidden = false
+        case .unrated, .upcoming:
+            ratingBadge.isHidden = true
         }
     }
 

@@ -23,6 +23,15 @@ struct DiscoverQuery {
         DiscoverQuery("/discover/movie", items.map { URLQueryItem(name: $0.key, value: $0.value) })
     }
 
+    /// The home screen's default feed, and what its "See all" opens.
+    static let trendingToday = DiscoverQuery("/trending/movie/day")
+
+    /// A single genre by id, for the home chip row — it carries TMDB's ids already and
+    /// so has no display name for `genre(_:)` to look up.
+    static func genre(id: Int) -> DiscoverQuery {
+        discover(["with_genres": "\(id)", "sort_by": "popularity.desc"])
+    }
+
     static func make(category: String, value: String) -> DiscoverQuery? {
         switch category {
         case "Release date":       return releaseDate(value)

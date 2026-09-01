@@ -7,18 +7,25 @@
 
 import UIKit
 
-/// Full-bleed, paged carousel of landscape backdrop art with a title overlay and page
-/// dots — the banner above the vertical-poster trending row. TMDB has no distinct
-/// "horizontal poster" field; `backdrop_path` (16:9) is what feeds this.
+/// Full-bleed, paged carousel of portrait key art — the featured banner above the
+/// trending poster row. Each card carries the title, its year and genre, and the two
+/// things worth doing from the home screen: play the trailer, or save it for later.
 final class HeroCarouselView: UIView {
     var onMovieSelected: ((Media) -> Void)?
+    var onPlaySelected: ((Media) -> Void)?
+    var onWatchlistToggled: ((Media) -> Void)?
+
     private var items: [Media] = []
+    /// TMDB ids the user already has saved, so the eye button starts in the right state.
+    private var watchlistedIDs: Set<Int> = []
 
     private static let horizontalInset: CGFloat = 16
-    /// Backdrops are 16:9; this leaves a little extra for the title overlay to breathe.
-    static let imageAspect: CGFloat = 0.56
-    private static let pageControlHeight: CGFloat = 24
-    private static let pageControlSpacing: CGFloat = 8
+    /// Portrait key art. Slightly wider than TMDB's 2:3 posters, which crops a little
+    /// off the top and bottom but leaves the overlay somewhere to sit that isn't over
+    /// the face of the artwork.
+    static let imageAspect: CGFloat = 1.25
+    private static let pageControlHeight: CGFloat = 16
+    private static let pageControlSpacing: CGFloat = 14
 
     static var sectionHeight: CGFloat {
         let itemWidth = UIScreen.main.bounds.width - horizontalInset * 2
@@ -38,15 +45,7 @@ final class HeroCarouselView: UIView {
         return cv
     }()
 
-    private let pageControl: UIPageControl = {
-        let pc = UIPageControl()
-        pc.currentPageIndicatorTintColor = .accent
-        pc.pageIndicatorTintColor = .hairline
-        pc.hidesForSinglePage = true
-        pc.isUserInteractionEnabled = false
-        pc.translatesAutoresizingMaskIntoConstraints = false
-        return pc
-    }()
+    private let pageIndicator = PageIndicatorView()
 
     private let skeletonView = SkeletonGridView(
         style: .hero(itemWidth: UIScreen.main.bounds.width - HeroCarouselView.horizontalInset * 2)
@@ -61,9 +60,10 @@ final class HeroCarouselView: UIView {
 
     private func setupUI() {
         addSubview(collectionView)
-        addSubview(pageControl)
+        addSubview(pageIndicator)
         collectionView.delegate = self
         collectionView.dataSource = self
+        pageIndicator.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
             collectionView.topAnchor.constraint(equalTo: topAnchor),
@@ -75,10 +75,10 @@ final class HeroCarouselView: UIView {
                 constant: -Self.horizontalInset * 2 * Self.imageAspect
             ),
 
-            pageControl.topAnchor.constraint(equalTo: collectionView.bottomAnchor, constant: Self.pageControlSpacing),
-            pageControl.centerXAnchor.constraint(equalTo: centerXAnchor),
-            pageControl.bottomAnchor.constraint(equalTo: bottomAnchor),
-            pageControl.heightAnchor.constraint(equalToConstant: Self.pageControlHeight)
+            pageIndicator.topAnchor.constraint(equalTo: collectionView.bottomAnchor, constant: Self.pageControlSpacing),
+            pageIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
+            pageIndicator.bottomAnchor.constraint(equalTo: bottomAnchor),
+            pageIndicator.heightAnchor.constraint(equalToConstant: Self.pageControlHeight)
         ])
 
         skeletonView.translatesAutoresizingMaskIntoConstraints = false
@@ -97,12 +97,25 @@ final class HeroCarouselView: UIView {
 
     func update(with items: [Media]) {
         self.items = items
-        pageControl.numberOfPages = items.count
-        pageControl.currentPage = 0
+        pageIndicator.numberOfPages = items.count
+        pageIndicator.currentPage = 0
         DispatchQueue.main.async {
             self.collectionView.reloadData()
             self.collectionView.setContentOffset(.zero, animated: false)
             self.skeletonView.endLoading()
+        }
+    }
+
+    /// The watchlist changes from three other places — the swipe deck, the watchlist
+    /// screen, and this carousel's own button — so membership is pushed in rather than
+    /// tracked per card.
+    func setWatchlistedIDs(_ ids: Set<Int>) {
+        guard ids != watchlistedIDs else { return }
+        watchlistedIDs = ids
+        for case let cell as HeroCarouselCell in collectionView.visibleCells {
+            guard let indexPath = collectionView.indexPath(for: cell),
+                  let media = items[safe: indexPath.item] else { continue }
+            cell.setWatchlisted(ids.contains(media.id))
         }
     }
 
@@ -123,7 +136,10 @@ extension HeroCarouselView: UICollectionViewDataSource, UICollectionViewDelegate
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HeroCarouselCell.identifier, for: indexPath) as! HeroCarouselCell
-        cell.configure(with: items[indexPath.item])
+        let media = items[indexPath.item]
+        cell.configure(with: media, isWatchlisted: watchlistedIDs.contains(media.id))
+        cell.onPlay = { [weak self] in self?.onPlaySelected?(media) }
+        cell.onWatchlist = { [weak self] in self?.onWatchlistToggled?(media) }
         return cell
     }
 
@@ -134,61 +150,235 @@ extension HeroCarouselView: UICollectionViewDataSource, UICollectionViewDelegate
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView.bounds.width > 0 else { return }
         let page = Int((scrollView.contentOffset.x / scrollView.bounds.width).rounded())
-        pageControl.currentPage = max(0, min(page, items.count - 1))
+        pageIndicator.currentPage = max(0, min(page, items.count - 1))
     }
 }
 
-/// One full-bleed backdrop with a bottom gradient and title, no card chrome — the
-/// image itself is the whole cell, inset from the carousel's edges.
+/// A capsule for the page you're on and plain dots for the rest — the current page
+/// reads at a glance rather than being found by comparing five identical circles.
+final class PageIndicatorView: UIView {
+
+    private static let dotSize: CGFloat = 6
+    private static let currentWidth: CGFloat = 22
+    private static let spacing: CGFloat = 6
+
+    private let stack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.alignment = .center
+        stack.spacing = PageIndicatorView.spacing
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
+    private var dots: [UIView] = []
+    private var widths: [NSLayoutConstraint] = []
+
+    var numberOfPages: Int = 0 {
+        didSet {
+            guard numberOfPages != oldValue else { return }
+            rebuild()
+        }
+    }
+
+    var currentPage: Int = 0 {
+        didSet {
+            guard currentPage != oldValue else { return }
+            applySelection(animated: true)
+        }
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: topAnchor),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor)
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func rebuild() {
+        dots.forEach {
+            stack.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+        dots = []
+        widths = []
+
+        // One page is not a carousel; the indicator would only be saying so.
+        guard numberOfPages > 1 else { return }
+
+        for _ in 0..<numberOfPages {
+            let dot = UIView()
+            dot.layer.cornerRadius = Self.dotSize / 2
+            dot.layer.cornerCurve = .continuous
+            dot.translatesAutoresizingMaskIntoConstraints = false
+            let width = dot.widthAnchor.constraint(equalToConstant: Self.dotSize)
+            NSLayoutConstraint.activate([
+                width,
+                dot.heightAnchor.constraint(equalToConstant: Self.dotSize)
+            ])
+            stack.addArrangedSubview(dot)
+            dots.append(dot)
+            widths.append(width)
+        }
+        applySelection(animated: false)
+    }
+
+    private func applySelection(animated: Bool) {
+        let apply = {
+            for (index, dot) in self.dots.enumerated() {
+                let isCurrent = index == self.currentPage
+                self.widths[index].constant = isCurrent ? Self.currentWidth : Self.dotSize
+                dot.backgroundColor = isCurrent ? .accent : .hairline
+            }
+            self.layoutIfNeeded()
+        }
+        guard animated else {
+            apply()
+            return
+        }
+        UIView.animate(withDuration: 0.2, delay: 0, options: .curveEaseOut) { apply() }
+    }
+}
+
+/// One full-bleed piece of key art with a bottom scrim, the title and its metadata, and
+/// the play / watchlist pair. No card chrome — the artwork is the whole cell, inset
+/// from the carousel's edges.
 final class HeroCarouselCell: UICollectionViewCell {
     static let identifier = "HeroCarouselCell"
 
+    var onPlay: (() -> Void)?
+    var onWatchlist: (() -> Void)?
+
     private static let sideInset: CGFloat = 16
+    private static let contentInset: CGFloat = 18
+
+    /// Guards a slow genre lookup landing in a cell that has since been reused.
+    private var mediaID: Int?
 
     private let imageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 16
+        iv.layer.cornerRadius = 20
         iv.layer.cornerCurve = .continuous
         iv.backgroundColor = .surface
         iv.tintColor = .textSecondary
+        iv.isUserInteractionEnabled = true
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
 
-    /// Bottom-anchored fade so the title stays legible over bright artwork.
-    private let gradientLayer: CAGradientLayer = {
-        let layer = CAGradientLayer()
-        layer.colors = [UIColor.clear.cgColor, UIColor.black.withAlphaComponent(0.75).cgColor]
-        layer.locations = [0, 1]
-        return layer
+    /// Bottom-anchored fade. Heavier than a caption alone would need, because posters
+    /// carry their own titles and artwork this bright leaves white text nowhere to sit.
+    private let scrimView = GradientView(
+        colors: [
+            .clear,
+            UIColor.black.withAlphaComponent(0.6),
+            UIColor.black.withAlphaComponent(0.92)
+        ],
+        locations: [0, 0.5, 1]
+    )
+
+    /// White on dark rather than the accent pair, and likewise for the play button: the
+    /// overlay always sits on a dark scrim over artwork, never on the canvas, so a token
+    /// that inverts with the appearance would put a near-black chip on a black scrim in
+    /// light mode.
+    private let featuredBadge: ChipLabel = {
+        let label = ChipLabel()
+        label.text = "FEATURED"
+        label.font = .systemFont(ofSize: 11, weight: .heavy)
+        label.textColor = .black
+        label.backgroundColor = .white
+        label.layer.cornerRadius = 6
+        label.layer.cornerCurve = .continuous
+        label.clipsToBounds = true
+        return label
+    }()
+
+    /// "2026 · Thriller", once the genre lookup lands.
+    private let metaBadge: ChipLabel = {
+        let label = ChipLabel()
+        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.textColor = .white
+        label.backgroundColor = UIColor.white.withAlphaComponent(0.18)
+        label.layer.cornerRadius = 6
+        label.layer.cornerCurve = .continuous
+        label.clipsToBounds = true
+        return label
     }()
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 20, weight: .bold)
+        label.font = .systemFont(ofSize: 28, weight: .bold)
         label.textColor = .white
         label.numberOfLines = 2
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
-    private let yearLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 13, weight: .semibold)
-        label.textColor = UIColor.white.withAlphaComponent(0.75)
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
+    private lazy var playButton: UIButton = {
+        var config = UIButton.Configuration.filled()
+        config.cornerStyle = .capsule
+        config.image = UIImage(
+            systemName: "play.fill",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .bold)
+        )
+        config.imagePadding = 8
+        config.contentInsets = NSDirectionalEdgeInsets(top: 13, leading: 22, bottom: 13, trailing: 26)
+        config.baseBackgroundColor = .white
+        config.baseForegroundColor = .black
+        config.attributedTitle = AttributedString(
+            "Play",
+            attributes: AttributeContainer([.font: UIFont.systemFont(ofSize: 16, weight: .semibold)])
+        )
+        let button = UIButton(configuration: config)
+        button.addAction(UIAction { [weak self] _ in self?.onPlay?() }, for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    /// A scrim circle rather than a themed one: it sits on artwork, not on the canvas,
+    /// so the app's surface tone would vanish under half the posters in the catalogue.
+    private lazy var watchlistButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.backgroundColor = UIColor.black.withAlphaComponent(0.45)
+        button.tintColor = .white
+        button.layer.cornerRadius = 24
+        button.addAction(UIAction { [weak self] _ in self?.onWatchlist?() }, for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
     }()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
 
         contentView.addSubview(imageView)
-        imageView.layer.addSublayer(gradientLayer)
-        imageView.addSubview(titleLabel)
-        imageView.addSubview(yearLabel)
+        imageView.addSubview(scrimView)
+
+        let badges = UIStackView(arrangedSubviews: [featuredBadge, metaBadge, UIView()])
+        badges.axis = .horizontal
+        badges.spacing = 8
+        badges.alignment = .center
+
+        let actions = UIStackView(arrangedSubviews: [playButton, watchlistButton, UIView()])
+        actions.axis = .horizontal
+        actions.spacing = 12
+        actions.alignment = .center
+
+        let stack = UIStackView(arrangedSubviews: [badges, titleLabel, actions])
+        stack.axis = .vertical
+        stack.spacing = 14
+        stack.alignment = .fill
+        stack.setCustomSpacing(10, after: badges)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        scrimView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.addSubview(stack)
 
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -196,55 +386,108 @@ final class HeroCarouselCell: UICollectionViewCell {
             imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Self.sideInset),
             imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Self.sideInset),
 
-            yearLabel.leadingAnchor.constraint(equalTo: imageView.leadingAnchor, constant: 14),
-            yearLabel.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -14),
-            yearLabel.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -12),
+            stack.leadingAnchor.constraint(equalTo: imageView.leadingAnchor, constant: Self.contentInset),
+            stack.trailingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: -Self.contentInset),
+            stack.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -Self.contentInset),
 
-            titleLabel.leadingAnchor.constraint(equalTo: imageView.leadingAnchor, constant: 14),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -14),
-            titleLabel.bottomAnchor.constraint(equalTo: yearLabel.topAnchor, constant: -2)
+            scrimView.leadingAnchor.constraint(equalTo: imageView.leadingAnchor),
+            scrimView.trailingAnchor.constraint(equalTo: imageView.trailingAnchor),
+            scrimView.bottomAnchor.constraint(equalTo: imageView.bottomAnchor),
+            // Enough of the card to cover the overlay and fade out well above it.
+            scrimView.topAnchor.constraint(equalTo: stack.topAnchor, constant: -80),
+
+            watchlistButton.widthAnchor.constraint(equalToConstant: 48),
+            watchlistButton.heightAnchor.constraint(equalToConstant: 48)
         ])
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        gradientLayer.frame = imageView.bounds
-    }
-
     override func prepareForReuse() {
         super.prepareForReuse()
+        mediaID = nil
         imageView.image = nil
         imageView.contentMode = .scaleAspectFill
         titleLabel.text = nil
-        yearLabel.text = nil
+        metaBadge.text = nil
+        metaBadge.isHidden = true
+        onPlay = nil
+        onWatchlist = nil
     }
 
-    func configure(with media: Media) {
+    func configure(with media: Media, isWatchlisted: Bool) {
+        mediaID = media.id
         titleLabel.text = media.displayName
-        yearLabel.text = media.year
-        if let url = media.fullBackdropURL {
+        setWatchlisted(isWatchlisted)
+        setMeta(year: media.year, genre: nil)
+
+        GenreProvider.shared.primaryGenreName(for: media.genreIds, type: media.mediaType) { [weak self] genre in
+            guard let self = self, self.mediaID == media.id else { return }
+            self.setMeta(year: media.year, genre: genre)
+        }
+
+        // Portrait key art, so the poster leads and the backdrop is only the fallback
+        // for the handful of titles TMDB has no poster for.
+        if let url = media.largePosterURL ?? media.fullBackdropURL {
             ImageLoader.load(url: url) { [weak self] image in
                 DispatchQueue.main.async {
+                    guard let self = self, self.mediaID == media.id else { return }
                     guard let image = image else {
-                        self?.showBackdropPlaceholder()
+                        self.showArtworkPlaceholder()
                         return
                     }
-                    self?.imageView.contentMode = .scaleAspectFill
-                    self?.imageView.image = image
+                    self.imageView.contentMode = .scaleAspectFill
+                    self.imageView.image = image
                 }
             }
         } else {
-            showBackdropPlaceholder()
+            showArtworkPlaceholder()
         }
     }
 
-    private func showBackdropPlaceholder() {
+    func setWatchlisted(_ isWatchlisted: Bool) {
+        watchlistButton.setImage(
+            UIImage(
+                systemName: isWatchlisted ? "eye.fill" : "eye",
+                withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
+            ),
+            for: .normal
+        )
+        watchlistButton.accessibilityLabel = isWatchlisted ? "Remove from watchlist" : "Add to watchlist"
+    }
+
+    /// Either part can be missing, and with neither the chip goes rather than sitting
+    /// there as an empty rectangle.
+    private func setMeta(year: String?, genre: String?) {
+        let parts = [year, genre].compactMap { $0 }.filter { !$0.isEmpty }
+        metaBadge.text = parts.joined(separator: " · ")
+        metaBadge.isHidden = parts.isEmpty
+    }
+
+    private func showArtworkPlaceholder() {
         imageView.contentMode = .center
         imageView.image = UIImage(
             systemName: "film",
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 32, weight: .regular)
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 40, weight: .regular)
+        )
+    }
+}
+
+/// A label with padding. The badges are chips, and a bare `UILabel` has nowhere to put
+/// the inset that makes one.
+final class ChipLabel: UILabel {
+
+    var insets = UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
+
+    override func drawText(in rect: CGRect) {
+        super.drawText(in: rect.inset(by: insets))
+    }
+
+    override var intrinsicContentSize: CGSize {
+        let size = super.intrinsicContentSize
+        return CGSize(
+            width: size.width + insets.left + insets.right,
+            height: size.height + insets.top + insets.bottom
         )
     }
 }

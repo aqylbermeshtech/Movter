@@ -24,23 +24,16 @@ nonisolated struct VideoResponse: Codable {
     let results: [Video]
 }
 
-enum TrendingResult {
-    case media([Media])
-    case articles([Article])
-}
-
 /// Every completion is `@MainActor`: callers are UI code, and the contract is on the
 /// parameter type rather than in a comment so the compiler rejects a callback fired
 /// from URLSession's queue instead of leaving it to be noticed in review.
 final class NetworkService {
     static let shared = NetworkService()
     private let baseURL = "https://api.themoviedb.org/3"
-    private let guardianBaseURL = "https://content.guardianapis.com"
 
     // Injected at build time from Config/Secrets.xcconfig (gitignored); see
     // Movter/Config/Secrets.xcconfig.example.
     private let apiKey = NetworkService.infoPlistValue(for: "TMDB_API_KEY")
-    private let guardianApiKey = NetworkService.infoPlistValue(for: "GUARDIAN_API_KEY")
 
     private static func infoPlistValue(for key: String) -> String {
         guard let value = Bundle.main.object(forInfoDictionaryKey: key) as? String, !value.isEmpty else {
@@ -50,25 +43,6 @@ final class NetworkService {
         return value
     }
     
-    func fetchTrendingContent(type: ContentType, completion: @escaping @MainActor (TrendingResult) -> Void) {
-        let endpoint: String
-        switch type {
-        case .movies:
-            endpoint = "/trending/movie/day"
-        case .tvSeries:
-            endpoint = "/trending/tv/day"
-        case .articles:
-            fetchArticles { articles in
-                completion(.articles(articles ?? []))
-            }
-            return
-        }
-        let urlString = "\(baseURL)\(endpoint)\(endpoint.contains("?") ? "&" : "?")api_key=\(apiKey)"
-        performRequest(urlString: urlString) { (result: MovieResponse?) in
-            completion(.media(result?.results ?? []))
-        }
-    }
-
     /// `Sendable` as well as `Decodable`: the value is decoded on URLSession's queue and
     /// handed to a main-actor completion, which Swift 6 will not allow for a type it
     /// cannot prove is safe to send. Every response model satisfies it already.
@@ -136,15 +110,6 @@ final class NetworkService {
         }
     }
 
-    func fetchArticles(completion: @escaping @MainActor ([Article]?) -> Void) {
-        let urlString = "\(guardianBaseURL)/search?section=film&show-fields=thumbnail,trailText&api-key=\(guardianApiKey)"
-        // The Guardian's keys are already camelCase and carry no underscores, so
-        // `performRequest`'s `.convertFromSnakeCase` passes them through unchanged.
-        performRequest(urlString: urlString) { (result: GuardianResponse?) in
-            completion(result?.response.results)
-        }
-    }
-    
     func fetchDiscover(query: DiscoverQuery, page: Int, completion: @escaping @MainActor (MediaPage?) -> Void) {
         var components = URLComponents(string: baseURL + query.path)
         components?.queryItems = query.queryItems + [

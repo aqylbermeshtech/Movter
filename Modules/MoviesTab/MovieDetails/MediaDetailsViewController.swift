@@ -17,8 +17,16 @@ final class MediaDetailsViewController: UIViewController {
     /// How much of the scroll view the keyboard currently covers.
     private var keyboardOverlap: CGFloat = 0
 
-    init(viewModel: MediaDetailsViewModel) {
+    /// Opens scrolled to the trailer, for an entry point whose action was "play" rather
+    /// than "show me this film" — home's hero button.
+    private let revealsTrailer: Bool
+    /// Only on the first trailer to arrive; scrolling the screen out from under someone
+    /// who has since started reading would be worse than not scrolling at all.
+    private var didRevealTrailer = false
+
+    init(viewModel: MediaDetailsViewModel, revealsTrailer: Bool = false) {
         self.viewModel = viewModel
+        self.revealsTrailer = revealsTrailer
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -294,6 +302,7 @@ final class MediaDetailsViewController: UIViewController {
                 self.videoPlayerView.isHidden = false
                 self.trailerPlaceholderView.isHidden = true
                 self.videoPlayerView.load(request)
+                self.revealTrailerIfNeeded()
             } else {
                 self.videoPlayerView.isHidden = true
                 self.renderTrailerPlaceholder()
@@ -371,6 +380,21 @@ final class MediaDetailsViewController: UIViewController {
         )
     }
     
+    /// The player is the last section on the screen, so this is a scroll to the bottom
+    /// in all but name — but expressed as "put the trailer under the bar", which stays
+    /// right if anything is ever added below it.
+    private func revealTrailerIfNeeded() {
+        guard revealsTrailer, !didRevealTrailer else { return }
+        didRevealTrailer = true
+
+        view.layoutIfNeeded()
+        let player = videoPlayerView.convert(videoPlayerView.bounds, to: scrollView)
+        let barBottom = view.safeAreaInsets.top + (navigationController?.navigationBar.bounds.height ?? 44)
+        let maximum = max(0, scrollView.contentSize.height - scrollView.bounds.height + scrollView.contentInset.bottom)
+        let offset = min(max(0, player.minY - barBottom - 16), maximum)
+        scrollView.setContentOffset(CGPoint(x: 0, y: offset), animated: true)
+    }
+
     private func loadYoutubeVideo(key: String) {
         let urlString = "https://www.youtube.com/embed/\(key)?enablejsapi=1&origin=https://www.themoviedb.org"
         guard let url = URL(string: urlString) else { return }

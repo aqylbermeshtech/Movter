@@ -17,11 +17,6 @@ import Foundation
 /// Every completion is `@MainActor`, matching the contract on `NetworkService` itself.
 protocol MediaFetching: AnyObject {
 
-    func fetchTrendingContent(
-        type: ContentType,
-        completion: @escaping @MainActor (TrendingResult) -> Void
-    )
-
     func fetchVideo(
         for id: Int, type: MediaType,
         completion: @escaping @MainActor (String?) -> Void

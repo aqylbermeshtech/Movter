@@ -1,5 +1,5 @@
 //
-//  TrendingMoviesGridView.swift
+//  TrendingMediaGridView.swift
 //  Movter
 //
 //  Created by Nurtore on 01.05.2026.
@@ -7,40 +7,50 @@
 
 import UIKit
 
+/// The poster row under the home screen's hero carousel: a section title, a way into
+/// the full grid behind it, and the titles themselves.
 final class TrendingMediaGridView: UIView {
     var onMovieSelected: ((Media) -> Void)?
-    var onArticleSelected: ((Article) -> Void)?
+    var onSeeAllSelected: (() -> Void)?
+
     private var movies: [Media] = []
-    private var articles: [Article] = []
-    private var isShowingArticles: Bool = false
+
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Trending Movies"
+        label.text = MovieGenre.all.sectionTitle
         label.font = .systemFont(ofSize: 22, weight: .bold)
         label.textColor = .textPrimary
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
+    private lazy var seeAllButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("See all", for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
+        button.setTitleColor(.textSecondary, for: .normal)
+        button.addAction(UIAction { [weak self] _ in self?.onSeeAllSelected?() }, for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
     /// Poster width in the carousel; everything else derives from it.
-    private static let itemWidth: CGFloat = 140
+    private static let itemWidth: CGFloat = 128
     /// Posters only — TMDB artwork is 2:3, so no caption means no spare height.
     private static let itemHeight: CGFloat = itemWidth * 1.5
     private static let titleHeight: CGFloat = 28
     private static let horizontalInset: CGFloat = 16
 
-    /// Height this view needs when it's showing the media carousel. Articles still
-    /// scroll vertically and take whatever height they're given.
-    static var carouselSectionHeight: CGFloat { titleHeight + 10 + itemHeight }
+    /// The height this section needs, for the caller laying it out.
+    static var carouselSectionHeight: CGFloat { titleHeight + 12 + itemHeight }
 
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
+        layout.minimumLineSpacing = 12
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
         cv.register(MediaCell.self, forCellWithReuseIdentifier: MediaCell.identifier)
-        cv.register(ArticlesCell.self, forCellWithReuseIdentifier: "ArticleCell")
         cv.backgroundColor = .clear
-        cv.isScrollEnabled = true
         cv.showsHorizontalScrollIndicator = false
         // Cells scroll out under the screen edges rather than stopping short of them.
         cv.contentInset = UIEdgeInsets(top: 0, left: Self.horizontalInset, bottom: 0, right: Self.horizontalInset)
@@ -50,19 +60,12 @@ final class TrendingMediaGridView: UIView {
 
     private let skeletonView = SkeletonGridView(style: .carousel(itemWidth: itemWidth))
 
-    /// Call when a fetch is issued; `update(with:)` / `updateArticles(with:)` end it.
-    /// The mode is passed in because the skeleton has to promise the right shape
-    /// before the response arrives to tell us what shape that is — and because the
-    /// old content (still the other type, still the other scroll direction) has to
-    /// go now too, or it sits under the skeleton until the new data lands.
-    func beginLoading(showingArticles: Bool) {
-        isShowingArticles = showingArticles
+    /// Call when a fetch is issued; `update(with:)` ends it. The old row goes now rather
+    /// than when the response lands, or last genre's posters sit under the skeleton
+    /// while the new one loads.
+    func beginLoading() {
         movies = []
-        articles = []
-        setScrollDirection(showingArticles ? .vertical : .horizontal)
         collectionView.reloadData()
-
-        skeletonView.setStyle(showingArticles ? .articles : .carousel(itemWidth: Self.itemWidth))
         skeletonView.beginLoading()
     }
 
@@ -78,13 +81,19 @@ final class TrendingMediaGridView: UIView {
 
     private func setupUI() {
         addSubview(titleLabel)
+        addSubview(seeAllButton)
         addSubview(collectionView)
         collectionView.delegate = self
         collectionView.dataSource = self
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 10),
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
+            titleLabel.topAnchor.constraint(equalTo: topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Self.horizontalInset),
+
+            seeAllButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            seeAllButton.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 12),
+            seeAllButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.horizontalInset),
+
+            collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
             collectionView.leadingAnchor.constraint(equalTo: leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: bottomAnchor)
@@ -101,37 +110,16 @@ final class TrendingMediaGridView: UIView {
     }
 
     func update(with movies: [Media]) {
-        self.isShowingArticles = false
         self.movies = movies
-        setScrollDirection(.horizontal)
         DispatchQueue.main.async {
             self.collectionView.reloadData()
+            self.collectionView.setContentOffset(CGPoint(x: -Self.horizontalInset, y: 0), animated: false)
             self.skeletonView.endLoading()
         }
-    }
-
-    func updateArticles(with articles: [Article]) {
-        self.isShowingArticles = true
-        self.articles = articles
-        setScrollDirection(.vertical)
-        DispatchQueue.main.async {
-            self.collectionView.reloadData()
-            self.skeletonView.endLoading()
-        }
-    }
-    
-    private func setScrollDirection(_ direction: UICollectionView.ScrollDirection) {
-        guard let layout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout,
-              layout.scrollDirection != direction else { return }
-        layout.scrollDirection = direction
-        collectionView.setContentOffset(
-            CGPoint(x: direction == .horizontal ? -Self.horizontalInset : 0, y: 0),
-            animated: false
-        )
-        layout.invalidateLayout()
     }
 
     func setSectionTitle(_ title: String) {
+        guard titleLabel.text != title else { return }
         UIView.transition(with: titleLabel, duration: 0.25, options: .transitionCrossDissolve, animations: {
             self.titleLabel.text = title
         }, completion: nil)
@@ -140,35 +128,21 @@ final class TrendingMediaGridView: UIView {
 
 extension TrendingMediaGridView: UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return isShowingArticles ? articles.count : movies.count
+        movies.count
     }
+
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        if isShowingArticles {
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ArticleCell", for: indexPath) as! ArticlesCell
-            let article = articles[indexPath.item]
-            cell.configure(with: article)
-            return cell
-        } else {
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MediaCell.identifier, for: indexPath) as! MediaCell
-            let media = movies[indexPath.item]
-            cell.configure(with: media, showsCaption: false)
-            return cell
-        }
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MediaCell.identifier, for: indexPath) as! MediaCell
+        cell.configure(with: movies[indexPath.item], showsCaption: false, showsRatingBadge: true)
+        return cell
     }
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        if isShowingArticles {
-            return CGSize(width: collectionView.frame.width - Self.horizontalInset * 2, height: 380)
-        }
-        return CGSize(width: Self.itemWidth, height: Self.itemHeight)
+        CGSize(width: Self.itemWidth, height: Self.itemHeight)
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        if isShowingArticles {
-            onArticleSelected?(articles[indexPath.item])
-        } else {
-            onMovieSelected?(movies[indexPath.item])
-        }
+        onMovieSelected?(movies[indexPath.item])
     }
 }
 
@@ -176,12 +150,9 @@ extension TrendingMediaGridView: UICollectionViewDataSource, UICollectionViewDel
 
 extension TrendingMediaGridView {
 
-    /// The poster `id` is showing in this carousel, if it's scrolled into view. Nil while
-    /// the articles segment is up: the indices then address `articles`, and the cells
-    /// aren't posters at all.
+    /// The poster for `id` is showing in this carousel, if it's scrolled into view.
     func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
-        guard !isShowingArticles else { return nil }
-        return collectionView.mediaPosterAnchor(forMediaID: id) { [weak self] index in
+        collectionView.mediaPosterAnchor(forMediaID: id) { [weak self] index in
             self?.movies[safe: index]?.id
         }
     }

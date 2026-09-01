@@ -6,14 +6,35 @@
 //
 
 import UIKit
-import SafariServices
 
 final class MediaListViewController: UIViewController {
     private let viewModel = MediaListViewModel()
+    private let watchlistStore: WatchlistStoring
+
+    private let headerView = HomeHeaderView()
+    private let chipsView = GenreChipsView()
     private let heroView = HeroCarouselView()
     private let trendingView = TrendingMediaGridView()
     private let posterTransition = PosterTransitionController()
-    private let topSwitcher = TopSegmentedControlView()
+
+    private let scrollView: UIScrollView = {
+        let scrollView = UIScrollView()
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.alwaysBounceVertical = true
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        return scrollView
+    }()
+
+    /// The user's saved titles, by TMDB id, so the hero's eye button knows which way
+    /// round it is and the toggle knows which stored item to delete.
+    private var watchlistItemIDs: [Int: UUID] = [:]
+
+    init(watchlistStore: WatchlistStoring) {
+        self.watchlistStore = watchlistStore
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     private lazy var offlineView: OfflinePlaceholderView = {
         let view = OfflinePlaceholderView(
@@ -47,8 +68,8 @@ final class MediaListViewController: UIViewController {
         setupUI()
         bindViewModel()
         heroView.beginLoading()
-        trendingView.beginLoading(showingArticles: false)
-        viewModel.fetchContent(type: .movies)
+        trendingView.beginLoading()
+        viewModel.fetchContent(genre: chipsView.selected)
         applyTheme()
         NotificationCenter.default.addObserver(
             self,
@@ -57,132 +78,213 @@ final class MediaListViewController: UIViewController {
             object: nil
         )
     }
-    
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // The header stands in for the bar here; the rest of the tab still uses it.
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+        // The watchlist also changes from the swipe deck and the watchlist screen.
+        loadWatchlist()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
+
+    /// Home draws its own header, but the appearance is the whole tab's — the screens
+    /// pushed from here inherit it.
     private func setupNavigationBar() {
-        navigationItem.title = "Movter"
-        navigationController?.navigationBar.prefersLargeTitles = false
-        
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = .canvas
         appearance.titleTextAttributes = [.foregroundColor: UIColor.textPrimary]
-        
+
         navigationController?.navigationBar.standardAppearance = appearance
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
         navigationController?.navigationBar.tintColor = .textPrimary
     }
-    
+
     @objc private func themeChanged() {
-        // Обновляем UI в главном потоке
         DispatchQueue.main.async {
             self.applyTheme()
         }
     }
-    
-    /// The carousel is a fixed-height section; articles still scroll to the bottom.
-    /// Exactly one of these is active at a time.
-    private var trendingHeight: NSLayoutConstraint!
-    private var trendingBottom: NSLayoutConstraint!
-
-    /// Zero-height and hidden for the articles tab, which has no backdrop art to show.
-    private var heroHeight: NSLayoutConstraint!
 
     private func setupUI() {
-        view.addSubview(topSwitcher)
-        view.addSubview(heroView)
-        view.addSubview(trendingView)
+        view.addSubview(headerView)
+        view.addSubview(chipsView)
+        view.addSubview(scrollView)
         view.addSubview(offlineView)
         // Last, so it covers the feed it is explaining the absence of.
         view.addSubview(actionUnavailableView)
 
-        topSwitcher.translatesAutoresizingMaskIntoConstraints = false
+        headerView.translatesAutoresizingMaskIntoConstraints = false
+        chipsView.translatesAutoresizingMaskIntoConstraints = false
         heroView.translatesAutoresizingMaskIntoConstraints = false
         trendingView.translatesAutoresizingMaskIntoConstraints = false
 
+        // The header and chips stay put; only the feed under them scrolls, so the
+        // filter is always one tap away however far down the row you are.
         NSLayoutConstraint.activate([
-            topSwitcher.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
-            topSwitcher.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            topSwitcher.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            headerView.heightAnchor.constraint(equalToConstant: HomeHeaderView.preferredHeight),
 
-            heroView.topAnchor.constraint(equalTo: topSwitcher.bottomAnchor, constant: 10),
-            heroView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            heroView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            chipsView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 16),
+            chipsView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            chipsView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            chipsView.heightAnchor.constraint(equalToConstant: GenreChipsView.preferredHeight),
 
-            trendingView.topAnchor.constraint(equalTo: heroView.bottomAnchor, constant: 10),
-            trendingView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            trendingView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+            scrollView.topAnchor.constraint(equalTo: chipsView.bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
+        let content = UIStackView(arrangedSubviews: [heroView, trendingView])
+        content.axis = .vertical
+        content.spacing = 24
+        content.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(content)
+
+        NSLayoutConstraint.activate([
+            content.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 16),
+            content.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            content.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -16),
+            content.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+
+            heroView.heightAnchor.constraint(equalToConstant: HeroCarouselView.sectionHeight),
+            trendingView.heightAnchor.constraint(equalToConstant: TrendingMediaGridView.carouselSectionHeight)
         ])
 
         NSLayoutConstraint.activate([
-            offlineView.topAnchor.constraint(equalTo: topSwitcher.bottomAnchor),
+            offlineView.topAnchor.constraint(equalTo: chipsView.bottomAnchor),
             offlineView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             offlineView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             offlineView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        // Same footprint as the offline placeholder: the content area below the
-        // segmented control, leaving the switcher reachable.
+        // Same footprint as the offline placeholder: the content area below the chips,
+        // leaving the filter reachable.
         NSLayoutConstraint.activate([
-            actionUnavailableView.topAnchor.constraint(equalTo: topSwitcher.bottomAnchor),
+            actionUnavailableView.topAnchor.constraint(equalTo: chipsView.bottomAnchor),
             actionUnavailableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             actionUnavailableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             actionUnavailableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        heroHeight = heroView.heightAnchor.constraint(equalToConstant: HeroCarouselView.sectionHeight)
-        heroHeight.isActive = true
-
-        trendingHeight = trendingView.heightAnchor.constraint(
-            equalToConstant: TrendingMediaGridView.carouselSectionHeight
-        )
-        trendingBottom = trendingView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        setTrendingFillsScreen(false)
+        headerView.onSearch = { [weak self] in
+            self?.showSearchTab()
+        }
         heroView.onMovieSelected = { [weak self] media in
-            let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
-            self?.navigationController?.pushViewController(detailVC, animated: true)
+            self?.showDetails(for: media)
+        }
+        heroView.onPlaySelected = { [weak self] media in
+            self?.showDetails(for: media, revealingTrailer: true)
+        }
+        heroView.onWatchlistToggled = { [weak self] media in
+            self?.toggleWatchlist(for: media)
         }
         trendingView.onMovieSelected = { [weak self] media in
             guard let self = self else { return }
             let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
             self.posterTransition.push(detailVC, for: media, from: self)
         }
-        trendingView.onArticleSelected = { [weak self] article in
-            guard let url = self?.viewModel.getUrl(for: article) else { return }
-            let safariVC = SFSafariViewController(url: url)
-            safariVC.preferredControlTintColor = .accent
-            self?.present(safariVC, animated: true)
+        trendingView.onSeeAllSelected = { [weak self] in
+            self?.showSeeAll()
         }
-        topSwitcher.onSelect = { [weak self] type in
+        chipsView.onSelect = { [weak self] genre in
             guard let self = self else { return }
-            self.trendingView.setSectionTitle(type.sectionTitle)
-            self.setTrendingFillsScreen(type == .articles)
-            self.setHeroVisible(type != .articles)
-            if type != .articles {
-                self.heroView.beginLoading()
-            }
-            self.trendingView.beginLoading(showingArticles: type == .articles)
-            self.viewModel.fetchContent(type: type)
+            self.trendingView.setSectionTitle(genre.sectionTitle)
+            self.heroView.beginLoading()
+            self.trendingView.beginLoading()
+            self.scrollView.setContentOffset(.zero, animated: true)
+            self.viewModel.fetchContent(genre: genre)
         }
     }
 
-    private func setHeroVisible(_ visible: Bool) {
-        heroView.isHidden = !visible
-        heroHeight.constant = visible ? HeroCarouselView.sectionHeight : 0
-    }
-    
     private func applyTheme() {
         navigationController?.navigationBar.tintColor = .accent
-        topSwitcher.updateTheme(with: .accent)
+        chipsView.updateTheme()
     }
-        
+
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
 
-    private func setTrendingFillsScreen(_ fills: Bool) {
-        trendingHeight.isActive = !fills
-        trendingBottom.isActive = fills
+    // MARK: - Navigation
+
+    private func showDetails(for media: Media, revealingTrailer: Bool = false) {
+        let detailVC = MediaDetailsViewController(
+            viewModel: MediaDetailsViewModel(media: media),
+            revealsTrailer: revealingTrailer
+        )
+        navigationController?.pushViewController(detailVC, animated: true)
     }
+
+    /// The whole feed for the current chip, as a grid. The row is a sample of it, so
+    /// this opens the same query rather than a related one.
+    private func showSeeAll() {
+        let genre = viewModel.selectedGenre
+        let gridVC = MovieGridViewController(
+            source: .discover(genre.query),
+            title: genre.sectionTitle
+        )
+        navigationController?.pushViewController(gridVC, animated: true)
+    }
+
+    private func showSearchTab() {
+        (navigationController?.parent as? MainTabBarController)?
+            .selectTab(titled: MainTabBarFactory.searchTabTitle)
+    }
+
+    // MARK: - Watchlist
+
+    private func loadWatchlist() {
+        watchlistStore.fetchAll { [weak self] result in
+            guard let self = self, case let .success(items) = result else { return }
+            self.watchlistItemIDs = Dictionary(items.map { ($0.tmdbID, $0.id) }, uniquingKeysWith: { first, _ in first })
+            self.heroView.setWatchlistedIDs(Set(self.watchlistItemIDs.keys))
+        }
+    }
+
+    private func toggleWatchlist(for media: Media) {
+        if let itemID = watchlistItemIDs[media.id] {
+            watchlistStore.delete(itemID) { [weak self] result in
+                guard let self = self else { return }
+                guard case .success = result else {
+                    self.showToast("Couldn't update your watchlist")
+                    return
+                }
+                self.watchlistItemIDs[media.id] = nil
+                self.heroView.setWatchlistedIDs(Set(self.watchlistItemIDs.keys))
+                self.showToast("Removed from watchlist")
+            }
+        } else {
+            let item = WatchlistItem(from: media)
+            watchlistStore.save(item) { [weak self] result in
+                guard let self = self else { return }
+                guard case .success = result else {
+                    self.showToast("Couldn't update your watchlist")
+                    return
+                }
+                self.watchlistItemIDs[media.id] = item.id
+                self.heroView.setWatchlistedIDs(Set(self.watchlistItemIDs.keys))
+                self.showToast("Added to watchlist")
+            }
+        }
+    }
+
+    private func showToast(_ message: String) {
+        // No `bottomInset`: the screen already carries the floating bar's clearance as
+        // an additional safe-area inset, which is what the pill anchors itself to.
+        ToastView.show(message, in: view)
+    }
+
+    // MARK: - State
 
     @objc private func connectivityChanged() {
         viewModel.connectivityDidChange()
@@ -199,17 +301,13 @@ final class MediaListViewController: UIViewController {
             self, selector: #selector(connectivityChanged),
             name: NetworkMonitor.connectivityDidChangeNotification, object: nil
         )
-        viewModel.onUpdate = { [weak self] result in
+        viewModel.onUpdate = { [weak self] media in
             DispatchQueue.main.async {
-                switch result {
-                case .media(let media):
-                    self?.heroView.update(with: Array(media.prefix(Self.heroItemCount)))
-                    self?.trendingView.update(with: media)
-                case .articles(let articles):
-                    self?.trendingView.updateArticles(with: articles)
-                }
-                self?.renderOfflineState()
-                self?.dismissActionUnavailableIfResolved()
+                guard let self = self else { return }
+                self.heroView.update(with: Array(media.prefix(Self.heroItemCount)))
+                self.trendingView.update(with: media)
+                self.renderOfflineState()
+                self.dismissActionUnavailableIfResolved()
             }
         }
     }
@@ -265,8 +363,7 @@ extension MediaListViewController: TabActionProviding {
         guard let media = viewModel.mediaContent.randomElement() else { return false }
         // Plain push: the title is picked at random, so there's no tapped poster for it
         // to grow out of.
-        let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
-        navigationController?.pushViewController(detailVC, animated: true)
+        showDetails(for: media)
         return true
     }
 }

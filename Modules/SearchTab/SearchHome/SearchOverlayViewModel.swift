@@ -177,10 +177,10 @@ final class SearchOverlayViewModel {
             onChange?()
             return
         }
-        service.fetchTrendingContent(type: .movies) { [weak self] result in
+        service.fetchDiscover(query: .trendingToday, page: 1) { [weak self] page in
             guard let self = self else { return }
             self.isLoadingTrending = false
-            guard case let .media(items) = result else {
+            guard let items = page?.items else {
                 self.onChange?()
                 return
             }

@@ -190,9 +190,3 @@ final class ExpandableTextLabel: UIView {
         }
     }
 }
-
-/// Backing layer is the gradient, so it resizes without manual frame bookkeeping.
-private final class GradientView: UIView {
-    override class var layerClass: AnyClass { CAGradientLayer.self }
-    var gradientLayer: CAGradientLayer { layer as! CAGradientLayer }
-}
