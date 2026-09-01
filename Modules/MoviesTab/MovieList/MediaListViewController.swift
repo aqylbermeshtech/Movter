@@ -13,8 +13,6 @@ final class MediaListViewController: UIViewController {
     private let heroView = HeroCarouselView()
     private let trendingView = TrendingMediaGridView()
     private let posterTransition = PosterTransitionController()
-    /// Which carousel the last tapped poster came from; see `PosterHost`.
-    private var posterHost: PosterHost = .trending
     private let topSwitcher = TopSegmentedControlView()
 
     private lazy var offlineView: OfflinePlaceholderView = {
@@ -116,10 +114,13 @@ final class MediaListViewController: UIViewController {
         trendingBottom = trendingView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         setTrendingFillsScreen(false)
         heroView.onMovieSelected = { [weak self] media in
-            self?.showDetails(for: media, from: .hero)
+            let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
+            self?.navigationController?.pushViewController(detailVC, animated: true)
         }
         trendingView.onMovieSelected = { [weak self] media in
-            self?.showDetails(for: media, from: .trending)
+            guard let self = self else { return }
+            let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
+            self.posterTransition.push(detailVC, for: media, from: self)
         }
         trendingView.onArticleSelected = { [weak self] article in
             guard let url = self?.viewModel.getUrl(for: article) else { return }
@@ -215,24 +216,9 @@ extension MediaListViewController: TabActionProviding {
 
 extension MediaListViewController: PosterTransitionSource {
 
-    /// Which carousel the poster in flight came from. The same title can sit in both the
-    /// hero banner and the trending row, so matching on id alone could fly it back into
-    /// the wrong one.
-    enum PosterHost {
-        case hero
-        case trending
-    }
-
-    private func showDetails(for media: Media, from host: PosterHost) {
-        posterHost = host
-        let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
-        posterTransition.push(detailVC, for: media, from: self)
-    }
-
+    /// Only the trending row flies its artwork into the details screen; the hero banner
+    /// pushes plainly, so there is only one carousel to search.
     func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
-        switch posterHost {
-        case .hero: return heroView.transitionPoster(forMediaID: id)
-        case .trending: return trendingView.transitionPoster(forMediaID: id)
-        }
+        trendingView.transitionPoster(forMediaID: id)
     }
 }
