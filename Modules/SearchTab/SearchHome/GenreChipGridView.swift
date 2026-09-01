@@ -44,21 +44,21 @@ final class GenreChipGridView: UIView {
         }
     }
 
-    /// The height this needs at `width`. Runs the same wrap as `layoutSubviews`, which
-    /// is the point — a measurement that can drift from the layout is worse than none.
+    /// The wrapped height at `width`. Runs the same walk `layoutSubviews` does, which is
+    /// the point — a measurement that can drift from the layout is worse than none.
     static func height(forWidth width: CGFloat, genres: [MovieGenre] = MovieGenre.allCases) -> CGFloat {
-        var bottom: CGFloat = 0
-        layOut(genres, in: width) { _, frame in bottom = max(bottom, frame.maxY) }
-        return bottom
+        layOut(genres, in: width) { _, _ in }
     }
 
     /// Walks the chips left to right, wrapping at `width`, and hands each one its frame.
+    /// - Returns: the height they came to occupy.
+    @discardableResult
     private static func layOut(
         _ genres: [MovieGenre],
         in width: CGFloat,
         body: (Int, CGRect) -> Void
-    ) {
-        guard width > 0 else { return }
+    ) -> CGFloat {
+        guard width > 0 else { return 0 }
         var x: CGFloat = 0
         var y: CGFloat = 0
 
@@ -73,6 +73,7 @@ final class GenreChipGridView: UIView {
             body(index, CGRect(x: x, y: y, width: chipWidth, height: chipHeight))
             x += chipWidth + spacing
         }
+        return y + chipHeight
     }
 
     private static func chipWidth(for genre: MovieGenre) -> CGFloat {
@@ -102,14 +103,13 @@ final class GenreChipGridView: UIView {
     }
 }
 
-/// The whole grid as one table row. The chips wrap, so they are a single cell rather
-/// than a row each, and the cell's height is asked of the grid rather than self-sized.
+/// The whole grid as one table row — the chips wrap, so they are a single cell rather
+/// than a row each, sized by the grid's own intrinsic height.
 final class GenreChipsCell: UITableViewCell {
 
     static let identifier = "GenreChipsCell"
 
     private static let verticalInset: CGFloat = 12
-    private static let horizontalInset: CGFloat = 16
 
     let gridView = GenreChipGridView()
 
@@ -125,15 +125,26 @@ final class GenreChipsCell: UITableViewCell {
         contentView.addSubview(gridView)
         NSLayoutConstraint.activate([
             gridView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Self.verticalInset),
-            gridView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Self.horizontalInset),
-            gridView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Self.horizontalInset),
+            // Flush with the section's own inset, so the chips line up with its header.
+            gridView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            gridView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             gridView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -Self.verticalInset)
         ])
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    static func height(forTableWidth width: CGFloat) -> CGFloat {
-        GenreChipGridView.height(forWidth: width - horizontalInset * 2) + verticalInset * 2
+    /// The chips wrap, so the height only exists once a width does — and this is where
+    /// the table hands one over. Answering here keeps the row exact under any table
+    /// style, rather than guessing what `insetGrouped` left for the content.
+    override func systemLayoutSizeFitting(
+        _ targetSize: CGSize,
+        withHorizontalFittingPriority horizontalFittingPriority: UILayoutPriority,
+        verticalFittingPriority: UILayoutPriority
+    ) -> CGSize {
+        CGSize(
+            width: targetSize.width,
+            height: GenreChipGridView.height(forWidth: targetSize.width) + Self.verticalInset * 2
+        )
     }
 }

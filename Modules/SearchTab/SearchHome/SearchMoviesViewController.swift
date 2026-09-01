@@ -12,7 +12,8 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
 
     private let chevronImage = UIImage(systemName: "chevron.right")
     private let tableView: UITableView = {
-        let tv = UITableView(frame: .zero, style: .grouped)
+        // Rounded, inset section cards — the same grouping Profile uses.
+        let tv = UITableView(frame: .zero, style: .insetGrouped)
         tv.backgroundColor = .clear
         tv.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         tv.register(GenreChipsCell.self, forCellReuseIdentifier: GenreChipsCell.identifier)
@@ -116,15 +117,6 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
             cell.selectedBackgroundView = selectionView
         }
         return cell
-    }
-
-    /// The chip grid wraps, so its height is a function of the width it is given rather
-    /// than something the cell can size itself to.
-    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        guard case .genres = viewModel.section(at: indexPath.section) else {
-            return UITableView.automaticDimension
-        }
-        return GenreChipsCell.height(forTableWidth: tableView.bounds.width)
     }
 
     // MARK: - UITableViewDelegate
