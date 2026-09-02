@@ -27,6 +27,7 @@ final class ReviewEditorViewModel {
     private(set) var filmYear: String?
     private(set) var tmdbID: Int?
     private(set) var posterPath: String?
+    private(set) var backdropPath: String?
 
     var score: Int = 0
     var reviewText: String = ""
@@ -40,6 +41,7 @@ final class ReviewEditorViewModel {
             filmYear = review.filmYear
             tmdbID = review.tmdbID
             posterPath = review.posterPath
+            backdropPath = review.backdropPath
             score = review.score
             reviewText = review.reviewText
         }
@@ -94,11 +96,13 @@ final class ReviewEditorViewModel {
             filmYear = media.year
             tmdbID = media.id
             posterPath = media.posterPath
+            backdropPath = media.backdropPath
         case let .manual(title):
             filmTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
             filmYear = nil
             tmdbID = nil
             posterPath = nil
+            backdropPath = nil
         }
     }
 
@@ -113,6 +117,7 @@ final class ReviewEditorViewModel {
                 filmYear: filmYear,
                 tmdbID: tmdbID,
                 posterPath: posterPath,
+                backdropPath: backdropPath,
                 score: score,
                 reviewText: reviewText.trimmingCharacters(in: .whitespacesAndNewlines)
             )
@@ -124,6 +129,7 @@ final class ReviewEditorViewModel {
                 filmYear: filmYear,
                 tmdbID: tmdbID,
                 posterPath: posterPath,
+                backdropPath: backdropPath,
                 score: score,
                 reviewText: reviewText.trimmingCharacters(in: .whitespacesAndNewlines),
                 createdAt: existing.createdAt

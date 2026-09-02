@@ -13,6 +13,8 @@ final class MiniReviewView: UIView {
 
     /// Score and opinion text, once the user commits them.
     var onSave: ((Int, String) -> Void)?
+    /// Only ever called while a saved review exists — the button is hidden until then.
+    var onSeeTicket: (() -> Void)?
 
     private var hasExistingReview = false
 
@@ -78,6 +80,28 @@ final class MiniReviewView: UIView {
         return button
     }()
 
+    /// Appears once the film is logged: the review becomes a thing you can look at,
+    /// not just a form you filled in.
+    private lazy var ticketButton: UIButton = {
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(
+            systemName: "ticket",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
+        )
+        config.imagePadding = 6
+        config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0)
+        config.baseForegroundColor = .textPrimary
+        config.attributedTitle = AttributedString(
+            "See ticket",
+            attributes: AttributeContainer([.font: UIFont.systemFont(ofSize: 15, weight: .semibold)])
+        )
+        let button = UIButton(configuration: config)
+        button.contentHorizontalAlignment = .leading
+        button.addTarget(self, action: #selector(ticketTapped), for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
     private let statusLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 12, weight: .regular)
@@ -98,10 +122,11 @@ final class MiniReviewView: UIView {
 
         textView.addSubview(placeholderLabel)
 
-        let stack = UIStackView(arrangedSubviews: [scoreRow, textView, saveButton, statusLabel])
+        let stack = UIStackView(arrangedSubviews: [scoreRow, textView, saveButton, statusLabel, ticketButton])
         stack.axis = .vertical
         stack.spacing = 12
         stack.setCustomSpacing(8, after: saveButton)
+        stack.setCustomSpacing(4, after: statusLabel)
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         addSubview(card)
@@ -166,6 +191,8 @@ final class MiniReviewView: UIView {
         saveButton.configuration?.baseForegroundColor = canSave ? .onAccent : .textSecondary
 
         statusLabel.isHidden = statusLabel.text == nil
+        // There is no ticket until the film has actually been logged.
+        ticketButton.isHidden = !hasExistingReview
     }
 
     func showSaved() {
@@ -192,6 +219,10 @@ final class MiniReviewView: UIView {
         // A change invalidates the "Saved" note.
         statusLabel.text = nil
         render()
+    }
+
+    @objc private func ticketTapped() {
+        onSeeTicket?()
     }
 
     @objc private func saveTapped() {

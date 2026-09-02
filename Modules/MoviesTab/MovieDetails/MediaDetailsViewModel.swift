@@ -57,6 +57,8 @@ final class MediaDetailsViewModel {
                 filmYear: existing.filmYear,
                 tmdbID: existing.tmdbID,
                 posterPath: existing.posterPath,
+                // Backfills a review saved before stills were captured.
+                backdropPath: existing.backdropPath ?? media.backdropPath,
                 score: score,
                 reviewText: trimmed,
                 createdAt: existing.createdAt
