@@ -1,3 +1,17 @@
 .DS_Store
 */.DS_Store
-GoogleService-Info.plist
+
+# Build products. `build/` is Xcode's own output directory, 55MB of it.
+build/
+DerivedData/
+
+# Secrets. The example lives in Movter/Config; the filled-in copy never leaves
+# this machine. See Movter/README.md.
+Config/Secrets.xcconfig
+
+# An old export that predates the repo.
+MovieListApp.zip
+
+# Xcode's per-user state: window layout, breakpoints, the last scheme picked.
+xcuserdata/
+*.xcuserdatad
