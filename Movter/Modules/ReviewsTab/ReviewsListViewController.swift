@@ -179,6 +179,11 @@ final class ReviewsListViewController: UIViewController {
         presentEditor(for: nil)
     }
 
+    private func showTicket(for review: Review) {
+        let ticketVC = TicketViewController(review: review)
+        present(UINavigationController(rootViewController: ticketVC), animated: true)
+    }
+
     private func presentEditor(for review: Review?) {
         let editorViewModel = viewModel.makeEditorViewModel(for: review)
         let editor = ReviewEditorViewController(viewModel: editorViewModel)
@@ -212,10 +217,29 @@ extension ReviewsListViewController: UITableViewDataSource, UITableViewDelegate 
         return cell
     }
 
+    /// A tap opens the ticket, not the editor. These are films you have already logged
+    /// — looking one up is the common intent, and changing the score you gave it is not.
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         guard let review = viewModel.review(at: indexPath) else { return }
-        presentEditor(for: review)
+        showTicket(for: review)
+    }
+
+    /// Editing keeps a home on the row, opposite Delete, rather than in the tap.
+    func tableView(
+        _ tableView: UITableView,
+        leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath
+    ) -> UISwipeActionsConfiguration? {
+        let edit = UIContextualAction(style: .normal, title: "Edit") { [weak self] _, _, done in
+            guard let self = self, let review = self.viewModel.review(at: indexPath) else {
+                done(false)
+                return
+            }
+            self.presentEditor(for: review)
+            done(true)
+        }
+        edit.backgroundColor = .textSecondary
+        return UISwipeActionsConfiguration(actions: [edit])
     }
 
     func tableView(

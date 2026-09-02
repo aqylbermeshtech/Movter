@@ -9,8 +9,11 @@ import UIKit
 import SafariServices
 
 final class ProfileViewController: UIViewController {
-    private let viewModel = ProfileViewModel()
+    private let viewModel: ProfileViewModel
+    private let watchlistStore: WatchlistStoring
+    private let reviewStore: ReviewStoring
     private let headerView = UIView()
+    private let statsView = ProfileStatsView()
 
     private let avatarImageView: UIImageView = {
         let iv = UIImageView()
@@ -21,23 +24,29 @@ final class ProfileViewController: UIViewController {
         return iv
     }()
 
+    init(
+        watchlistStore: WatchlistStoring,
+        seenFilmsStore: SeenFilmsStoring,
+        reviewStore: ReviewStoring
+    ) {
+        self.watchlistStore = watchlistStore
+        self.reviewStore = reviewStore
+        self.viewModel = ProfileViewModel(
+            watchlistStore: watchlistStore,
+            seenFilmsStore: seenFilmsStore,
+            reviewStore: reviewStore
+        )
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
     private let nameLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 22, weight: .bold)
         label.textColor = .textPrimary
         label.textAlignment = .center
         label.numberOfLines = 1
-        return label
-    }()
-
-    private let emailLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 14, weight: .regular)
-        label.textColor = .textPrimary
-        label.textAlignment = .center
-        label.numberOfLines = 1
-        label.adjustsFontSizeToFitWidth = true
-        label.minimumScaleFactor = 0.8
         return label
     }()
 
@@ -70,10 +79,12 @@ final class ProfileViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // Edit Profile may have changed the Firebase user.
+        // Edit Profile may have changed the Firebase user, and the counts move whenever
+        // a film is rated, saved, or swiped past on another tab.
         configureData()
         viewModel.rebuildSections()
         tableView.reloadData()
+        viewModel.loadStats()
     }
 
     private func setupNavigationBar() {
@@ -96,20 +107,29 @@ final class ProfileViewController: UIViewController {
     }
 
     private func configureData() {
-        nameLabel.text = viewModel.userName
-        emailLabel.text = viewModel.userEmail
         avatarImageView.image = viewModel.avatarImage
-
+        nameLabel.text = viewModel.userName
         memberSinceLabel.text = viewModel.memberSinceText
         memberSinceLabel.isHidden = viewModel.memberSinceText == nil
     }
 
     private func bindViewModel() {
+        viewModel.onStatsChange = { [weak self] in
+            guard let self = self else { return }
+            self.statsView.configure(
+                watched: self.viewModel.watchedCount,
+                reviews: self.viewModel.reviewsCount,
+                watchlist: self.viewModel.watchlistCount
+            )
+            self.tableView.reloadData()
+        }
         viewModel.onNavigationRequired = { [weak self] type in
             guard let self = self else { return }
             switch type {
             case .reviews:
                 self.showReviews()
+            case .watchlist:
+                self.showWatchlist()
             case .editProfile:
                 self.showEditProfile()
             case .notifications:
@@ -128,9 +148,17 @@ final class ProfileViewController: UIViewController {
 
     private func showReviews() {
         let reviewsVC = ReviewsListViewController(
-            viewModel: ReviewsListViewModel(store: ReviewStoreFactory.makeStore())
+            viewModel: ReviewsListViewModel(store: reviewStore)
         )
         navigationController?.pushViewController(reviewsVC, animated: true)
+    }
+
+    /// The same list the swipe deck opens, from the account that owns it.
+    private func showWatchlist() {
+        let watchlistVC = WatchlistListViewController(
+            viewModel: WatchlistListViewModel(store: watchlistStore)
+        )
+        navigationController?.pushViewController(watchlistVC, animated: true)
     }
 
     private func showEditProfile() {
@@ -214,33 +242,60 @@ final class ProfileViewController: UIViewController {
     }
 
     private func setupHeaderLayout() {
-        let infoStack = UIStackView(arrangedSubviews: [nameLabel, emailLabel, memberSinceLabel])
-        infoStack.axis = .vertical
-        infoStack.spacing = 6
-        infoStack.translatesAutoresizingMaskIntoConstraints = false
-
+        nameLabel.translatesAutoresizingMaskIntoConstraints = false
+        memberSinceLabel.translatesAutoresizingMaskIntoConstraints = false
+        statsView.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(avatarImageView)
-        headerView.addSubview(infoStack)
+        headerView.addSubview(nameLabel)
+        headerView.addSubview(memberSinceLabel)
+        headerView.addSubview(statsView)
 
+        // Inset to match the table's own cards, so the stats line up with the rows.
         NSLayoutConstraint.activate([
-            avatarImageView.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 20),
+            avatarImageView.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 16),
             avatarImageView.centerXAnchor.constraint(equalTo: headerView.centerXAnchor),
             avatarImageView.widthAnchor.constraint(equalToConstant: 100),
             avatarImageView.heightAnchor.constraint(equalToConstant: 100),
 
-            infoStack.topAnchor.constraint(equalTo: avatarImageView.bottomAnchor, constant: 14),
-            infoStack.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 24),
-            infoStack.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -24),
-            infoStack.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -20)
+            nameLabel.topAnchor.constraint(equalTo: avatarImageView.bottomAnchor, constant: 12),
+            nameLabel.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 24),
+            nameLabel.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -24),
+
+            memberSinceLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 4),
+            memberSinceLabel.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 24),
+            memberSinceLabel.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -24),
+
+            statsView.topAnchor.constraint(equalTo: memberSinceLabel.bottomAnchor, constant: 18),
+            statsView.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 20),
+            statsView.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -20),
+            statsView.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -8)
         ])
 
-        let targetSize = CGSize(width: view.bounds.width, height: UIView.layoutFittingCompressedSize.height)
-        let estimatedSize = headerView.systemLayoutSizeFitting(targetSize,
-                                                               withHorizontalFittingPriority: .required,
-                                                               verticalFittingPriority: .fittingSizeLevel)
-
-        headerView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: estimatedSize.height)
+        headerView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 1)
         tableView.tableHeaderView = headerView
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        sizeHeaderToFit()
+    }
+
+    /// A table header sizes itself from its frame, not its constraints, so it has to be
+    /// measured and handed back — and only once the table has a real width, which it
+    /// does not have in `viewDidLoad`. Measuring there clipped the member-since line.
+    private func sizeHeaderToFit() {
+        guard let header = tableView.tableHeaderView, tableView.bounds.width > 0 else { return }
+
+        let height = header.systemLayoutSizeFitting(
+            CGSize(width: tableView.bounds.width, height: UIView.layoutFittingCompressedSize.height),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        ).height
+
+        guard abs(header.frame.height - height) > 0.5 else { return }
+        header.frame.size = CGSize(width: tableView.bounds.width, height: height)
+        // Reassigning is what makes the table adopt the new height.
+        tableView.tableHeaderView = header
     }
 
     private func setupTableView() {
