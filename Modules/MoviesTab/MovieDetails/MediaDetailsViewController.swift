@@ -331,6 +331,9 @@ final class MediaDetailsViewController: UIViewController {
             self?.view.layoutIfNeeded()
         }
 
+        miniReviewView.onSeeTicket = { [weak self] in
+            self?.showTicket()
+        }
         miniReviewView.onSave = { [weak self] score, text in
             guard let self = self else { return }
             self.miniReviewView.setSaving(true)
@@ -380,6 +383,13 @@ final class MediaDetailsViewController: UIViewController {
         )
     }
     
+    /// The stub for this film, once there is a review to print on it.
+    private func showTicket() {
+        guard let review = viewModel.existingReview else { return }
+        let ticketVC = TicketViewController(review: review)
+        present(UINavigationController(rootViewController: ticketVC), animated: true)
+    }
+
     /// The player is the last section on the screen, so this is a scroll to the bottom
     /// in all but name — but expressed as "put the trailer under the bar", which stays
     /// right if anything is ever added below it.
