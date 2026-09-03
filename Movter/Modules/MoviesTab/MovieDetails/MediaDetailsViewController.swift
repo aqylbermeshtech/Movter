@@ -55,13 +55,20 @@ final class MediaDetailsViewController: UIViewController {
     }()
 
     /// The one thing you can tell the app about a film without writing anything.
+    /// Sits beside the title, so it is sized to a caption rather than a full-width bar.
     private lazy var watchedButton: UIButton = {
         var config = UIButton.Configuration.filled()
-        config.cornerStyle = .medium
-        config.imagePadding = 8
-        config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 18, bottom: 12, trailing: 18)
+        config.cornerStyle = .fixed
+        config.background.cornerRadius = 14
+        config.imagePadding = 6
+        config.titleLineBreakMode = .byWordWrapping
+        config.titleAlignment = .center
+        config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
         let button = UIButton(configuration: config)
         button.addTarget(self, action: #selector(watchedTapped), for: .touchUpInside)
+        // The title yields to it, so the film name wraps instead of the button shrinking.
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
+        button.setContentHuggingPriority(.required, for: .horizontal)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -72,8 +79,10 @@ final class MediaDetailsViewController: UIViewController {
         label.font = .systemFont(ofSize: 15, weight: .medium)
         label.textColor = .textPrimary
         label.numberOfLines = 1
+        // Shares its row with the watched button, so it has less width to shrink into
+        // than a full-width line would.
         label.adjustsFontSizeToFitWidth = true
-        label.minimumScaleFactor = 0.8
+        label.minimumScaleFactor = 0.65
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -351,6 +360,10 @@ final class MediaDetailsViewController: UIViewController {
         miniReviewView.onSeeTicket = { [weak self] in
             self?.showTicket()
         }
+        miniReviewView.onScoreChange = { [weak self] score in
+            guard Review.scoreRange.contains(score) else { return }
+            self?.viewModel.markWatchedIfNeeded()
+        }
         miniReviewView.onSave = { [weak self] score, text in
             guard let self = self else { return }
             self.miniReviewView.setSaving(true)
@@ -358,6 +371,7 @@ final class MediaDetailsViewController: UIViewController {
                 self.miniReviewView.setSaving(false)
                 switch result {
                 case .success:
+                    self.viewModel.markWatchedIfNeeded()
                     self.miniReviewView.showSaved()
                 case let .failure(error):
                     self.miniReviewView.showError(error.localizedDescription)
@@ -382,11 +396,11 @@ final class MediaDetailsViewController: UIViewController {
         watchedButton.configuration?.baseForegroundColor = isWatched ? .onAccent : .textPrimary
         watchedButton.configuration?.image = UIImage(
             systemName: viewModel.watchedButtonSymbol,
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
         )
         watchedButton.configuration?.attributedTitle = AttributedString(
             viewModel.watchedButtonTitle,
-            attributes: AttributeContainer([.font: UIFont.systemFont(ofSize: 16, weight: .semibold)])
+            attributes: AttributeContainer([.font: UIFont.systemFont(ofSize: 13, weight: .semibold)])
         )
         watchedButton.accessibilityLabel = isWatched
             ? "Watched. Double tap to unmark." : "Mark as watched"
@@ -455,11 +469,21 @@ final class MediaDetailsViewController: UIViewController {
     private func setupUI() {
         // The poster is pinned to the scroll view directly; only the text below it is
         // inset, which is what lets the artwork run edge to edge.
+        let headerTextStack = UIStackView(arrangedSubviews: [titleLabel, metadataLabel])
+        headerTextStack.axis = .vertical
+        headerTextStack.spacing = 10
+        // Lets the title wrap under the button rather than pushing it off the row.
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        metadataLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let headerRow = UIStackView(arrangedSubviews: [headerTextStack, watchedButton])
+        headerRow.axis = .horizontal
+        headerRow.spacing = 12
+        headerRow.alignment = .top
+
         let stack = UIStackView(arrangedSubviews: [
-            titleLabel,
-            metadataLabel,
+            headerRow,
             descriptionView,
-            watchedButton,
             reviewLabel,
             miniReviewView,
             castLabel,
@@ -472,7 +496,6 @@ final class MediaDetailsViewController: UIViewController {
 
         stack.axis = .vertical
         stack.spacing = 20
-        stack.setCustomSpacing(10, after: titleLabel)
         stack.setCustomSpacing(10, after: reviewLabel)
         stack.setCustomSpacing(10, after: castLabel)
         stack.setCustomSpacing(10, after: videoLabel)
@@ -517,7 +540,9 @@ final class MediaDetailsViewController: UIViewController {
             videoPlayerView.heightAnchor.constraint(equalTo: videoPlayerView.widthAnchor, multiplier: 9.0 / 16.0),
             trailerPlaceholderView.heightAnchor.constraint(equalTo: trailerPlaceholderView.widthAnchor, multiplier: 9.0 / 16.0),
             castCollectionView.heightAnchor.constraint(equalToConstant: 160),
-            castPlaceholderView.heightAnchor.constraint(equalToConstant: 160)
+            castPlaceholderView.heightAnchor.constraint(equalToConstant: 160),
+            // A caption beside the title, never half the row.
+            watchedButton.widthAnchor.constraint(lessThanOrEqualToConstant: 140)
         ])
     }
 

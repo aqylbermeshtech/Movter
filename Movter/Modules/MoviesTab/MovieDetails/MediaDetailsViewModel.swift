@@ -65,6 +65,13 @@ final class MediaDetailsViewModel {
         remove(media.id, from: watchlistStore)
     }
 
+    /// Scoring a film is a claim to have seen it, so a rating carries the flag with it.
+    /// Unmarking stays manual — this only ever moves the state one way.
+    func markWatchedIfNeeded() {
+        guard !isWatched else { return }
+        toggleWatched()
+    }
+
     /// Both lists are keyed by their own row id, so removing a film means finding its
     /// entry first.
     private func remove(_ tmdbID: Int, from store: WatchlistStoring) {
