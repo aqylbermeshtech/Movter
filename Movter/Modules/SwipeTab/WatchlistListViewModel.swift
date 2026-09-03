@@ -9,14 +9,44 @@ import UIKit
 
 final class WatchlistListViewModel {
 
+    /// The words around the rows. The watchlist and the watched list are the same
+    /// screen over the same shape of data; only these differ.
+    struct Presentation {
+        let title: String
+        let emptyTitle: String
+        let emptyBody: String
+        /// Prefixes each row's date — "Added 2 days ago" / "Watched 2 days ago".
+        let datePrefix: String
+        let removeTitle: String
+
+        static let watchlist = Presentation(
+            title: "Watchlist",
+            emptyTitle: "Nothing here yet",
+            emptyBody: "Swipe right on a film in the Swipe tab and it'll show up here.",
+            datePrefix: "Added",
+            removeTitle: "Remove"
+        )
+
+        static let watched = Presentation(
+            title: "Watched",
+            emptyTitle: "Nothing watched yet",
+            emptyBody: "Mark a film as watched on its page and it'll show up here.",
+            datePrefix: "Watched",
+            removeTitle: "Unmark"
+        )
+    }
+
+    let presentation: Presentation
+
     var onChange: (() -> Void)?
     var onError: ((String) -> Void)?
 
     private let store: WatchlistStoring
     private(set) var items: [WatchlistItem] = []
 
-    init(store: WatchlistStoring) {
+    init(store: WatchlistStoring, presentation: Presentation = .watchlist) {
         self.store = store
+        self.presentation = presentation
     }
 
     var isEmpty: Bool { items.isEmpty }

@@ -80,9 +80,9 @@ final class WatchlistCell: UITableViewCell {
         dateLabel.text = nil
     }
 
-    func configure(with item: WatchlistItem) {
+    func configure(with item: WatchlistItem, datePrefix: String = "Added") {
         titleLabel.text = item.titleWithYear
-        dateLabel.text = "Added \(Self.dateText(for: item.addedAt))"
+        dateLabel.text = "\(datePrefix) \(Self.dateText(for: item.addedAt))"
 
         guard let url = item.posterURL else {
             // Hand-typed/legacy entries have no poster.

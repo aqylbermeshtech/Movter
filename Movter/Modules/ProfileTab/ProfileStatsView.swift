@@ -12,6 +12,15 @@ import UIKit
 /// you have watched, not what you look like.
 final class ProfileStatsView: UIView {
 
+    /// Each number is a way into the list behind it.
+    enum Stat {
+        case watched
+        case reviews
+        case watchlist
+    }
+
+    var onSelect: ((Stat) -> Void)?
+
     private let watchedColumn = ColumnView(caption: "WATCHED")
     private let reviewsColumn = ColumnView(caption: "REVIEWS")
     private let watchlistColumn = ColumnView(caption: "WATCHLIST")
@@ -34,6 +43,14 @@ final class ProfileStatsView: UIView {
         // The columns share the width; the two hairlines take only what they need.
         watchedColumn.widthAnchor.constraint(equalTo: reviewsColumn.widthAnchor).isActive = true
         reviewsColumn.widthAnchor.constraint(equalTo: watchlistColumn.widthAnchor).isActive = true
+
+        for (column, stat) in [
+            (watchedColumn, Stat.watched),
+            (reviewsColumn, Stat.reviews),
+            (watchlistColumn, Stat.watchlist)
+        ] {
+            column.onTap = { [weak self] in self?.onSelect?(stat) }
+        }
 
         NSLayoutConstraint.activate([
             stack.topAnchor.constraint(equalTo: topAnchor, constant: 16),
@@ -62,11 +79,21 @@ final class ProfileStatsView: UIView {
         return divider
     }
 
-    /// One number over its caption.
-    private final class ColumnView: UIView {
+    /// One number over its caption, and a tap target over both.
+    private final class ColumnView: UIControl {
+
+        var onTap: (() -> Void)?
 
         var value: Int = 0 {
-            didSet { valueLabel.text = "\(value)" }
+            didSet {
+                valueLabel.text = "\(value)"
+                accessibilityValue = "\(value)"
+            }
+        }
+
+        /// The whole column dims, since the number and its caption are one thing.
+        override var isHighlighted: Bool {
+            didSet { alpha = isHighlighted ? 0.5 : 1 }
         }
 
         private let valueLabel: UILabel = {
@@ -92,10 +119,17 @@ final class ProfileStatsView: UIView {
             captionLabel.textAlignment = .center
             super.init(frame: .zero)
 
+            isAccessibilityElement = true
+            accessibilityLabel = caption.capitalized
+            accessibilityTraits = .button
+            addAction(UIAction { [weak self] _ in self?.onTap?() }, for: .touchUpInside)
+
             let stack = UIStackView(arrangedSubviews: [valueLabel, captionLabel])
             stack.axis = .vertical
             stack.alignment = .center
             stack.spacing = 2
+            // The labels must not eat the touch meant for the column.
+            stack.isUserInteractionEnabled = false
             stack.translatesAutoresizingMaskIntoConstraints = false
             addSubview(stack)
 

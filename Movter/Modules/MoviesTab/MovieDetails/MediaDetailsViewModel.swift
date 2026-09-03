@@ -10,7 +10,7 @@ import Foundation
 final class MediaDetailsViewModel {
     private let media: Media
     private let reviewStore: ReviewStoring
-    private let watchedStore: WatchedFilmsStoring
+    private let watchedStore: WatchlistStoring
     private let watchlistStore: WatchlistStoring
     var onVideoUpdate: ((String?) -> Void)?
     var onActorsUpdate: (() -> Void)?
@@ -41,30 +41,37 @@ final class MediaDetailsViewModel {
     var watchedButtonSymbol: String { isWatched ? "checkmark.circle.fill" : "checkmark.circle" }
 
     func loadWatchedState() {
-        watchedStore.fetchIDs { [weak self] ids in
-            guard let self = self else { return }
-            self.isWatched = ids.contains(self.media.id)
+        watchedStore.fetchAll { [weak self] result in
+            guard let self = self, case let .success(items) = result else { return }
+            self.isWatched = items.contains { $0.tmdbID == self.media.id }
             self.onWatchedChange?()
         }
     }
 
     func toggleWatched() {
         isWatched.toggle()
-        watchedStore.setWatched(isWatched, tmdbID: media.id)
         onWatchedChange?()
+
+        guard isWatched else {
+            remove(self.media.id, from: watchedStore)
+            return
+        }
+        // The whole film, not just its id: the watched list has to render posters and
+        // titles without going back to TMDB for every row.
+        watchedStore.save(WatchlistItem(from: media)) { _ in }
 
         // A film you have seen is no longer one you are waiting to see. Unmarking does
         // not put it back: the watchlist is a list you curate, not a mirror of this flag.
-        guard isWatched else { return }
-        removeFromWatchlist()
+        remove(media.id, from: watchlistStore)
     }
 
-    private func removeFromWatchlist() {
-        watchlistStore.fetchAll { [weak self] result in
-            guard let self = self,
-                  case let .success(items) = result,
-                  let saved = items.first(where: { $0.tmdbID == self.media.id }) else { return }
-            self.watchlistStore.delete(saved.id) { _ in }
+    /// Both lists are keyed by their own row id, so removing a film means finding its
+    /// entry first.
+    private func remove(_ tmdbID: Int, from store: WatchlistStoring) {
+        store.fetchAll { result in
+            guard case let .success(items) = result,
+                  let saved = items.first(where: { $0.tmdbID == tmdbID }) else { return }
+            store.delete(saved.id) { _ in }
         }
     }
 
@@ -158,7 +165,7 @@ final class MediaDetailsViewModel {
     init(
         media: Media,
         reviewStore: ReviewStoring = ReviewStoreFactory.makeStore(),
-        watchedStore: WatchedFilmsStoring = WatchedFilmsStoreFactory.makeStore(),
+        watchedStore: WatchlistStoring = WatchedFilmsStoreFactory.makeStore(),
         watchlistStore: WatchlistStoring = WatchlistStoreFactory.makeStore(),
         service: MediaFetching = NetworkService.shared,
         genreProvider: GenreProviding = GenreProvider.shared,

@@ -25,7 +25,6 @@ final class WatchlistListViewController: UIViewController {
 
     private let emptyTitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Nothing here yet"
         label.font = .systemFont(ofSize: 22, weight: .bold)
         label.textColor = .textPrimary
         label.textAlignment = .center
@@ -34,7 +33,6 @@ final class WatchlistListViewController: UIViewController {
 
     private let emptyBodyLabel: UILabel = {
         let label = UILabel()
-        label.text = "Swipe right on a film in the Swipe tab and it'll show up here."
         label.font = .systemFont(ofSize: 15, weight: .regular)
         label.textColor = .textSecondary
         label.textAlignment = .center
@@ -54,7 +52,9 @@ final class WatchlistListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .canvas
-        navigationItem.title = "Watchlist"
+        navigationItem.title = viewModel.presentation.title
+        emptyTitleLabel.text = viewModel.presentation.emptyTitle
+        emptyBodyLabel.text = viewModel.presentation.emptyBody
         navigationController?.navigationBar.prefersLargeTitles = true
         // Explicit rather than inherited: pushed onto a stack whose previous screen
         // opted out, `.automatic` would inherit that and render inline.
@@ -134,7 +134,7 @@ extension WatchlistListViewController: UITableViewDataSource, UITableViewDelegat
             for: indexPath
         ) as! WatchlistCell
         if let item = viewModel.item(at: indexPath) {
-            cell.configure(with: item)
+            cell.configure(with: item, datePrefix: viewModel.presentation.datePrefix)
         }
         return cell
     }
@@ -147,7 +147,8 @@ extension WatchlistListViewController: UITableViewDataSource, UITableViewDelegat
         _ tableView: UITableView,
         trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath
     ) -> UISwipeActionsConfiguration? {
-        let delete = UIContextualAction(style: .destructive, title: "Remove") { [weak self] _, _, done in
+        let title = viewModel.presentation.removeTitle
+        let delete = UIContextualAction(style: .destructive, title: title) { [weak self] _, _, done in
             guard let self = self else { return }
             self.viewModel.delete(at: indexPath) { success in
                 done(success)

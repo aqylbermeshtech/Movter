@@ -11,6 +11,7 @@ import SafariServices
 final class ProfileViewController: UIViewController {
     private let viewModel: ProfileViewModel
     private let watchlistStore: WatchlistStoring
+    private let watchedStore: WatchlistStoring
     private let reviewStore: ReviewStoring
     private let headerView = UIView()
     private let statsView = ProfileStatsView()
@@ -26,10 +27,11 @@ final class ProfileViewController: UIViewController {
 
     init(
         watchlistStore: WatchlistStoring,
-        watchedStore: WatchedFilmsStoring,
+        watchedStore: WatchlistStoring,
         reviewStore: ReviewStoring
     ) {
         self.watchlistStore = watchlistStore
+        self.watchedStore = watchedStore
         self.reviewStore = reviewStore
         self.viewModel = ProfileViewModel(
             watchlistStore: watchlistStore,
@@ -114,6 +116,14 @@ final class ProfileViewController: UIViewController {
     }
 
     private func bindViewModel() {
+        statsView.onSelect = { [weak self] stat in
+            guard let self = self else { return }
+            switch stat {
+            case .watched:   self.showWatched()
+            case .reviews:   self.showReviews()
+            case .watchlist: self.showWatchlist()
+            }
+        }
         viewModel.onStatsChange = { [weak self] in
             guard let self = self else { return }
             self.statsView.configure(
@@ -151,6 +161,14 @@ final class ProfileViewController: UIViewController {
             viewModel: ReviewsListViewModel(store: reviewStore)
         )
         navigationController?.pushViewController(reviewsVC, animated: true)
+    }
+
+    /// The same screen as the watchlist, over the other list and with its own words.
+    private func showWatched() {
+        let watchedVC = WatchlistListViewController(
+            viewModel: WatchlistListViewModel(store: watchedStore, presentation: .watched)
+        )
+        navigationController?.pushViewController(watchedVC, animated: true)
     }
 
     /// The same list the swipe deck opens, from the account that owns it.

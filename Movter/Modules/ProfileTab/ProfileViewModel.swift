@@ -41,12 +41,12 @@ final class ProfileViewModel {
     var onStatsChange: (() -> Void)?
 
     private let watchlistStore: WatchlistStoring
-    private let watchedStore: WatchedFilmsStoring
+    private let watchedStore: WatchlistStoring
     private let reviewStore: ReviewStoring
 
     init(
         watchlistStore: WatchlistStoring,
-        watchedStore: WatchedFilmsStoring,
+        watchedStore: WatchlistStoring,
         reviewStore: ReviewStoring
     ) {
         self.watchlistStore = watchlistStore
@@ -66,8 +66,8 @@ final class ProfileViewModel {
     /// Three independent stores, so three independent requests — each one publishes as
     /// it lands rather than the header waiting on the slowest.
     func loadStats() {
-        watchedStore.fetchIDs { [weak self] ids in
-            self?.watchedCount = ids.count
+        watchedStore.fetchAll { [weak self] result in
+            if case let .success(items) = result { self?.watchedCount = items.count }
             self?.publishStats()
         }
         reviewStore.fetchAll { [weak self] result in

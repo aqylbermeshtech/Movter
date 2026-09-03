@@ -8,7 +8,9 @@
 import Foundation
 import FirebaseAuth
 
-/// Where a user's watchlist lives.
+/// Where a list of saved films lives — the watchlist, and the films marked watched.
+/// Both are the same shape (a film plus the date it was added to the list), so they
+/// share this protocol and differ only in which file they read.
 ///
 /// Completion-based even though the local store could answer synchronously: a remote
 /// backend can't, and a synchronous protocol would force every call site to change the
@@ -25,6 +27,17 @@ protocol WatchlistStoring: AnyObject {
 enum WatchlistStoreFactory {
     static func makeStore() -> WatchlistStoring {
         LocalWatchlistStore(userID: Auth.auth().currentUser?.uid)
+    }
+}
+
+/// Films the user has said they actually watched.
+///
+/// Deliberately not `SeenFilmsStoring`, which records every card the swipe deck dealt
+/// including the rejections — that set answers "don't deal me this again", not "I have
+/// seen this film", and only the second is worth counting or listing.
+enum WatchedFilmsStoreFactory {
+    static func makeStore() -> WatchlistStoring {
+        LocalWatchlistStore(userID: Auth.auth().currentUser?.uid, listName: "watched")
     }
 }
 
@@ -50,9 +63,11 @@ nonisolated final class LocalWatchlistStore: WatchlistStoring, Sendable {
     }()
 
     /// - Parameter userID: Firebase uid; nil falls back to a shared local file.
-    init(userID: String?) {
+    /// - Parameter listName: which list this instance backs, and so which file. Two
+    ///   lists of the same shape rather than two near-identical store classes.
+    init(userID: String?, listName: String = "watchlist") {
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        self.fileURL = documents.appendingPathComponent("watchlist-\(userID ?? "local").json")
+        self.fileURL = documents.appendingPathComponent("\(listName)-\(userID ?? "local").json")
     }
 
     // MARK: - WatchlistStoring
