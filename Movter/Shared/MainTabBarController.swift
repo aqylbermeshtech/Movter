@@ -28,6 +28,13 @@ final class MainTabBarController: UIViewController {
     /// What a screen must clear to sit above the floating bar.
     static var contentClearance: CGFloat { CustomTabBarView.preferredHeight + barBottomInset }
 
+    /// The children are all installed at once and swapped by hiding, which UIKit cannot
+    /// read as appearing or disappearing. So the forwarding is done by hand below —
+    /// without it every tab believes it appeared once at launch and never again, and any
+    /// screen that refreshes in `viewWillAppear` serves stale data for the rest of the
+    /// session.
+    override var shouldAutomaticallyForwardAppearanceMethods: Bool { false }
+
     private var tabs: [Tab] = []
     private var customBar: CustomTabBarView?
     private let contentContainer = UIView()
@@ -89,6 +96,30 @@ final class MainTabBarController: UIViewController {
         ])
     }
 
+    private var selectedChild: UINavigationController? {
+        tabs[safe: selectedIndex]?.navigationController
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        selectedChild?.beginAppearanceTransition(true, animated: animated)
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        selectedChild?.endAppearanceTransition()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        selectedChild?.beginAppearanceTransition(false, animated: animated)
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        selectedChild?.endAppearanceTransition()
+    }
+
     private func installChildren() {
         for (index, tab) in tabs.enumerated() {
             let child = tab.navigationController
@@ -108,9 +139,21 @@ final class MainTabBarController: UIViewController {
 
     private func selectTab(at index: Int) {
         guard tabs.indices.contains(index), index != selectedIndex else { return }
-        tabs[selectedIndex].navigationController.view.isHidden = true
+        let outgoing = tabs[selectedIndex].navigationController
+        let incoming = tabs[index].navigationController
+
+        // Both sides are told before and after the swap, so the tab being shown gets a
+        // real `viewWillAppear` and can refresh whatever changed while it was away.
+        outgoing.beginAppearanceTransition(false, animated: false)
+        incoming.beginAppearanceTransition(true, animated: false)
+
+        outgoing.view.isHidden = true
+        incoming.view.isHidden = false
+
+        outgoing.endAppearanceTransition()
+        incoming.endAppearanceTransition()
+
         selectedIndex = index
-        tabs[selectedIndex].navigationController.view.isHidden = false
     }
 
     /// The action always belongs to the tab's root screen, even when the user has

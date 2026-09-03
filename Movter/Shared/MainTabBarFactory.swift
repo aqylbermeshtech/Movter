@@ -13,6 +13,7 @@ enum MainTabBarFactory {
         let watchlistStore = WatchlistStoreFactory.makeStore()
         let seenFilmsStore = SeenFilmsStoreFactory.makeStore()
         let reviewStore = ReviewStoreFactory.makeStore()
+        let watchedStore = WatchedFilmsStoreFactory.makeStore()
 
         // No Reviews tab: writing a review is reached through Profile › Reviews, which
         // carries its own add button. Each remaining tab's own primary action lives on
@@ -23,7 +24,7 @@ enum MainTabBarFactory {
         // Profile counts what the other tabs put in these, so they are the same stores.
         let profileVC = ProfileViewController(
             watchlistStore: watchlistStore,
-            seenFilmsStore: seenFilmsStore,
+            watchedStore: watchedStore,
             reviewStore: reviewStore
         )
 

@@ -26,14 +26,14 @@ final class ProfileViewController: UIViewController {
 
     init(
         watchlistStore: WatchlistStoring,
-        seenFilmsStore: SeenFilmsStoring,
+        watchedStore: WatchedFilmsStoring,
         reviewStore: ReviewStoring
     ) {
         self.watchlistStore = watchlistStore
         self.reviewStore = reviewStore
         self.viewModel = ProfileViewModel(
             watchlistStore: watchlistStore,
-            seenFilmsStore: seenFilmsStore,
+            watchedStore: watchedStore,
             reviewStore: reviewStore
         )
         super.init(nibName: nil, bundle: nil)

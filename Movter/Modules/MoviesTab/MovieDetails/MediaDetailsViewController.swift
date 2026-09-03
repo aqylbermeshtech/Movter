@@ -54,6 +54,18 @@ final class MediaDetailsViewController: UIViewController {
         return label
     }()
 
+    /// The one thing you can tell the app about a film without writing anything.
+    private lazy var watchedButton: UIButton = {
+        var config = UIButton.Configuration.filled()
+        config.cornerStyle = .medium
+        config.imagePadding = 8
+        config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 18, bottom: 12, trailing: 18)
+        let button = UIButton(configuration: config)
+        button.addTarget(self, action: #selector(watchedTapped), for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
     /// "★ 7.9/10 · 2026 · Science Fiction"
     private let metadataLabel: UILabel = {
         let label = UILabel()
@@ -256,6 +268,8 @@ final class MediaDetailsViewController: UIViewController {
         renderTrailerPlaceholder()
         configure()
         bindViewModel()
+        renderWatchedState()
+        viewModel.loadWatchedState()
         viewModel.fetchTrailer()
         viewModel.fetchActors()
         viewModel.fetchGenre()
@@ -296,6 +310,9 @@ final class MediaDetailsViewController: UIViewController {
     }
     
     private func bindViewModel() {
+        viewModel.onWatchedChange = { [weak self] in
+            self?.renderWatchedState()
+        }
         viewModel.onVideoUpdate = { [weak self] key in
             guard let self = self else { return }
             if let videoKey = key, let request = self.viewModel.youtubeRequest(for: videoKey) {
@@ -351,6 +368,28 @@ final class MediaDetailsViewController: UIViewController {
 
     @objc private func themeDidChange() {
         renderMetadata()
+        renderWatchedState()
+    }
+
+    @objc private func watchedTapped() {
+        viewModel.toggleWatched()
+    }
+
+    /// Filled once it is true, so the state reads at a glance rather than from the verb.
+    private func renderWatchedState() {
+        let isWatched = viewModel.isWatched
+        watchedButton.configuration?.baseBackgroundColor = isWatched ? .accent : .surface
+        watchedButton.configuration?.baseForegroundColor = isWatched ? .onAccent : .textPrimary
+        watchedButton.configuration?.image = UIImage(
+            systemName: viewModel.watchedButtonSymbol,
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
+        )
+        watchedButton.configuration?.attributedTitle = AttributedString(
+            viewModel.watchedButtonTitle,
+            attributes: AttributeContainer([.font: UIFont.systemFont(ofSize: 16, weight: .semibold)])
+        )
+        watchedButton.accessibilityLabel = isWatched
+            ? "Watched. Double tap to unmark." : "Mark as watched"
     }
 
     @objc private func connectivityChanged() {
@@ -420,6 +459,7 @@ final class MediaDetailsViewController: UIViewController {
             titleLabel,
             metadataLabel,
             descriptionView,
+            watchedButton,
             reviewLabel,
             miniReviewView,
             castLabel,
@@ -552,6 +592,7 @@ final class MediaDetailsViewController: UIViewController {
         applyBarAppearance(collapsed: isBarCollapsed)
         // Keeps the review card in step with edits made elsewhere.
         viewModel.loadReview()
+        viewModel.loadWatchedState()
     }
 
     override func viewWillDisappear(_ animated: Bool) {

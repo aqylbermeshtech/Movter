@@ -10,6 +10,8 @@ import Foundation
 final class MediaDetailsViewModel {
     private let media: Media
     private let reviewStore: ReviewStoring
+    private let watchedStore: WatchedFilmsStoring
+    private let watchlistStore: WatchlistStoring
     var onVideoUpdate: ((String?) -> Void)?
     var onActorsUpdate: (() -> Void)?
     var actors: [Actor] = []
@@ -29,6 +31,42 @@ final class MediaDetailsViewModel {
 
     private(set) var genreName: String?
     var onGenreUpdate: (() -> Void)?
+
+    // MARK: - Watched
+
+    private(set) var isWatched = false
+    var onWatchedChange: (() -> Void)?
+
+    var watchedButtonTitle: String { isWatched ? "Watched" : "Mark as watched" }
+    var watchedButtonSymbol: String { isWatched ? "checkmark.circle.fill" : "checkmark.circle" }
+
+    func loadWatchedState() {
+        watchedStore.fetchIDs { [weak self] ids in
+            guard let self = self else { return }
+            self.isWatched = ids.contains(self.media.id)
+            self.onWatchedChange?()
+        }
+    }
+
+    func toggleWatched() {
+        isWatched.toggle()
+        watchedStore.setWatched(isWatched, tmdbID: media.id)
+        onWatchedChange?()
+
+        // A film you have seen is no longer one you are waiting to see. Unmarking does
+        // not put it back: the watchlist is a list you curate, not a mirror of this flag.
+        guard isWatched else { return }
+        removeFromWatchlist()
+    }
+
+    private func removeFromWatchlist() {
+        watchlistStore.fetchAll { [weak self] result in
+            guard let self = self,
+                  case let .success(items) = result,
+                  let saved = items.first(where: { $0.tmdbID == self.media.id }) else { return }
+            self.watchlistStore.delete(saved.id) { _ in }
+        }
+    }
 
     // MARK: - The user's own review
 
@@ -120,12 +158,16 @@ final class MediaDetailsViewModel {
     init(
         media: Media,
         reviewStore: ReviewStoring = ReviewStoreFactory.makeStore(),
+        watchedStore: WatchedFilmsStoring = WatchedFilmsStoreFactory.makeStore(),
+        watchlistStore: WatchlistStoring = WatchlistStoreFactory.makeStore(),
         service: MediaFetching = NetworkService.shared,
         genreProvider: GenreProviding = GenreProvider.shared,
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.media = media
         self.reviewStore = reviewStore
+        self.watchedStore = watchedStore
+        self.watchlistStore = watchlistStore
         self.service = service
         self.genreProvider = genreProvider
         self.monitor = monitor
