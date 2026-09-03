@@ -49,6 +49,9 @@ final class ProfileViewController: UIViewController {
         label.textColor = .textPrimary
         label.textAlignment = .center
         label.numberOfLines = 1
+        // The header is frame-sized, so any shortfall in its height has to come out of
+        // some subview. Never this one — a clipped name is worse than a tight header.
+        label.setContentCompressionResistancePriority(.required, for: .vertical)
         return label
     }()
 
@@ -131,6 +134,9 @@ final class ProfileViewController: UIViewController {
                 reviews: self.viewModel.reviewsCount,
                 watchlist: self.viewModel.watchlistCount
             )
+            // Counts arriving can change the stats view's height, and the header is
+            // sized by frame — so it has to be measured again, not just redrawn.
+            self.view.setNeedsLayout()
             self.tableView.reloadData()
         }
         viewModel.onNavigationRequired = { [weak self] type in

@@ -101,6 +101,10 @@ final class ProfileStatsView: UIView {
             label.font = .systemFont(ofSize: 22, weight: .bold)
             label.textColor = .textPrimary
             label.textAlignment = .center
+            // A blank line rather than no line: the counts arrive asynchronously, and a
+            // column that starts with no number would size the header short and then
+            // grow under it. Shows nothing, holds the full height.
+            label.text = " "
             return label
         }()
 
