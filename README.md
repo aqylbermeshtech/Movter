@@ -24,6 +24,8 @@ what you've seen — and every review you save becomes a ticket stub worth keepi
     </td>
   </tr>
 </table>
+
+
 ## Features
 
 - **Browse** — a carousel of what's trending, filtered by genre. Every details screen
