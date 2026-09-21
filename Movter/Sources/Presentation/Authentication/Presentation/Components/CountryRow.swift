@@ -85,7 +85,7 @@ public struct CountryListView: View {
                                     dividerView
                                     
                                     CountryRow(country: country) { selectedCountry in
-                                        viewModel.selectedCountry(selectedCountry)
+                                        viewModel.selectCountry(selectedCountry)
                                     }
                                 }
                             }
@@ -138,7 +138,7 @@ public struct CountryListView: View {
             }
             .frame(height: Constants.sectionHeaderHeight)
             .padding(.horizontal, Spacing.md)
-            background(Color.background)
+            .background(Color.background)
         }
     }
     
