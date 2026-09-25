@@ -23,7 +23,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
     }
+}
 
+enum MovterPushNotificationRuntime {
+    /// Observe from features that call your API (e.g. after login): `userInfo["fcmToken"] as? String`
+    static let fcmTokenDidUpdateNotification = Notification.Name("com.mentorapp.mentor.kz.push.fcmTokenUpdated")
 
+    private static let fcmTokenUserDefaultsKey = "mentor.push.fcmToken"
+
+    static var lastFCMToken: String? {
+        UserDefaults.standard.string(forKey: fcmTokenUserDefaultsKey)
+    }
+
+    static func persistAndNotifyFCMToken(_ token: String) {
+        UserDefaults.standard.set(token, forKey: fcmTokenUserDefaultsKey)
+        NotificationCenter.default.post(
+            name: fcmTokenDidUpdateNotification,
+            object: nil,
+            userInfo: ["fcmToken": token]
+        )
+        #if DEBUG
+        print("[Push] FCM token (\(token.count) chars): \(token)")
+        #endif
+    }
 }
 

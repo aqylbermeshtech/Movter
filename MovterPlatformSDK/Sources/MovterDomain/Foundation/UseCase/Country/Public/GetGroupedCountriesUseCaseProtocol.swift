@@ -6,7 +6,7 @@
 //
 
 import Foundation
-//import MentorNetwork
+//import MovterNetwork
 
 public protocol GetGroupedCountriesUseCaseProtocol {
     func execute(searchQuery: String) -> [(String, [CountryDTO])]
