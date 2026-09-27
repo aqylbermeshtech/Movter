@@ -13,7 +13,7 @@ final class MediaListViewModel {
     private let monitor: NetworkMonitoring
 
     init(
-        service: MediaFetching = NetworkService.shared,
+        service: MediaFetching = TMDBService.shared,
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.service = service

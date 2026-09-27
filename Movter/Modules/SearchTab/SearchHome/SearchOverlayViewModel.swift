@@ -62,7 +62,7 @@ final class SearchOverlayViewModel {
 
     init(
         store: RecentSearchesStoring = RecentSearchesStoreFactory.makeStore(),
-        service: MediaFetching = NetworkService.shared,
+        service: MediaFetching = TMDBService.shared,
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.store = store

@@ -28,7 +28,7 @@ final class ActorViewModel {
     init(
         actorId: Int,
         name: String,
-        service: MediaFetching = NetworkService.shared,
+        service: MediaFetching = TMDBService.shared,
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.actorId = actorId

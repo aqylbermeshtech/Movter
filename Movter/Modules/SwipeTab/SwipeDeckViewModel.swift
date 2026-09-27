@@ -43,7 +43,7 @@ final class SwipeDeckViewModel {
     init(
         watchlistStore: WatchlistStoring,
         seenFilmsStore: SeenFilmsStoring,
-        service: MediaFetching = NetworkService.shared,
+        service: MediaFetching = TMDBService.shared,
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.watchlistStore = watchlistStore

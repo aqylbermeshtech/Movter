@@ -23,7 +23,7 @@ final class GenreProvider {
 
     private let service: MediaFetching
 
-    init(service: MediaFetching = NetworkService.shared) {
+    init(service: MediaFetching = TMDBService.shared) {
         self.service = service
     }
 

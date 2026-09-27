@@ -218,7 +218,7 @@ final class MediaDetailsViewModel {
         reviewStore: ReviewStoring = ReviewStoreFactory.makeStore(),
         watchedStore: WatchlistStoring = WatchedFilmsStoreFactory.makeStore(),
         watchlistStore: WatchlistStoring = WatchlistStoreFactory.makeStore(),
-        service: MediaFetching = NetworkService.shared,
+        service: MediaFetching = TMDBService.shared,
         genreProvider: GenreProviding = GenreProvider.shared,
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {

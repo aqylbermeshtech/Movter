@@ -10,11 +10,11 @@ import Foundation
 /// The catalogue endpoints the app actually calls.
 ///
 /// Exists so view models can be handed a stub instead of reaching for
-/// `NetworkService.shared` — the same seam `ReviewStoring` and `WatchlistStoring`
-/// already provide for storage. Deliberately narrower than `NetworkService`: it lists
+/// `TMDBService.shared` — the same seam `ReviewStoring` and `WatchlistStoring`
+/// already provide for storage. Deliberately narrower than `TMDBService`: it lists
 /// what callers use, not everything the service can do.
 ///
-/// Every completion is `@MainActor`, matching the contract on `NetworkService` itself.
+/// Every completion is `@MainActor`, matching the contract on `TMDBService` itself.
 protocol MediaFetching: AnyObject {
 
     func fetchVideo(
@@ -63,9 +63,9 @@ protocol MediaFetching: AnyObject {
     )
 }
 
-/// `NetworkService` already declares every one of these; the conformance is the whole
+/// `TMDBService` already declares every one of these; the conformance is the whole
 /// change.
-extension NetworkService: MediaFetching {}
+extension TMDBService: MediaFetching {}
 
 /// Genre-name lookup, kept separate from `MediaFetching` because `GenreProvider` adds
 /// caching and request coalescing on top of the raw endpoint.

@@ -49,7 +49,7 @@ final class MovieGridViewModel {
 
     init(
         source: MediaQuerySource,
-        service: MediaFetching = NetworkService.shared,
+        service: MediaFetching = TMDBService.shared,
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.source = source

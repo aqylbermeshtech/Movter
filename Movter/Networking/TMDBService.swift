@@ -1,5 +1,5 @@
 //
-//  NetworkService.swift
+//  TMDBService.swift
 //  Movter
 //
 //  Created by Nurtore on 24.03.2026.
@@ -26,13 +26,23 @@ nonisolated struct VideoResponse: Codable {
 /// Every completion is `@MainActor`: callers are UI code, and the contract is on the
 /// parameter type rather than in a comment so the compiler rejects a callback fired
 /// from URLSession's queue instead of leaving it to be noticed in review.
-final class NetworkService {
-    static let shared = NetworkService()
+///
+/// Uses `NetworkService.shared.plainRequest(_:)` under the hood — the SDK's unified
+/// network layer — for all HTTP calls. No separate URLSession here.
+final class TMDBService {
+    static let shared = TMDBService()
     private let baseURL = "https://api.themoviedb.org/3"
 
     // Injected at build time from Config/Secrets.xcconfig (gitignored); see
     // Movter/Config/Secrets.xcconfig.example.
-    private let apiKey = NetworkService.infoPlistValue(for: "TMDB_API_KEY")
+    private let apiKey = TMDBService.infoPlistValue(for: "TMDB_API_KEY")
+
+    /// The SDK's unified network service handles the actual HTTP calls.
+    private let networkService: NetworkServiceProtocol
+
+    private init(networkService: NetworkServiceProtocol = NetworkService.shared) {
+        self.networkService = networkService
+    }
 
     private static func infoPlistValue(for key: String) -> String {
         guard let value = Bundle.main.object(forInfoDictionaryKey: key) as? String, !value.isEmpty else {
@@ -50,26 +60,19 @@ final class NetworkService {
             completion(nil)
             return
         }
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            if let error = error {
-                print("Network error: \(error.localizedDescription)")
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
-            guard let data = data else {
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
+        Task {
             do {
+                let request = URLRequest(url: url)
+                let (data, _) = try await networkService.plainRequest(request)
                 let decoder = JSONDecoder()
                 decoder.keyDecodingStrategy = .convertFromSnakeCase
                 let result = try decoder.decode(T.self, from: data)
-                DispatchQueue.main.async { completion(result) }
+                await MainActor.run { completion(result) }
             } catch {
-                print("Decoding error: \(error)")
-                DispatchQueue.main.async { completion(nil) }
+                print("Network/decoding error: \(error)")
+                await MainActor.run { completion(nil) }
             }
-        }.resume()
+        }
     }
 
     func fetchVideo(for id: Int, type: MediaType, completion: @escaping @MainActor (String?) -> Void) {
