@@ -32,9 +32,6 @@ what you've seen — and every review you save becomes a ticket stub worth keepi
   </tr>
 </table>
 
-<div align="center">
-  <video src="https://github.com/user-attachments/assets/7db2906a-34fa-4262-97bc-6d1617b28575" controls width="300"></video>
-</div>
 
 ## Features
 
