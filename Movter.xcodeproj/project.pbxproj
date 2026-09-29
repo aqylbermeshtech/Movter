@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		813A9BD92FF719C600E94E91 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 813A9BD82FF719C600E94E91 /* FirebaseAuth */; };
+		81AB0A37306BB6980016928D /* Swinject in Frameworks */ = {isa = PBXBuildFile; productRef = 81AB0A36306BB6980016928D /* Swinject */; };
+		81AB0A3A306BB6AD0016928D /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 81AB0A39306BB6AD0016928D /* Alamofire */; };
+		81AB0A3C306BB6AD0016928D /* AlamofireDynamic in Frameworks */ = {isa = PBXBuildFile; productRef = 81AB0A3B306BB6AD0016928D /* AlamofireDynamic */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,7 +50,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				81AB0A3A306BB6AD0016928D /* Alamofire in Frameworks */,
+				81AB0A3C306BB6AD0016928D /* AlamofireDynamic in Frameworks */,
 				813A9BD92FF719C600E94E91 /* FirebaseAuth in Frameworks */,
+				81AB0A37306BB6980016928D /* Swinject in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -110,6 +116,9 @@
 			name = Movter;
 			packageProductDependencies = (
 				813A9BD82FF719C600E94E91 /* FirebaseAuth */,
+				81AB0A36306BB6980016928D /* Swinject */,
+				81AB0A39306BB6AD0016928D /* Alamofire */,
+				81AB0A3B306BB6AD0016928D /* AlamofireDynamic */,
 			);
 			productName = Movter;
 			productReference = 5EB895522F69824800C8A3F3 /* Movter.app */;
@@ -141,6 +150,8 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				813A9BD62FF7194C00E94E91 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				81AB0A35306BB6980016928D /* XCRemoteSwiftPackageReference "Swinject" */,
+				81AB0A38306BB6AD0016928D /* XCRemoteSwiftPackageReference "Alamofire" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5EB895532F69824800C8A3F3 /* Products */;
@@ -394,6 +405,22 @@
 				minimumVersion = 12.15.0;
 			};
 		};
+		81AB0A35306BB6980016928D /* XCRemoteSwiftPackageReference "Swinject" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Swinject/Swinject.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.10.0;
+			};
+		};
+		81AB0A38306BB6AD0016928D /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.12.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -401,6 +428,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 813A9BD62FF7194C00E94E91 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAuth;
+		};
+		81AB0A36306BB6980016928D /* Swinject */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 81AB0A35306BB6980016928D /* XCRemoteSwiftPackageReference "Swinject" */;
+			productName = Swinject;
+		};
+		81AB0A39306BB6AD0016928D /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 81AB0A38306BB6AD0016928D /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
+		};
+		81AB0A3B306BB6AD0016928D /* AlamofireDynamic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 81AB0A38306BB6AD0016928D /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = AlamofireDynamic;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

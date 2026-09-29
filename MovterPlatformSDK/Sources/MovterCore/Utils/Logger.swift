@@ -10,33 +10,33 @@ import os.log
 
 
 public protocol LoggerProtocol: Sendable {
-    func debug(_ message: String, file: String, function: String, line: Int)
-    func info(_ message: String, file: String, function: String, line:Int)
-    func warning(_ message: String, file: String, function: String, line: Int)
-    func error(_ message: String, file: String, function: String, line:Int)
+    nonisolated func debug(_ message: String, file: String, function: String, line: Int)
+    nonisolated func info(_ message: String, file: String, function: String, line:Int)
+    nonisolated func warning(_ message: String, file: String, function: String, line: Int)
+    nonisolated func error(_ message: String, file: String, function: String, line:Int)
 }
 
 public final class Logger: LoggerProtocol, @unchecked Sendable {
     private let osLog = OSLog(subsystem: "com.movter.app", category: "default")
     public init() {}
     
-    public func debug(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
+    nonisolated public func debug(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
         log(message, level: .debug, file: file, function: function, line: line)
     }
 
-    public func info(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
+    nonisolated public func info(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
         log(message, level: .info, file: file, function: function, line: line)
     }
 
-    public func warning(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
+    nonisolated public func warning(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
         log(message, level: .default, file: file, function: function, line: line)
     }
 
-    public func error(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
+    nonisolated public func error(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
         log(message, level: .error, file: file, function: function, line: line)
     }
 
-    private func log(_ message: String, level: OSLogType, file: String, function: String, line: Int) {
+    nonisolated private func log(_ message: String, level: OSLogType, file: String, function: String, line: Int) {
 #if DEBUG
         let fileName = (file as NSString).lastPathComponent
         let logMessage = "[\(fileName):\(line)] \(function) - \(message)"
@@ -48,19 +48,19 @@ public final class Logger: LoggerProtocol, @unchecked Sendable {
 //Extensions
 
 public extension LoggerProtocol {
-    func debug(_ message: String) {
+    nonisolated func debug(_ message: String) {
         debug(message, file: #file, function: #function, line: #line)
     }
 
-    func info(_ message: String) {
+    nonisolated func info(_ message: String) {
         info(message, file: #file, function: #function, line: #line)
     }
 
-    func warning(_ message: String) {
+    nonisolated func warning(_ message: String) {
         warning(message, file: #file, function: #function, line: #line)
     }
 
-    func error(_ message: String) {
+    nonisolated func error(_ message: String) {
         error(message, file: #file, function: #function, line: #line)
     }
 }
