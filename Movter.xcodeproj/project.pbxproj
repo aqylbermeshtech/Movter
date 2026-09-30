@@ -10,6 +10,7 @@
 		813A9BD92FF719C600E94E91 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 813A9BD82FF719C600E94E91 /* FirebaseAuth */; };
 		81AB0A37306BB6980016928D /* Swinject in Frameworks */ = {isa = PBXBuildFile; productRef = 81AB0A36306BB6980016928D /* Swinject */; };
 		81AB0A3A306BB6AD0016928D /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 81AB0A39306BB6AD0016928D /* Alamofire */; };
+		81C72CB2306D9D26004267F3 /* SwiftfulLoadingIndicators in Frameworks */ = {isa = PBXBuildFile; productRef = 81C72CB1306D9D26004267F3 /* SwiftfulLoadingIndicators */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -52,6 +53,7 @@
 				81AB0A3A306BB6AD0016928D /* Alamofire in Frameworks */,
 				813A9BD92FF719C600E94E91 /* FirebaseAuth in Frameworks */,
 				81AB0A37306BB6980016928D /* Swinject in Frameworks */,
+				81C72CB2306D9D26004267F3 /* SwiftfulLoadingIndicators in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -116,6 +118,7 @@
 				813A9BD82FF719C600E94E91 /* FirebaseAuth */,
 				81AB0A36306BB6980016928D /* Swinject */,
 				81AB0A39306BB6AD0016928D /* Alamofire */,
+				81C72CB1306D9D26004267F3 /* SwiftfulLoadingIndicators */,
 			);
 			productName = Movter;
 			productReference = 5EB895522F69824800C8A3F3 /* Movter.app */;
@@ -149,6 +152,7 @@
 				813A9BD62FF7194C00E94E91 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				81AB0A35306BB6980016928D /* XCRemoteSwiftPackageReference "Swinject" */,
 				81AB0A38306BB6AD0016928D /* XCRemoteSwiftPackageReference "Alamofire" */,
+				81C72CB0306D9D26004267F3 /* XCRemoteSwiftPackageReference "SwiftfulLoadingIndicators" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5EB895532F69824800C8A3F3 /* Products */;
@@ -418,6 +422,14 @@
 				minimumVersion = 5.12.2;
 			};
 		};
+		81C72CB0306D9D26004267F3 /* XCRemoteSwiftPackageReference "SwiftfulLoadingIndicators" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SwiftfulThinking/SwiftfulLoadingIndicators.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.0.4;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -436,7 +448,11 @@
 			package = 81AB0A38306BB6AD0016928D /* XCRemoteSwiftPackageReference "Alamofire" */;
 			productName = Alamofire;
 		};
-
+		81C72CB1306D9D26004267F3 /* SwiftfulLoadingIndicators */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 81C72CB0306D9D26004267F3 /* XCRemoteSwiftPackageReference "SwiftfulLoadingIndicators" */;
+			productName = SwiftfulLoadingIndicators;
+		};
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5EB8954A2F69824800C8A3F3 /* Project object */;

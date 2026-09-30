@@ -1,0 +1,12 @@
+//
+//  GoogleSignInUseCaseProtocol.swift
+//  Movter
+//
+//  Created by Nurtore on 01.10.2026.
+//
+
+import Foundation
+
+public protocol GoogleSignInUseCaseProtocol {
+    func execute(idToken: String) async throws -> SocialAuthResult
+}
