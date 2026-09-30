@@ -7,12 +7,12 @@
 
 import Foundation
 
-public final class DateFormatterProvider {
+nonisolated public final class DateFormatterProvider: @unchecked Sendable {
     public static let shared = DateFormatterProvider()
 
     private init() {}
 
-    public lazy var iso8601: DateFormatter = {
+    public let iso8601: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -20,28 +20,28 @@ public final class DateFormatterProvider {
         return formatter
     }()
 
-    public lazy var shortDate: DateFormatter = {
+    public let shortDate: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         formatter.timeStyle = .none
         return formatter
     }()
 
-    public lazy var longDate: DateFormatter = {
+    public let longDate: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .long
         formatter.timeStyle = .none
         return formatter
     }()
 
-    public lazy var timeOnly: DateFormatter = {
+    public let timeOnly: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .none
         formatter.timeStyle = .short
         return formatter
     }()
 
-    public lazy var dateTime: DateFormatter = {
+    public let dateTime: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short

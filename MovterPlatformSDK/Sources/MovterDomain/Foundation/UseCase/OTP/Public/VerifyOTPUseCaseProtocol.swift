@@ -8,6 +8,6 @@
 import Foundation
 //import MovterNetwork
 
-public protocol VerifyOTPUseCaseProtocol {
+nonisolated public protocol VerifyOTPUseCaseProtocol {
     func execute(method: OTPMethodDTO, contact: String, code: String) async throws -> OTPVerificationResultDTO
 }

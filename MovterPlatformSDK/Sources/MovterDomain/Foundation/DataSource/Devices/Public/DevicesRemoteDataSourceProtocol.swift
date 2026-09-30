@@ -7,6 +7,6 @@
 
 import Foundation
 
-public protocol DevicesRemoteDataSourceProtocol {
+nonisolated public protocol DevicesRemoteDataSourceProtocol {
     func registerPushToken(fcmToken: String, platform: String) async throws
 }

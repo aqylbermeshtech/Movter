@@ -5,17 +5,17 @@
 //  Created by Nurtore on 29.09.2026.
 //
 
-import Alamofire
+@preconcurrency import Alamofire
 import Foundation
 //import MentorCore
 //import MentorStorage
 
-public protocol NetworkManagerProtocol {
-    func request<T: Codable>(_ endpoint: APIEndpoint, responseType: T.Type) async throws -> T
+nonisolated public protocol NetworkManagerProtocol {
+    func request<T: Codable & Sendable>(_ endpoint: APIEndpoint, responseType: T.Type) async throws -> T
     func request(_ endpoint: APIEndpoint) async throws
 }
 
-public final class NetworkManager: NetworkManagerProtocol {
+nonisolated public final class NetworkManager: NetworkManagerProtocol, @unchecked Sendable {
     public static let shared = NetworkManager()
 
     private let session: Session
@@ -94,16 +94,16 @@ public final class NetworkManager: NetworkManagerProtocol {
     }
 }
 
-public protocol APIEndpoint {
+nonisolated public protocol APIEndpoint {
     var baseURL: URL { get }
     var path: String { get }
     var method: HTTPMethod { get }
     var headers: HTTPHeaders? { get }
-    var parameters: [String: any Sendable]? { get }
+    var parameters: [String: Any]? { get }
     var encoding: ParameterEncoding { get }
 }
 
-extension APIEndpoint {
+nonisolated extension APIEndpoint {
     func asURLRequest() throws -> URLRequest {
         let url = baseURL.appendingPathComponent(path)
         var request = URLRequest(url: url)
@@ -115,7 +115,28 @@ extension APIEndpoint {
             }
         }
 
-        return try encoding.encode(request, with: parameters)
+        if let parameters = parameters {
+            if encoding is JSONEncoding {
+                request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
+                if request.value(forHTTPHeaderField: "Content-Type") == nil {
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                }
+            } else {
+                // URL encoding (default)
+                if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                    components.queryItems = parameters.map {
+                        URLQueryItem(name: $0.key, value: "\($0.value)")
+                    }
+                    request.url = components.url
+                }
+                if request.value(forHTTPHeaderField: "Content-Type") == nil {
+                    request.setValue("application/x-www-form-urlencoded; charset=utf-8",
+                                    forHTTPHeaderField: "Content-Type")
+                }
+            }
+        }
+
+        return request
     }
 }
 

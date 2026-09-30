@@ -8,7 +8,7 @@
 ///TODO: Переписать все под приложение
 import Foundation
 
-public final class UseCaseBuilder {
+nonisolated public final class UseCaseBuilder: @unchecked Sendable {
     
     public static let shared = UseCaseBuilder()
     

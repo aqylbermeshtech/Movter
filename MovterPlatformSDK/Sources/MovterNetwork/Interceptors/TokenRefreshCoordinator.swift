@@ -5,7 +5,7 @@
 //  Created by Nurtore on 28.09.2026.
 //
 
-import Alamofire
+@preconcurrency import Alamofire
 import Foundation
 //@preconcurrency import MentorCore
 //@preconcurrency import MentorStorage
@@ -14,7 +14,7 @@ import Foundation
 /// second request carrying the same one fails and would log the person out. The app runs two
 /// Alamofire stacks, and both can meet a 401 at the same moment, so the single-flight guard
 /// has to live here, above them, rather than inside one interceptor instance.
-public final class TokenRefreshCoordinator: @unchecked Sendable {
+nonisolated public final class TokenRefreshCoordinator: @unchecked Sendable {
     nonisolated public static let shared = TokenRefreshCoordinator()
 
     private let queue = DispatchQueue(label: "com.mentor.auth.refresh")
@@ -127,7 +127,7 @@ public final class TokenRefreshCoordinator: @unchecked Sendable {
     }
 }
 
-private struct RefreshTokenEndpoint: APIEndpoint {
+nonisolated private struct RefreshTokenEndpoint: APIEndpoint {
     
     let refreshToken: String
 
@@ -150,7 +150,7 @@ private struct RefreshTokenEndpoint: APIEndpoint {
         ]
     }
 
-    var parameters: [String: any Sendable]? {
+    var parameters: [String: Any]? {
         ["refresh_token": refreshToken]
     }
 

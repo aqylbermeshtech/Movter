@@ -9,7 +9,7 @@ import Foundation
 //import MovterCore
 
 
-public final class AccessTokenStore: @unchecked Sendable {
+nonisolated public final class AccessTokenStore: @unchecked Sendable {
     public static let shared = AccessTokenStore()
     
     private enum Keys {

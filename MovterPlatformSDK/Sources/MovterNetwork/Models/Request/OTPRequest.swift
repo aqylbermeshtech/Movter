@@ -7,12 +7,12 @@
 
 import Foundation
 
-public enum OTPMethodDTO: Equatable {
+nonisolated public enum OTPMethodDTO: Equatable {
     case telegram
     case email
 }
 
-public struct OTPVerificationDTO {
+nonisolated public struct OTPVerificationDTO {
     public let method: OTPMethodDTO
     public let contact: String
     public let code: String

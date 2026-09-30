@@ -8,7 +8,7 @@
 import Foundation
 //import MovterNetwork
 
-public protocol GetGroupedCountriesUseCaseProtocol {
+nonisolated public protocol GetGroupedCountriesUseCaseProtocol {
     func execute(searchQuery: String) -> [(String, [CountryDTO])]
 }
 

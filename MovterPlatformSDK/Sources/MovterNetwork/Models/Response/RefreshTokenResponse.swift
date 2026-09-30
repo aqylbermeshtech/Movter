@@ -19,7 +19,7 @@ public nonisolated struct RefreshTokenResponse: Codable, Sendable {
     }
 }
 
-public struct RefreshTokenData: Codable {
+nonisolated public struct RefreshTokenData: Codable, Sendable {
     public let accessToken: String
     public let expiresIn: Int
     public let tokenType: String

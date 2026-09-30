@@ -12,7 +12,7 @@ public typealias RequestHeaders = [String: String]
 
 /// Custom HTTP task enum for Clean Architecture
 /// Note: Named RequestTask to avoid potential conflicts
-public enum RequestTask {
+nonisolated public enum RequestTask {
     /// A request with no additional data
     case request
     

@@ -9,14 +9,14 @@ import Foundation
 import os.log
 
 
-public protocol LoggerProtocol: Sendable {
+nonisolated public protocol LoggerProtocol: Sendable {
     nonisolated func debug(_ message: String, file: String, function: String, line: Int)
     nonisolated func info(_ message: String, file: String, function: String, line:Int)
     nonisolated func warning(_ message: String, file: String, function: String, line: Int)
     nonisolated func error(_ message: String, file: String, function: String, line:Int)
 }
 
-public final class Logger: LoggerProtocol, @unchecked Sendable {
+nonisolated public final class Logger: LoggerProtocol, @unchecked Sendable {
     private let osLog = OSLog(subsystem: "com.movter.app", category: "default")
     public init() {}
     
@@ -47,20 +47,20 @@ public final class Logger: LoggerProtocol, @unchecked Sendable {
 
 //Extensions
 
-public extension LoggerProtocol {
-    nonisolated func debug(_ message: String) {
+extension LoggerProtocol {
+    public nonisolated func debug(_ message: String) {
         debug(message, file: #file, function: #function, line: #line)
     }
 
-    nonisolated func info(_ message: String) {
+    public nonisolated func info(_ message: String) {
         info(message, file: #file, function: #function, line: #line)
     }
 
-    nonisolated func warning(_ message: String) {
+    public nonisolated func warning(_ message: String) {
         warning(message, file: #file, function: #function, line: #line)
     }
 
-    nonisolated func error(_ message: String) {
+    public nonisolated func error(_ message: String) {
         error(message, file: #file, function: #function, line: #line)
     }
 }

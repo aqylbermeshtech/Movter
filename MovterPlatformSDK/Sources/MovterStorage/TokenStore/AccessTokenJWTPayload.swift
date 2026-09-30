@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum AccessTokenJWTPayload {
+nonisolated enum AccessTokenJWTPayload {
 
     static func dictionary(from jwt: String) -> [String: Any]? {
         let segments = jwt.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ".")

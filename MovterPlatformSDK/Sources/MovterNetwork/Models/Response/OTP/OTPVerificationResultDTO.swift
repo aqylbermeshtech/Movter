@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct OTPVerificationResultDTO {
+nonisolated public struct OTPVerificationResultDTO {
     public let isSuccess: Bool
     public let errorMessage: String?
     public let status: String?

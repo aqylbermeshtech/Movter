@@ -9,7 +9,7 @@ import Foundation
 //import MentorCore
 //import MentorNetwork
 
-public final class RemoteDevicesDataSource: DevicesRemoteDataSourceProtocol {
+nonisolated public final class RemoteDevicesDataSource: DevicesRemoteDataSourceProtocol {
 
     private let networkService: NetworkServiceProtocol
     private let router = Router<DevicesEndPoint>()

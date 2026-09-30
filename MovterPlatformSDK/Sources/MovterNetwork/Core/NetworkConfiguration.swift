@@ -7,15 +7,15 @@
 
 import Foundation
 
-public protocol NetworkConfigurationProtocol {
+nonisolated public protocol NetworkConfigurationProtocol {
     var baseURL: URL { get }
     var timeout: TimeInterval { get }
 }
 
-public final class NetworkConfiguration: NetworkConfigurationProtocol {
-    public static var shared: NetworkConfigurationProtocol = NetworkConfiguration()
+nonisolated public final class NetworkConfiguration: NetworkConfigurationProtocol {
+    nonisolated(unsafe) public static var shared: NetworkConfigurationProtocol = NetworkConfiguration()
 
-    public private(set) static var notificationServiceBaseURL: URL?
+    nonisolated(unsafe) public private(set) static var notificationServiceBaseURL: URL?
 
     public var baseURL: URL
     public var timeout: TimeInterval

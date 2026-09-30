@@ -8,6 +8,6 @@
 import Foundation
 //import MovterNetwork
 
-public protocol ResendOTPUseCaseProtocol {
+nonisolated public protocol ResendOTPUseCaseProtocol {
     func execute(method: OTPMethodDTO, contact: String) async throws -> Bool
 }
