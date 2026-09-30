@@ -10,7 +10,6 @@
 		813A9BD92FF719C600E94E91 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 813A9BD82FF719C600E94E91 /* FirebaseAuth */; };
 		81AB0A37306BB6980016928D /* Swinject in Frameworks */ = {isa = PBXBuildFile; productRef = 81AB0A36306BB6980016928D /* Swinject */; };
 		81AB0A3A306BB6AD0016928D /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 81AB0A39306BB6AD0016928D /* Alamofire */; };
-		81AB0A3C306BB6AD0016928D /* AlamofireDynamic in Frameworks */ = {isa = PBXBuildFile; productRef = 81AB0A3B306BB6AD0016928D /* AlamofireDynamic */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,7 +50,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				81AB0A3A306BB6AD0016928D /* Alamofire in Frameworks */,
-				81AB0A3C306BB6AD0016928D /* AlamofireDynamic in Frameworks */,
 				813A9BD92FF719C600E94E91 /* FirebaseAuth in Frameworks */,
 				81AB0A37306BB6980016928D /* Swinject in Frameworks */,
 			);
@@ -118,7 +116,6 @@
 				813A9BD82FF719C600E94E91 /* FirebaseAuth */,
 				81AB0A36306BB6980016928D /* Swinject */,
 				81AB0A39306BB6AD0016928D /* Alamofire */,
-				81AB0A3B306BB6AD0016928D /* AlamofireDynamic */,
 			);
 			productName = Movter;
 			productReference = 5EB895522F69824800C8A3F3 /* Movter.app */;
@@ -439,11 +436,7 @@
 			package = 81AB0A38306BB6AD0016928D /* XCRemoteSwiftPackageReference "Alamofire" */;
 			productName = Alamofire;
 		};
-		81AB0A3B306BB6AD0016928D /* AlamofireDynamic */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 81AB0A38306BB6AD0016928D /* XCRemoteSwiftPackageReference "Alamofire" */;
-			productName = AlamofireDynamic;
-		};
+
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5EB8954A2F69824800C8A3F3 /* Project object */;

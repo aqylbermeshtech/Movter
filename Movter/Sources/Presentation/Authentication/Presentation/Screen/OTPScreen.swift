@@ -36,11 +36,29 @@ struct OTPScreen: View {
                 Spacer(minLength: 0)
             }
         }
-        .loader(isPresented: $viewModel.isLoading)
-        .errorAlert(message: $viewModel.errorMessage)
+        .overlay {
+            if viewModel.isLoading {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                ProgressView()
+                    .tint(.white)
+                    .scaleEffect(1.3)
+            }
+        }
+        .alert("Error",
+               isPresented: Binding(
+                   get: { viewModel.errorMessage != nil },
+                   set: { if !$0 { viewModel.errorMessage = nil } }
+               )) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            if let msg = viewModel.errorMessage {
+                Text(msg)
+            }
+        }
         .alert(LocalizedString.Otp.goBackTitle,
                isPresented: $viewModel.showGoBackConfirmation) {
-            Button(LocalizedString.cancel, role:.cancel)
+            Button(LocalizedString.cancel, role: .cancel) { }
             Button(LocalizedString.Otp.goBackConfirm) {
                 viewModel.confirmGoBack()
             }
@@ -68,10 +86,11 @@ struct OTPScreen: View {
                 .padding(.horizontal, Spacing.md)
             
             OTPInputView(otpCode: viewModel.otpCode,
-                         isError: viewModel.isError { newCode in
+                         isError: viewModel.isError,
+                         onCodeChange: { newCode in
                 viewModel.setOTPCode(newCode)
-            }
-        )
+                return true
+            })
             .frame(height: Constants.containerHeight)
             .padding(.horizontal, Spacing.md)
             

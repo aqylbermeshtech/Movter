@@ -231,7 +231,9 @@ final class OTPViewModel: ObservableObject {
     }
 
     deinit {
-        timer?.invalidate()
+        MainActor.assumeIsolated {
+            timer?.invalidate()
+        }
     }
 }
 

@@ -12,7 +12,7 @@ import OSLog
 //import MentorStorage
 
 enum PushDeviceTokenRegistrar {
-    private static let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mentorapp.mentor", category: "PushToken")
+    private static let log = os.Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mentorapp.mentor", category: "PushToken")
     private static let lastSentTokenKey = "mentor.push.lastRegisteredFcmToken"
     private static var lastBecomeActiveForcedSyncWallClock: TimeInterval = 0
     private static let minBecomeActiveForcedSyncIntervalSeconds: TimeInterval = 45
@@ -22,7 +22,7 @@ enum PushDeviceTokenRegistrar {
     }
 
     static func syncRegistrationOnAppBecameActiveIfNeeded() async {
-        let trimmed = MentorPushNotificationRuntime.lastFCMToken?
+        let trimmed = MovterPushNotificationRuntime.lastFCMToken?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !trimmed.isEmpty, AccessTokenStore.shared.userIsAuthorized else { return }
 
