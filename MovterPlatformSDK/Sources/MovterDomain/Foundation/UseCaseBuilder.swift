@@ -18,13 +18,14 @@ nonisolated public final class UseCaseBuilder: @unchecked Sendable {
         self.bundle = bundle
     }
     
+    
     // MARK: - Legal
     
-//    public func makeGetLegalTermsUseCase() -> GetLegalTermsUseCaseProtocol {
-//        let dataSource = LegalRemoteDataSource()
-//        let repository = LegalRepositoryImpl(dataSource: dataSource)
-//        return GetLegalTermsUseCase(repository: repository)
-//    }
+    public func makeGetLegalTermsUseCase() -> GetLegalTermsUseCaseProtocol {
+        let dataSource = LegalRemoteDataSource()
+        let repository = LegalRepositoryImpl(dataSource: dataSource)
+        return GetLegalTermsUseCase(repository: repository)
+    }
 //    
 //    // MARK: - MentorProfile
 //    
@@ -70,11 +71,11 @@ nonisolated public final class UseCaseBuilder: @unchecked Sendable {
 //    
 //    // MARK: - ProfileMe
 //
-//    public func makeGetProfileMeUseCase() -> GetProfileMeUseCaseProtocol {
-//        let dataSource = ProfileMeRemoteDataSource()
-//        let repository = ProfileMeRepositoryImpl(dataSource: dataSource)
-//        return GetProfileMeUseCase(repository: repository)
-//    }
+    public func makeGetProfileMeUseCase() -> GetProfileMeUseCaseProtocol {
+        let dataSource = ProfileMeRemoteDataSource()
+        let repository = ProfileMeRepositoryImpl(dataSource: dataSource)
+        return GetProfileMeUseCase(repository: repository)
+    }
 //
 //    public func makeUpdateProfilePersonalUseCase() -> UpdateProfilePersonalUseCaseProtocol {
 //        let dataSource = ProfileMeRemoteDataSource()
@@ -180,11 +181,11 @@ nonisolated public final class UseCaseBuilder: @unchecked Sendable {
 //
 //    // MARK: - Authentication
 //
-//    public func makeSignInUseCase() -> SignInUseCaseProtocol {
-//        let dataSource = RemoteAuthenticationDataSource()
-//        let repository = AuthRepositoryImpl(dataSource: dataSource)
-//        return SignInUseCase(repository: repository)
-//    }
+    public func makeSignInUseCase() -> SignInUseCaseProtocol {
+        let dataSource = RemoteAuthenticationDataSource()
+        let repository = AuthRepositoryImpl(dataSource: dataSource)
+        return SignInUseCase(repository: repository)
+    }
 //
 //    public func makeLogoutUseCase() -> LogoutUseCaseProtocol {
 //        let dataSource = RemoteAuthenticationDataSource()
@@ -210,17 +211,17 @@ nonisolated public final class UseCaseBuilder: @unchecked Sendable {
 //        return GetAuthMeUseCase(repository: repository)
 //    }
 //
-//    public func makeGoogleSignInUseCase() -> GoogleSignInUseCaseProtocol {
-//        let dataSource = RemoteAuthenticationDataSource()
-//        let repository = AuthRepositoryImpl(dataSource: dataSource)
-//        return GoogleSignInUseCase(repository: repository)
-//    }
+    public func makeGoogleSignInUseCase() -> GoogleSignInUseCaseProtocol {
+        let dataSource = RemoteAuthenticationDataSource()
+        let repository = AuthRepositoryImpl(dataSource: dataSource)
+        return GoogleSignInUseCase(repository: repository)
+    }
 //
-//    public func makeAppleSignInUseCase() -> AppleSignInUseCaseProtocol {
-//        let dataSource = RemoteAuthenticationDataSource()
-//        let repository = AuthRepositoryImpl(dataSource: dataSource)
-//        return AppleSignInUseCase(repository: repository)
-//    }
+    public func makeAppleSignInUseCase() -> AppleSignInUseCaseProtocol {
+        let dataSource = RemoteAuthenticationDataSource()
+        let repository = AuthRepositoryImpl(dataSource: dataSource)
+        return AppleSignInUseCase(repository: repository)
+    }
 //
 //    // MARK: - OTP
 //    
@@ -238,11 +239,11 @@ nonisolated public final class UseCaseBuilder: @unchecked Sendable {
 //    
 //    // MARK: - Country
 //    
-//    public func makeGetCountryByIdUseCase() -> GetCountryByIdUseCaseProtocol {
-//        let dataSource = CountryLocalDataSource(bundle: bundle)
-//        let repository = CountryRepositoryImpl(dataSource: dataSource)
-//        return GetCountryByIdUseCase(repository: repository)
-//    }
+    public func makeGetCountryByIdUseCase() -> GetCountryByIdUseCaseProtocol {
+        let dataSource = CountryLocalDataSource(bundle: bundle)
+        let repository = CountryRepositoryImpl(dataSource: dataSource)
+        return GetCountryByIdUseCase(repository: repository)
+    }
 //    
 //    public func makeGetGroupedCountriesUseCase() -> GetGroupedCountriesUseCaseProtocol {
 //        let dataSource = CountryLocalDataSource(bundle: bundle)
