@@ -7,7 +7,7 @@
 
 import Foundation
 
-public final class LegalRepositoryImpl: LegalRepositoryProtocol {
+nonisolated public final class LegalRepositoryImpl: LegalRepositoryProtocol {
     private let dataSource: LegalDataSourceProtocol
     
     public init(dataSource: LegalDataSourceProtocol) {

@@ -7,6 +7,6 @@
 
 import Foundation
 
-public protocol LegalDataSourceProtocol {
+nonisolated public protocol LegalDataSourceProtocol {
     func getTermsURL(lang: String) async throws -> String
 }

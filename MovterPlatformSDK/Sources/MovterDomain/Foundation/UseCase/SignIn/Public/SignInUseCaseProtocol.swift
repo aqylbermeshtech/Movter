@@ -8,7 +8,7 @@
 import Foundation
 //import MeovterNetwork
 
-public protocol SignInUseCaseProtocol {
+nonisolated public protocol SignInUseCaseProtocol {
     func execute(credentials: AuthCredentialsDTO) async throws -> Bool
 }
 

@@ -8,7 +8,7 @@
 import Foundation
 //import MovterNetwork
 
-public protocol AuthenticationDataSourceProtocol {
+nonisolated public protocol AuthenticationDataSourceProtocol {
     func sendEmailOTP(email: String) async throws -> EmailOTPSendResponse
     func verifyEmailOTP(email: String, code: String) async throws -> EmailOTPVerifyResponse
     func refreshToken(refreshToken: String) async throws -> RefreshTokenResponse

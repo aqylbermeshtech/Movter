@@ -7,7 +7,7 @@
 
 import Foundation
 
-public class DefaultParseStrategy: ParseStrategy {
+nonisolated public class DefaultParseStrategy: ParseStrategy {
     public var data: Data?
     public var response: URLResponse?
     

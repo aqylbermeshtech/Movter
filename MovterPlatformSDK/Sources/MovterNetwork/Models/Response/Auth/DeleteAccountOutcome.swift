@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum DeleteAccountOutcome {
+nonisolated public enum DeleteAccountOutcome {
     case accountFullyRemoved
     case retainedRemainingPersona(tokens: SwitchRoleData)
 }

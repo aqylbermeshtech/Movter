@@ -9,7 +9,7 @@ import Foundation
 //import MovterCore
 //import MovterNetwork
 
-public final class RemoteAuthenticationDataSource: AuthenticationDataSourceProtocol {
+nonisolated public final class RemoteAuthenticationDataSource: AuthenticationDataSourceProtocol {
 
     private let networkService: NetworkServiceProtocol
     private let router = Router<AuthEndPoint>()

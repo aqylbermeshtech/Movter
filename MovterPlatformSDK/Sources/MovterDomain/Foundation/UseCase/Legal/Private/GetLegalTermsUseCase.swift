@@ -8,7 +8,7 @@
 import Foundation
 //import MentorCore
 
-public final class GetLegalTermsUseCase: GetLegalTermsUseCaseProtocol {
+nonisolated public final class GetLegalTermsUseCase: GetLegalTermsUseCaseProtocol {
     private let repository: LegalRepositoryProtocol
     private let languageProvider: AppLanguageProviderProtocol
 

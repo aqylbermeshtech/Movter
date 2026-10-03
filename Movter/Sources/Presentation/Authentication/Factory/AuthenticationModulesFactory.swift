@@ -17,15 +17,15 @@ final class AuthenticationModulesFactory {
         let googleManager = GoogleSignInManagerImpl()
         let appleManager = AppleSignInManagerImpl()
         let viewModel = SignInViewModel(
+            output: output,
             signInUseCase: useCaseBuilder.makeSignInUseCase(),
+            getLegalTermsUseCase: useCaseBuilder.makeGetLegalTermsUseCase(),
             googleSignInUseCase: useCaseBuilder.makeGoogleSignInUseCase(),
             appleSignInUseCase: useCaseBuilder.makeAppleSignInUseCase(),
-            getCountryByIdUseCase: useCaseBuilder.makeGetCountryByIdUseCase(),
-            getLegalTermsUseCase: useCaseBuilder.makeGetLegalTermsUseCase(),
-            getProfileMeUseCase: useCaseBuilder.makeGetProfileMeUseCase(),
             googleSignInManager: googleManager,
             appleSignInManager: appleManager,
-            output: output
+            getProfileMeUseCase: useCaseBuilder.makeGetProfileMeUseCase()
         )
+        return UIHostingController(rootView: SignInScreen(viewModel: viewModel, output: output))
     }
 }

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct SwitchRoleResponse: Codable {
+nonisolated public struct SwitchRoleResponse: Codable {
     public let success: Bool
     public let message: String?
     public let data: SwitchRoleData?
@@ -19,7 +19,7 @@ public struct SwitchRoleResponse: Codable {
     }
 }
 
-public struct SwitchRoleData: Codable {
+nonisolated public struct SwitchRoleData: Codable {
     public let activeRole: String
     public let accessToken: String
     public let refreshToken: String

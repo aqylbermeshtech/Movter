@@ -7,6 +7,6 @@
 
 import Foundation
 
-public protocol AppleSignInUseCaseProtocol {
+nonisolated public protocol AppleSignInUseCaseProtocol {
     func execute(idToken: String, name: String?) async throws -> SocialAuthResult
 }

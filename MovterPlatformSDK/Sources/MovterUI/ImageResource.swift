@@ -13,7 +13,7 @@
 
 // MARK: - Asset Catalogs
 
-public enum ImageAsset: Sendable {
+nonisolated public enum ImageAsset: Sendable {
   public static let role1 = MentorImages(name: "role1")
   public static let role2 = MentorImages(name: "role2")
   public static let account = MentorImages(name: "account")
@@ -182,8 +182,8 @@ public extension SwiftUI.Image {
 
 // MARK: - Bundle Token
 
-private final class BundleToken: Sendable {
-  static let bundle: Bundle = {
+nonisolated private final class BundleToken: Sendable {
+  nonisolated static let bundle: Bundle = {
     return Bundle.main
   }()
 }

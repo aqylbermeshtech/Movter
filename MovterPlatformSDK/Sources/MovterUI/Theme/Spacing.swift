@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-public struct Spacing {
+nonisolated public struct Spacing {
     // MARK: - Basic Spacing Scale
     public static let xxs: CGFloat = 2
     public static let xs: CGFloat = 4
@@ -83,7 +83,7 @@ public extension CGFloat {
 }
 
 // MARK: - Legacy CornerRadius Compatibility
-public struct CornerRadius {
+nonisolated public struct CornerRadius {
     // MARK: - Basic Corner Radius Scale
     public static let none: CGFloat = Spacing.cornerRadiusNone
     public static let xxs: CGFloat = Spacing.cornerRadiusXxs
