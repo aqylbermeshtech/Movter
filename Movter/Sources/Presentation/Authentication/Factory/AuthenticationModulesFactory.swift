@@ -47,4 +47,24 @@ final class AuthenticationModulesFactory {
         let screen = OTPScreen(viewModel: viewModel)
         return UIHostingController(rootView: screen)
     }
+    
+    func makeCountryListView(
+            onCountrySelected: @escaping (Country) -> Void
+    ) -> CountryListScreen {
+        let viewModel = CountryListViewModel(
+            getGroupedCountriesUseCase: useCaseBuilder.makeGetGroupedCountriesUseCase()
+        )
+        return CountryListScreen(viewModel: viewModel, onCountrySelected: onCountrySelected)
+    }
+    
+    func makeRoleSelectionScreen(output: RoleSelectionOutput) -> UIHostingController<RoleSelectionScreen> {
+        let viewModel = RoleSelectionViewModel(
+            submitRoleUseCase: useCaseBuilder.makeSubmitRoleSelectionUseCase(),
+            output: output
+        )
+        let screen = RoleSelectionScreen(viewModel: viewModel)
+        return UIHostingController(rootView: screen)
+    }
+    
+    
 }

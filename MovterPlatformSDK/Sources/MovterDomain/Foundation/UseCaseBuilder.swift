@@ -244,12 +244,12 @@ public final class UseCaseBuilder {
         let repository = CountryRepositoryImpl(dataSource: dataSource)
         return GetCountryByIdUseCase(repository: repository)
     }
-//    
-//    public func makeGetGroupedCountriesUseCase() -> GetGroupedCountriesUseCaseProtocol {
-//        let dataSource = CountryLocalDataSource(bundle: bundle)
-//        let repository = CountryRepositoryImpl(dataSource: dataSource)
-//        return GetGroupedCountriesUseCase(repository: repository)
-//    }
+    
+    public func makeGetGroupedCountriesUseCase() -> GetGroupedCountriesUseCaseProtocol {
+        let dataSource = CountryLocalDataSource(bundle: bundle)
+        let repository = CountryRepositoryImpl(dataSource: dataSource)
+        return GetGroupedCountriesUseCase(repository: repository)
+    }
 //    
 //    public func makeGetAllCountriesUseCase() -> GetAllCountriesUseCaseProtocol {
 //        let dataSource = CountryLocalDataSource(bundle: bundle)
@@ -470,13 +470,13 @@ public final class UseCaseBuilder {
 //        return GetServicePlanTemplatesUseCase(repository: repository)
 //    }
 //    
-//    // MARK: - RoleSelection
-//    
-//    public func makeSubmitRoleSelectionUseCase() -> SubmitRoleSelectionUseCaseProtocol {
-//        let dataSource = RoleSelectionRemoteDataSource()
-//        let repository = RoleSelectionRepositoryImpl(dataSource: dataSource)
-//        return SubmitRoleSelectionUseCase(repository: repository)
-//    }
+    // MARK: - RoleSelection
+    
+    public func makeSubmitRoleSelectionUseCase() -> SubmitRoleSelectionUseCaseProtocol {
+        let dataSource = RoleSelectionRemoteDataSource()
+        let repository = RoleSelectionRepositoryImpl(dataSource: dataSource)
+        return SubmitRoleSelectionUseCase(repository: repository)
+    }
 
     // MARK: - Devices / Push
 
