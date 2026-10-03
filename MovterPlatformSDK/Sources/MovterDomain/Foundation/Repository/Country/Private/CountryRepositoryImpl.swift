@@ -8,7 +8,7 @@
 import Foundation
 //import MentorNetwork
 
-nonisolated public final class CountryRepositoryImpl: CountryRepositoryProtocol {
+public final class CountryRepositoryImpl: CountryRepositoryProtocol {
     private let dataSource: CountryDataSourceProtocol
     private var countries: [CountryDTO]?
     

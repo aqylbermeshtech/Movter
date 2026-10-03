@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public class ParseContext {
+public class ParseContext {
     private var parseStrategy: ParseStrategy
     
     public init(parseStrategy: ParseStrategy) {

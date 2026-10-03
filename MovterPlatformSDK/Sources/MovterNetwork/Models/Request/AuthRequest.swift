@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct AuthCredentialsDTO {
+public struct AuthCredentialsDTO {
     public let method: AuthMethodDTO
     public let contact: String
     
@@ -17,7 +17,7 @@ nonisolated public struct AuthCredentialsDTO {
     }
 }
 
-nonisolated public enum AuthMethodDTO {
+public enum AuthMethodDTO {
     case phone(countryCode: String, number: String)
     case email(String)
 }

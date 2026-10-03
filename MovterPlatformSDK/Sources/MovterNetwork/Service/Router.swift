@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public class Router<EndPoint: EndPointType> {
+public class Router<EndPoint: EndPointType> {
     
     public init() {}
     

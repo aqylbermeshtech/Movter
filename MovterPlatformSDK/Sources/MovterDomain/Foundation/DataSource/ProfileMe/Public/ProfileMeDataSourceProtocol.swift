@@ -8,7 +8,7 @@
 import Foundation
 //import MentorNetwork
 
-nonisolated public protocol ProfileMeDataSourceProtocol {
+public protocol ProfileMeDataSourceProtocol {
     func getProfile() async throws -> ProfileMeResponseDTO
     func updatePersonal(_ request: UpdateProfilePersonalRequestDTO) async throws -> UpdateProfilePersonalOutcome
     func updatePhoto(_ request: UpdateProfilePhotoRequestDTO) async throws

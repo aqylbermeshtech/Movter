@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Email OTP
 
-nonisolated public struct EmailOTPSendRequest: Encodable {
+public struct EmailOTPSendRequest: Encodable {
     public let email: String
 
     public init(email: String) {
@@ -17,7 +17,7 @@ nonisolated public struct EmailOTPSendRequest: Encodable {
     }
 }
 
-nonisolated public struct EmailOTPVerifyRequest: Encodable {
+public struct EmailOTPVerifyRequest: Encodable {
     public let email: String
     public let code: String
 
@@ -29,7 +29,7 @@ nonisolated public struct EmailOTPVerifyRequest: Encodable {
 
 // MARK: - Social Auth
 
-nonisolated public struct GoogleSignInRequestDTO: Encodable {
+public struct GoogleSignInRequestDTO: Encodable {
     public let idToken: String
 
     public init(idToken: String) {
@@ -41,7 +41,7 @@ nonisolated public struct GoogleSignInRequestDTO: Encodable {
     }
 }
 
-nonisolated public struct AppleSignInRequestDTO: Encodable {
+public struct AppleSignInRequestDTO: Encodable {
     public let idToken: String
     public let name: String?
 
@@ -58,7 +58,7 @@ nonisolated public struct AppleSignInRequestDTO: Encodable {
 
 // MARK: - Role Switch
 
-nonisolated public struct SwitchRoleRequest: Encodable {
+public struct SwitchRoleRequest: Encodable {
     public let role: String
 
     public init(role: String) {

@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct UpdateProfilePersonalOutcome {
+public struct UpdateProfilePersonalOutcome {
     public let profile: ProfileMeDataDTO
     public let maskedNewEmail: String?
     public let emailVerificationRequired: Bool?

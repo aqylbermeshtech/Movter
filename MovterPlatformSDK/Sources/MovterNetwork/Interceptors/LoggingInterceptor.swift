@@ -5,11 +5,10 @@
 //  Created by Nurtore on 29.09.2026.
 //
 
-@preconcurrency import Alamofire
+import Alamofire
 import Foundation
-//@preconcurrency import MentorCore
 
-nonisolated public final class LoggingInterceptor: EventMonitor {
+public final class LoggingInterceptor: EventMonitor {
     private let logger: LoggerProtocol
 
     public init(logger: LoggerProtocol) {

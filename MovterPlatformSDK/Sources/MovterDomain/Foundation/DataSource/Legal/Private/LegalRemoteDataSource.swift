@@ -9,7 +9,7 @@ import Foundation
 //import MentorCore
 //import MentorNetwork
 
-nonisolated public final class LegalRemoteDataSource: LegalDataSourceProtocol {
+public final class LegalRemoteDataSource: LegalDataSourceProtocol {
     private let networkService: NetworkServiceProtocol
     private let router = Router<LegalEndPoint>()
     

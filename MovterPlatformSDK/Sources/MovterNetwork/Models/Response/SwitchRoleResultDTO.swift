@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct SwitchRoleResultDTO: Sendable {
+public struct SwitchRoleResultDTO {
     public let activeRole: String
 
     public init(activeRole: String) {

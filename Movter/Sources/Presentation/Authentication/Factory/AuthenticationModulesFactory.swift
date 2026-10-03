@@ -26,6 +26,25 @@ final class AuthenticationModulesFactory {
             appleSignInManager: appleManager,
             getProfileMeUseCase: useCaseBuilder.makeGetProfileMeUseCase()
         )
-        return UIHostingController(rootView: SignInScreen(viewModel: viewModel, output: output))
+        let screen = SignInScreen(viewModel: viewModel, output: output)
+        let hostingController = UIHostingController(rootView: screen)
+        googleManager.presentingViewController = hostingController
+        return hostingController
+    }
+    
+    func makeOTPScreen(
+        method: OTPMethod,
+        contact: String,
+        output: AuthenticationOutput
+    ) -> UIHostingController<OTPScreen> {
+        let viewModel = OTPViewModel(method: method,
+                                     contact: contact,
+                                     verifyOTPUseCase: useCaseBuilder.makeVerifyOTPUseCase(),
+                                     resendOTPUseCase: useCaseBuilder.makeResendOTPUseCase(),
+                                     getProfileMeUseCase: useCaseBuilder.makeGetProfileMeUseCase(),
+                                     output: output
+        )
+        let screen = OTPScreen(viewModel: viewModel)
+        return UIHostingController(rootView: screen)
     }
 }

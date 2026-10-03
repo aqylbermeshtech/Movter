@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public enum MenteeProfileEndPoint {
+public enum MenteeProfileEndPoint {
     case updateProfile(UpdateMenteeProfileRequestDTO)
 }
 

@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct EmailChangeConfirmResponseDTO: Codable {
+public struct EmailChangeConfirmResponseDTO: Codable {
     public let success: Bool
     public let message: String?
     public let error: String?

@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated struct WatchlistItem: Codable, Equatable {
+struct WatchlistItem: Codable, Equatable {
     let id: UUID
     let tmdbID: Int
     var title: String

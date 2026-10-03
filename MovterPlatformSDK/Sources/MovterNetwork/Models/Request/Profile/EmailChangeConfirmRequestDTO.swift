@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct EmailChangeConfirmRequestDTO: Codable {
+public struct EmailChangeConfirmRequestDTO: Codable {
     public let code: String
 
     public init(code: String) {

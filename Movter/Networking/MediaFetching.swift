@@ -14,52 +14,51 @@ import Foundation
 /// already provide for storage. Deliberately narrower than `TMDBService`: it lists
 /// what callers use, not everything the service can do.
 ///
-/// Every completion is `@MainActor`, matching the contract on `TMDBService` itself.
 protocol MediaFetching: AnyObject {
 
     func fetchVideo(
         for id: Int, type: MediaType,
-        completion: @escaping @MainActor (String?) -> Void
+        completion: @escaping (String?) -> Void
     )
 
     func fetchCredits(
         for id: Int, type: MediaType,
-        completion: @escaping @MainActor (MovieCredits?) -> Void
+        completion: @escaping (MovieCredits?) -> Void
     )
 
     func fetchSimilar(
         for id: Int, type: MediaType,
-        completion: @escaping @MainActor ([Media]?) -> Void
+        completion: @escaping ([Media]?) -> Void
     )
 
     func fetchGenres(
         type: MediaType,
-        completion: @escaping @MainActor ([GenreListResponse.Genre]?) -> Void
+        completion: @escaping ([GenreListResponse.Genre]?) -> Void
     )
 
     func fetchPersonDetails(
         for id: Int,
-        completion: @escaping @MainActor (PersonDetails?) -> Void
+        completion: @escaping (PersonDetails?) -> Void
     )
 
     func fetchPersonCredits(
         for id: Int,
-        completion: @escaping @MainActor ([PersonCredit]) -> Void
+        completion: @escaping ([PersonCredit]) -> Void
     )
 
     func fetchDiscover(
         query: DiscoverQuery, page: Int,
-        completion: @escaping @MainActor (MediaPage?) -> Void
+        completion: @escaping (MediaPage?) -> Void
     )
 
     func fetchPopularMovies(
         page: Int,
-        completion: @escaping @MainActor (MediaPage?) -> Void
+        completion: @escaping (MediaPage?) -> Void
     )
 
     func searchMovies(
         query: String, page: Int,
-        completion: @escaping @MainActor (MediaPage?) -> Void
+        completion: @escaping (MediaPage?) -> Void
     )
 }
 

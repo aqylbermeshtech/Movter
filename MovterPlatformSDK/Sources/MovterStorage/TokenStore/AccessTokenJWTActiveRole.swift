@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated enum AccessTokenJWTActiveRole {
+enum AccessTokenJWTActiveRole {
 
     static func persistedAppRoleRaw(from jwt: String) -> String? {
         let trimmedJWT = jwt.trimmingCharacters(in: .whitespacesAndNewlines)

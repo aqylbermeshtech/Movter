@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct EmailOTPSendResponse: Codable {
+public struct EmailOTPSendResponse: Codable {
     public let success: Bool
     public let message: String?
     public let data: EmailOTPSendData?
@@ -19,7 +19,7 @@ nonisolated public struct EmailOTPSendResponse: Codable {
     }
 }
 
-nonisolated public struct EmailOTPSendData: Codable {
+public struct EmailOTPSendData: Codable {
     public let message: String?
     
     public init(message: String? = nil) {

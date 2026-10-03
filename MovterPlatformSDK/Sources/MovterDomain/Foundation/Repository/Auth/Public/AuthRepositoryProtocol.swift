@@ -8,7 +8,7 @@
 import Foundation
 //import MentorNetwork
 
-nonisolated public protocol AuthRepositoryProtocol {
+public protocol AuthRepositoryProtocol {
     func signIn(credentials: AuthCredentialsDTO) async throws -> Bool
     func logout() async throws -> Bool
     func deleteAccount() async throws -> DeleteAccountOutcome

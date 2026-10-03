@@ -5,17 +5,17 @@
 //  Created by Nurtore on 29.09.2026.
 //
 
-@preconcurrency import Alamofire
+import Alamofire
 import Foundation
 //import MentorCore
 //import MentorStorage
 
-nonisolated public protocol NetworkManagerProtocol {
-    func request<T: Codable & Sendable>(_ endpoint: APIEndpoint, responseType: T.Type) async throws -> T
+public protocol NetworkManagerProtocol {
+    func request<T: Codable>(_ endpoint: APIEndpoint, responseType: T.Type) async throws -> T
     func request(_ endpoint: APIEndpoint) async throws
 }
 
-nonisolated public final class NetworkManager: NetworkManagerProtocol, @unchecked Sendable {
+public final class NetworkManager: NetworkManagerProtocol {
     public static let shared = NetworkManager()
 
     private let session: Session
@@ -50,7 +50,7 @@ nonisolated public final class NetworkManager: NetworkManagerProtocol, @unchecke
         self.init(logger: nil)
     }
 
-    public func request<T: Codable & Sendable>(_ endpoint: APIEndpoint, responseType: T.Type) async throws -> T {
+    public func request<T: Codable>(_ endpoint: APIEndpoint, responseType: T.Type) async throws -> T {
         let urlRequest = try endpoint.asURLRequest()
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -94,7 +94,7 @@ nonisolated public final class NetworkManager: NetworkManagerProtocol, @unchecke
     }
 }
 
-nonisolated public protocol APIEndpoint {
+public protocol APIEndpoint {
     var baseURL: URL { get }
     var path: String { get }
     var method: HTTPMethod { get }
@@ -103,7 +103,7 @@ nonisolated public protocol APIEndpoint {
     var encoding: ParameterEncoding { get }
 }
 
-nonisolated extension APIEndpoint {
+extension APIEndpoint {
     func asURLRequest() throws -> URLRequest {
         let url = baseURL.appendingPathComponent(path)
         var request = URLRequest(url: url)

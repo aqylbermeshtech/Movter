@@ -8,6 +8,6 @@
 import Foundation
 //import MentorNetwork
 
-nonisolated public protocol CountryDataSourceProtocol {
+public protocol CountryDataSourceProtocol {
     func loadCountries() -> [CountryDTO]?
 }

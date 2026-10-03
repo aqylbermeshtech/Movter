@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public enum LegalEndPoint {
+public enum LegalEndPoint {
     case getTerms(lang: String)
 }
 

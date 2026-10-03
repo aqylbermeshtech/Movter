@@ -9,7 +9,7 @@ import Foundation
 
 // swiftlint:disable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
-nonisolated public enum LocalizedString {
+public enum LocalizedString {
   /// Все категории
   public static var allCategories: String { LocalizedString.tr("Localizable", "allCategories", fallback: "Все категории") }
   /// Объявление
@@ -1949,7 +1949,7 @@ nonisolated public enum LocalizedString {
 
 // MARK: - Implementation Details
 
-nonisolated extension LocalizedString {
+extension LocalizedString {
   private static func tr(_ table: String, _ key: String, _ args: CVarArg..., fallback value: String) -> String {
     let format = Bundle.main.localizedString(forKey: key, value: value, table: table)
     return String(format: format, locale: Locale.current, arguments: args)

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public nonisolated struct RefreshTokenResponse: Codable, Sendable {
+public struct RefreshTokenResponse: Codable {
     public let success: Bool
     public let message: String?
     public let data: RefreshTokenData?
@@ -19,7 +19,7 @@ public nonisolated struct RefreshTokenResponse: Codable, Sendable {
     }
 }
 
-nonisolated public struct RefreshTokenData: Codable, Sendable {
+public struct RefreshTokenData: Codable {
     public let accessToken: String
     public let expiresIn: Int
     public let tokenType: String

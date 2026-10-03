@@ -9,7 +9,7 @@ import SwiftUI
 import UIKit
 
 // MARK: - Typography (Semantic Styles)
-nonisolated public struct Typography {
+public struct Typography {
    
     // MARK: - Authentication Screen Styles
     public static let authTitle = Font.system(size: 28, weight: .semibold, design: .default)
@@ -177,7 +177,7 @@ public extension Font {
     }
 }
 
-nonisolated public enum MentorFontStyle: CaseIterable {
+public enum MentorFontStyle: CaseIterable {
     case authTitle
     case segmentActive, segmentInactive
     case inputText

@@ -9,7 +9,7 @@ import Foundation
 //import MentorCore
 //import MentorNetwork
 
-nonisolated public final class ProfileMeRemoteDataSource: ProfileMeDataSourceProtocol {
+public final class ProfileMeRemoteDataSource: ProfileMeDataSourceProtocol {
     private let networkService: NetworkServiceProtocol
     private let router = Router<ProfileEndPoint>()
     private let menteeProfileRouter = Router<MenteeProfileEndPoint>()

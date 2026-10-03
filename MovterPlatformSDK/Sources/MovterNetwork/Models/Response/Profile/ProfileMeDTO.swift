@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct ProfileMeResponseDTO: Codable {
+public struct ProfileMeResponseDTO: Codable {
     public let success: Bool
     public let message: String?
     public let error: String?
@@ -21,7 +21,7 @@ nonisolated public struct ProfileMeResponseDTO: Codable {
     }
 }
 
-nonisolated public struct ProfileMeDataDTO: Codable {
+public struct ProfileMeDataDTO: Codable {
     public let userId: String?
     public let email: String?
     public let name: String?
@@ -139,7 +139,7 @@ nonisolated public struct ProfileMeDataDTO: Codable {
     }
 }
 
-nonisolated public struct ProfileContactsDTO: Codable {
+public struct ProfileContactsDTO: Codable {
     public let telegram: String?
     public let linkedin: String?
     public let whatsapp: String?
@@ -157,7 +157,7 @@ nonisolated public struct ProfileContactsDTO: Codable {
     }
 }
 
-nonisolated public struct ProfilePackageDTO: Codable {
+public struct ProfilePackageDTO: Codable {
     public let id: String?
     public let name: String?
     public let price: Double?

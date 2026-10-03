@@ -8,7 +8,7 @@
 import Foundation
 //import MentorNetwork
 
-nonisolated public final class CountryLocalDataSource: CountryDataSourceProtocol {
+public final class CountryLocalDataSource: CountryDataSourceProtocol {
     
     private let bundle: Bundle
     

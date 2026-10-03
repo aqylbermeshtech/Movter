@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public enum ProfileEndPoint {
+public enum ProfileEndPoint {
     case getMe
     case updatePersonal(UpdateProfilePersonalRequestDTO)
     case updatePhoto(UpdateProfilePhotoRequestDTO)

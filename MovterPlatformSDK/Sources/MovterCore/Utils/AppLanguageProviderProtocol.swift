@@ -7,12 +7,12 @@
 
 import Foundation
 
-nonisolated public protocol AppLanguageProviderProtocol {
+public protocol AppLanguageProviderProtocol {
     var currentLanguageCode: String { get }
 }
 
-nonisolated public final class AppLanguageProvider: AppLanguageProviderProtocol, @unchecked Sendable {
-    nonisolated(unsafe) public static var shared: AppLanguageProviderProtocol = AppLanguageProvider()
+public final class AppLanguageProvider: AppLanguageProviderProtocol {
+    public static var shared: AppLanguageProviderProtocol = AppLanguageProvider()
 
     public let supportedLanguageCodes: Set<String>
     public let fallbackLanguageCode: String

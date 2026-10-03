@@ -8,6 +8,6 @@
 import Foundation
 //import MovterNetwork
 
-nonisolated public protocol GetProfileMeUseCaseProtocol {
+public protocol GetProfileMeUseCaseProtocol {
     func execute() async throws -> ProfileMeDataDTO?
 }

@@ -5,10 +5,10 @@
 //  Created by Nurtore on 29.09.2026.
 //
 
-@preconcurrency import Alamofire
+import Alamofire
 import Foundation
 
-nonisolated public enum NetworkError: Error, LocalizedError {
+public enum NetworkError: Error, LocalizedError {
     case missingURL
     case invalidResponse
     case noData

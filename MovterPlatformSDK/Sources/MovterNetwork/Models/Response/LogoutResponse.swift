@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct LogoutResponse: Codable {
+public struct LogoutResponse: Codable {
     public let success: Bool
     public let message: String?
     public let error: String?

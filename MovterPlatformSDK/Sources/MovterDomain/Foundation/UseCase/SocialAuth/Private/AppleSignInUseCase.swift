@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public final class AppleSignInUseCase: AppleSignInUseCaseProtocol {
+public final class AppleSignInUseCase: AppleSignInUseCaseProtocol {
     private let repository: AuthRepositoryProtocol
 
     public init(repository: AuthRepositoryProtocol) {

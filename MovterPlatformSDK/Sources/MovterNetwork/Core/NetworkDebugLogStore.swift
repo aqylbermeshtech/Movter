@@ -10,7 +10,7 @@ import Foundation
 /// Collects HTTP request/response logs in debug builds for diagnostic screens.
 /// Thread-safe via NSLock; only compiled and used under `#if DEBUG`.
 #if DEBUG
-nonisolated final class NetworkDebugLogStore: @unchecked Sendable {
+final class NetworkDebugLogStore {
     static let shared = NetworkDebugLogStore()
 
     private var logs: [String] = []

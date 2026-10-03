@@ -8,7 +8,7 @@
 import Foundation
 
 //MARK: - Struct
-nonisolated struct MovieResponse: Codable {
+struct MovieResponse: Codable {
     let results: [Media]
     /// TMDB caps paging at 500; without this the grid kept requesting pages forever.
     let totalPages: Int?
@@ -19,14 +19,10 @@ struct MediaPage {
     let isLastPage: Bool
 }
 
-nonisolated struct VideoResponse: Codable {
+struct VideoResponse: Codable {
     let results: [Video]
 }
 
-/// Every completion is `@MainActor`: callers are UI code, and the contract is on the
-/// parameter type rather than in a comment so the compiler rejects a callback fired
-/// from URLSession's queue instead of leaving it to be noticed in review.
-///
 /// Uses `NetworkService.shared.plainRequest(_:)` under the hood — the SDK's unified
 /// network layer — for all HTTP calls. No separate URLSession here.
 final class TMDBService {
@@ -52,10 +48,7 @@ final class TMDBService {
         return value
     }
     
-    /// `Sendable` as well as `Decodable`: the value is decoded on URLSession's queue and
-    /// handed to a main-actor completion, which Swift 6 will not allow for a type it
-    /// cannot prove is safe to send. Every response model satisfies it already.
-    private func performRequest<T: Decodable & Sendable>(urlString: String, completion: @escaping @MainActor (T?) -> Void) {
+    private func performRequest<T: Decodable>(urlString: String, completion: @escaping (T?) -> Void) {
         guard let url = URL(string: urlString) else {
             completion(nil)
             return
@@ -75,7 +68,7 @@ final class TMDBService {
         }
     }
 
-    func fetchVideo(for id: Int, type: MediaType, completion: @escaping @MainActor (String?) -> Void) {
+    func fetchVideo(for id: Int, type: MediaType, completion: @escaping (String?) -> Void) {
         let urlString = "\(baseURL)/\(type.path)/\(id)/videos?api_key=\(apiKey)"
         performRequest(urlString: urlString) { (result: VideoResponse?) in
             // Prefer an actual trailer, then any YouTube clip — TMDB also returns
@@ -88,7 +81,7 @@ final class TMDBService {
     
     /// Cast and crew arrive on the same call, so this hands back the whole payload
     /// rather than the cast alone — the cast and crew screen needs both halves.
-    func fetchCredits(for id: Int, type: MediaType, completion: @escaping @MainActor (MovieCredits?) -> Void) {
+    func fetchCredits(for id: Int, type: MediaType, completion: @escaping (MovieCredits?) -> Void) {
         let urlString = "\(baseURL)/\(type.path)/\(id)/credits?api_key=\(apiKey)"
         performRequest(urlString: urlString, completion: completion)
     }
@@ -98,7 +91,7 @@ final class TMDBService {
     /// keywords — is the fallback for titles nobody has recommendations for yet.
     ///
     /// Nil only when both requests fail. An empty list is a real answer.
-    func fetchSimilar(for id: Int, type: MediaType, completion: @escaping @MainActor ([Media]?) -> Void) {
+    func fetchSimilar(for id: Int, type: MediaType, completion: @escaping ([Media]?) -> Void) {
         performRequest(urlString: relatedTitlesURL("recommendations", for: id, type: type)) { (recommended: MovieResponse?) in
             if let results = recommended?.results, !results.isEmpty {
                 completion(results)
@@ -118,26 +111,26 @@ final class TMDBService {
         "\(baseURL)/\(type.path)/\(id)/\(path)?api_key=\(apiKey)&language=en-US&page=1"
     }
 
-    func fetchGenres(type: MediaType, completion: @escaping @MainActor ([GenreListResponse.Genre]?) -> Void) {
+    func fetchGenres(type: MediaType, completion: @escaping ([GenreListResponse.Genre]?) -> Void) {
         let urlString = "\(baseURL)/genre/\(type.path)/list?api_key=\(apiKey)&language=en-US"
         performRequest(urlString: urlString) { (result: GenreListResponse?) in
             completion(result?.genres)
         }
     }
 
-    func fetchPersonDetails(for id: Int, completion: @escaping @MainActor (PersonDetails?) -> Void) {
+    func fetchPersonDetails(for id: Int, completion: @escaping (PersonDetails?) -> Void) {
         let urlString = "\(baseURL)/person/\(id)?api_key=\(apiKey)&language=en-US"
         performRequest(urlString: urlString, completion: completion)
     }
 
-    func fetchPersonCredits(for id: Int, completion: @escaping @MainActor ([PersonCredit]) -> Void) {
+    func fetchPersonCredits(for id: Int, completion: @escaping ([PersonCredit]) -> Void) {
         let urlString = "\(baseURL)/person/\(id)/combined_credits?api_key=\(apiKey)&language=en-US"
         performRequest(urlString: urlString) { (result: PersonCreditsResponse?) in
             completion(result?.cast ?? [])
         }
     }
 
-    func fetchDiscover(query: DiscoverQuery, page: Int, completion: @escaping @MainActor (MediaPage?) -> Void) {
+    func fetchDiscover(query: DiscoverQuery, page: Int, completion: @escaping (MediaPage?) -> Void) {
         var components = URLComponents(string: baseURL + query.path)
         components?.queryItems = query.queryItems + [
             URLQueryItem(name: "page", value: "\(page)"),
@@ -161,14 +154,14 @@ final class TMDBService {
 
     /// Feeds the swipe deck. Plain `/movie/popular`, paginated the same way as
     /// `fetchDiscover`/`searchMovies`.
-    func fetchPopularMovies(page: Int, completion: @escaping @MainActor (MediaPage?) -> Void) {
+    func fetchPopularMovies(page: Int, completion: @escaping (MediaPage?) -> Void) {
         let urlString = "\(baseURL)/movie/popular?page=\(page)&api_key=\(apiKey)&language=en-US"
         performRequest(urlString: urlString) { (result: MovieResponse?) in
             completion(result.map { Self.page(from: $0, requested: page) })
         }
     }
 
-    func searchMovies(query: String, page: Int, completion: @escaping @MainActor (MediaPage?) -> Void) {
+    func searchMovies(query: String, page: Int, completion: @escaping (MediaPage?) -> Void) {
         var components = URLComponents(string: baseURL + "/search/movie")
         components?.queryItems = [
             URLQueryItem(name: "query", value: query),

@@ -8,7 +8,7 @@
 import Foundation
 //import MentorNetwork
 
-nonisolated public final class GetProfileMeUseCase: GetProfileMeUseCaseProtocol {
+public final class GetProfileMeUseCase: GetProfileMeUseCaseProtocol {
     private let repository: ProfileMeRepositoryProtocol
 
     public init(repository: ProfileMeRepositoryProtocol) {

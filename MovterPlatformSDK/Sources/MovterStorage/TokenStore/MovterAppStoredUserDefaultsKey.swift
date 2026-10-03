@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public enum MovterAppStoredUserDefaultsKey {
+public enum MovterAppStoredUserDefaultsKey {
     public static let persistedUserRoleRawValue = "user_role"
 }
 

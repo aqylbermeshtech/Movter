@@ -7,11 +7,11 @@
 
 import Foundation
 
-nonisolated public struct CountriesResponseDTO: Codable {
+public struct CountriesResponseDTO: Codable {
     public let countries: [CountryDTO]
 }
 
-nonisolated public struct CountryDTO: Codable {
+public struct CountryDTO: Codable {
     public let id: String
     public let name: String
     public let dialCode: String

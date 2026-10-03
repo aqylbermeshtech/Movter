@@ -8,7 +8,7 @@
 import Foundation
 import Swinject
 
-nonisolated public final class DIContainer: @unchecked Sendable {
+public final class DIContainer {
     public static let shared = DIContainer()
     
     private let assembler: Assembler
@@ -46,7 +46,7 @@ nonisolated public final class DIContainer: @unchecked Sendable {
     }
 }
 
-nonisolated private final class TempAssembly<Service>: Assembly {
+private final class TempAssembly<Service>: Assembly {
     private let serviceType: Service.Type
     private let factory: (Resolver) -> Service
     

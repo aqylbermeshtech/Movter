@@ -8,7 +8,7 @@
 import Foundation
 //import MentorNetwork
 
-nonisolated public protocol GetCountryByIdUseCaseProtocol {
+public protocol GetCountryByIdUseCaseProtocol {
     func execute(id: String) -> CountryDTO?
 }
 

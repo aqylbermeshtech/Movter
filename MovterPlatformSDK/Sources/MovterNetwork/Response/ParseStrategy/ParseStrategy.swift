@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public protocol ParseStrategy {
+public protocol ParseStrategy {
     var data: Data? { get set }
     var response: URLResponse? { get set }
 

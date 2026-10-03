@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public enum AuthError: Error, LocalizedError {
+public enum AuthError: Error, LocalizedError {
     case phoneNotSupported
     case invalidCredentials
 

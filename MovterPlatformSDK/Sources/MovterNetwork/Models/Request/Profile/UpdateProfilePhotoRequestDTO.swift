@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct UpdateProfilePhotoRequestDTO: Codable {
+public struct UpdateProfilePhotoRequestDTO: Codable {
     public let photoUrl: String
 
     public init(photoUrl: String) {

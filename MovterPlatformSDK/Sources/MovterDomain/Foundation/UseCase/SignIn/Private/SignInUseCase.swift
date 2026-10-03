@@ -8,7 +8,7 @@
 import Foundation
 //import MentorNetwork
 
-nonisolated public final class SignInUseCase: SignInUseCaseProtocol {
+public final class SignInUseCase: SignInUseCaseProtocol {
     private let repository: AuthRepositoryProtocol
     
     public init(repository: AuthRepositoryProtocol) {

@@ -17,10 +17,10 @@ import FirebaseAuth
 /// day sync is added. Callbacks land on the main queue.
 protocol WatchlistStoring: AnyObject {
     /// Newest first.
-    func fetchAll(completion: @escaping @MainActor (Result<[WatchlistItem], Error>) -> Void)
+    func fetchAll(completion: @escaping (Result<[WatchlistItem], Error>) -> Void)
     /// Inserts, or replaces the existing entry for the same film.
-    func save(_ item: WatchlistItem, completion: @escaping @MainActor (Result<Void, Error>) -> Void)
-    func delete(_ itemID: UUID, completion: @escaping @MainActor (Result<Void, Error>) -> Void)
+    func save(_ item: WatchlistItem, completion: @escaping (Result<Void, Error>) -> Void)
+    func delete(_ itemID: UUID, completion: @escaping (Result<Void, Error>) -> Void)
 }
 
 /// The single place that picks the storage backend.
@@ -43,7 +43,7 @@ enum WatchedFilmsStoreFactory {
 
 /// Watchlist entries as a JSON file in Documents, one file per account so switching
 /// users can't expose the previous user's list.
-nonisolated final class LocalWatchlistStore: WatchlistStoring, Sendable {
+final class LocalWatchlistStore: WatchlistStoring {
 
     private let fileURL: URL
     /// Serial: every operation rewrites the whole file.
@@ -72,7 +72,7 @@ nonisolated final class LocalWatchlistStore: WatchlistStoring, Sendable {
 
     // MARK: - WatchlistStoring
 
-    func fetchAll(completion: @escaping @MainActor (Result<[WatchlistItem], Error>) -> Void) {
+    func fetchAll(completion: @escaping (Result<[WatchlistItem], Error>) -> Void) {
         queue.async {
             let result = Result { try self.readFromDisk() }
                 .map { $0.sorted { $0.addedAt > $1.addedAt } }
@@ -82,7 +82,7 @@ nonisolated final class LocalWatchlistStore: WatchlistStoring, Sendable {
 
     /// Dedupes by `tmdbID`, not `id` — re-liking a film already on the list updates
     /// its timestamp in place rather than adding a second entry.
-    func save(_ item: WatchlistItem, completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
+    func save(_ item: WatchlistItem, completion: @escaping (Result<Void, Error>) -> Void) {
         mutate(completion: completion) { items in
             if let index = items.firstIndex(where: { $0.tmdbID == item.tmdbID }) {
                 items[index] = item
@@ -92,7 +92,7 @@ nonisolated final class LocalWatchlistStore: WatchlistStoring, Sendable {
         }
     }
 
-    func delete(_ itemID: UUID, completion: @escaping @MainActor (Result<Void, Error>) -> Void) {
+    func delete(_ itemID: UUID, completion: @escaping (Result<Void, Error>) -> Void) {
         mutate(completion: completion) { items in
             items.removeAll { $0.id == itemID }
         }
@@ -103,8 +103,8 @@ nonisolated final class LocalWatchlistStore: WatchlistStoring, Sendable {
     /// Read-modify-write on the serial queue so concurrent saves can't clobber
     /// each other.
     private func mutate(
-        completion: @escaping @MainActor (Result<Void, Error>) -> Void,
-        _ changes: @escaping @Sendable (inout [WatchlistItem]) -> Void
+        completion: @escaping (Result<Void, Error>) -> Void,
+        _ changes: @escaping (inout [WatchlistItem]) -> Void
     ) {
         queue.async {
             let result = Result {

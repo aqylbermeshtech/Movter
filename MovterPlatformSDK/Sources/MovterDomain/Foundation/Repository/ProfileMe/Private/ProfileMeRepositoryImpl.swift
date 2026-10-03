@@ -8,7 +8,7 @@
 import Foundation
 //import MentorNetwork
 
-nonisolated public final class ProfileMeRepositoryImpl: ProfileMeRepositoryProtocol {
+public final class ProfileMeRepositoryImpl: ProfileMeRepositoryProtocol {
     private let dataSource: ProfileMeDataSourceProtocol
 
     public init(dataSource: ProfileMeDataSourceProtocol) {

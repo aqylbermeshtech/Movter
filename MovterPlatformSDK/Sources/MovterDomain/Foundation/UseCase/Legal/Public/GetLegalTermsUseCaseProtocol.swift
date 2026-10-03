@@ -7,6 +7,6 @@
 
 import Foundation
 
-nonisolated public protocol GetLegalTermsUseCaseProtocol {
+public protocol GetLegalTermsUseCaseProtocol {
     func execute() async throws -> String
 }

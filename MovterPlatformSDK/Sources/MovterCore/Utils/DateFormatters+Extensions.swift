@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public final class DateFormatterProvider: @unchecked Sendable {
+public final class DateFormatterProvider {
     public static let shared = DateFormatterProvider()
 
     private init() {}

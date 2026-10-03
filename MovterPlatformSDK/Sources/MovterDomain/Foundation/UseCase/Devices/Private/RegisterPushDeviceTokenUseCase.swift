@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public final class RegisterPushDeviceTokenUseCase: RegisterPushDeviceTokenUseCaseProtocol {
+public final class RegisterPushDeviceTokenUseCase: RegisterPushDeviceTokenUseCaseProtocol {
 
     private let dataSource: DevicesRemoteDataSourceProtocol
 

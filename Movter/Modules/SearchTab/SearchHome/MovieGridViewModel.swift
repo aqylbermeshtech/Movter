@@ -108,7 +108,7 @@ final class MovieGridViewModel {
         isFetching = true
         let page = currentPage
 
-        let handler: @MainActor (MediaPage?) -> Void = { [weak self] result in
+        let handler: (MediaPage?) -> Void = { [weak self] result in
             guard let self = self else { return }
             self.isFetching = false
             self.apply(result)

@@ -8,7 +8,7 @@
 import Foundation
 //import MentorNetwork
 
-nonisolated public protocol CountryRepositoryProtocol {
+public protocol CountryRepositoryProtocol {
     func getAllCountries() -> [CountryDTO]
     func searchCountries(query: String) -> [CountryDTO]
     func getCountryByCode(code: String) -> CountryDTO?

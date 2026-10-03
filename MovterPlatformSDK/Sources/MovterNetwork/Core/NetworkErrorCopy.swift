@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated enum NetworkErrorCopy {
+enum NetworkErrorCopy {
     static var generic: String {
         localized("network_error.generic", fallback: "Что-то пошло не так. Попробуйте ещё раз")
     }

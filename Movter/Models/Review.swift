@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated struct Review: Codable, Equatable {
+struct Review: Codable, Equatable {
 
     static let scoreRange = 1...10
 
@@ -86,7 +86,7 @@ nonisolated struct Review: Codable, Equatable {
 }
 
 extension Comparable {
-    nonisolated func clamped(to range: ClosedRange<Self>) -> Self {
+    func clamped(to range: ClosedRange<Self>) -> Self {
         min(max(self, range.lowerBound), range.upperBound)
     }
 }

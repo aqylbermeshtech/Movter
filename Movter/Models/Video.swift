@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated struct Video: Codable {
+struct Video: Codable {
     let key: String
     let site: String
     let type: String

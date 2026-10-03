@@ -7,6 +7,6 @@
 
 import Foundation
 
-nonisolated public protocol RegisterPushDeviceTokenUseCaseProtocol {
+public protocol RegisterPushDeviceTokenUseCaseProtocol {
     func execute(fcmToken: String, platform: String) async throws
 }

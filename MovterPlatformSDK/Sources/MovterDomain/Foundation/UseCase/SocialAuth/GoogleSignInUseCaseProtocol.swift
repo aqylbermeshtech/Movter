@@ -7,6 +7,6 @@
 
 import Foundation
 
-nonisolated public protocol GoogleSignInUseCaseProtocol {
+public protocol GoogleSignInUseCaseProtocol {
     func execute(idToken: String) async throws -> SocialAuthResult
 }

@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct UpdateProfilePersonalResponseDTO: Codable {
+public struct UpdateProfilePersonalResponseDTO: Codable {
     public let success: Bool
     public let message: String?
     public let error: String?
@@ -26,7 +26,7 @@ nonisolated public struct UpdateProfilePersonalResponseDTO: Codable {
     }
 }
 
-nonisolated public struct UpdateProfilePersonalPayloadDTO: Codable {
+public struct UpdateProfilePersonalPayloadDTO: Codable {
     public let profile: ProfileMeDataDTO
     public let emailVerificationRequired: Bool?
     public let maskedNewEmail: String?

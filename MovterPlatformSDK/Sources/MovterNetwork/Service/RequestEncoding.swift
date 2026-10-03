@@ -8,7 +8,7 @@
 import Foundation
 
 /// Defines how request parameters are encoded into the HTTP body or URL.
-nonisolated public enum RequestEncoding {
+public enum RequestEncoding {
     /// Encodes parameters as URL query string.
     case urlEncoding
     /// Encodes parameters as JSON body.

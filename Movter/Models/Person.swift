@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated struct PersonDetails: Codable {
+struct PersonDetails: Codable {
     let id: Int
     let name: String
     let biography: String?
@@ -20,11 +20,11 @@ nonisolated struct PersonDetails: Codable {
     var profileURL: URL? { TMDBImageURL.url(path: profilePath, width: .headshot) }
 }
 
-nonisolated struct PersonCreditsResponse: Codable {
+struct PersonCreditsResponse: Codable {
     let cast: [PersonCredit]
 }
 
-nonisolated struct PersonCredit: Codable {
+struct PersonCredit: Codable {
     let id: Int
     let title: String?
     let name: String?

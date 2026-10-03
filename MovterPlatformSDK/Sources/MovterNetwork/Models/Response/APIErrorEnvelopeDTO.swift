@@ -7,7 +7,7 @@
 
 import Foundation
 
-public nonisolated struct APIErrorEnvelopeDTO: Decodable, Sendable {
+public struct APIErrorEnvelopeDTO: Decodable {
     public let success: Bool?
     public let message: String?
     public let error: APIErrorDetailsDTO?

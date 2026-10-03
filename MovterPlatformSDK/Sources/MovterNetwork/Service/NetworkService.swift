@@ -5,19 +5,19 @@
 //  Created by Nurtore on 28.09.2026.
 //
 
-@preconcurrency import Alamofire
+import Alamofire
 import Foundation
 //import MentorCore
 //import MentorStorage
 
-nonisolated public protocol NetworkServiceProtocol {
+public protocol NetworkServiceProtocol {
     /// Performs an authenticated request through Alamofire interceptors (auth, retry, logging).
     func request(_ request: URLRequest) async throws -> (Data, URLResponse)
     /// Performs a plain, unauthenticated request via URLSession — no interceptors, no auth headers.
     func plainRequest(_ request: URLRequest) async throws -> (Data, URLResponse)
 }
 
-nonisolated public final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
+public final class NetworkService: NetworkServiceProtocol {
     public static let shared = NetworkService()
     
     private let session: Session

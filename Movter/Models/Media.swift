@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated struct Media: Codable {
+struct Media: Codable {
     let id: Int
     let title: String?
     let name: String?

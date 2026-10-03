@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated enum AccessTokenJWTSubject {
+enum AccessTokenJWTSubject {
 
     static func userId(from jwt: String) -> String? {
         guard let payload = AccessTokenJWTPayload.dictionary(from: jwt),

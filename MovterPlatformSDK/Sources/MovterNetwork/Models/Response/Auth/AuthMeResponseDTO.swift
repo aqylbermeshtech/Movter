@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct AuthMeResponseDTO: Codable {
+public struct AuthMeResponseDTO: Codable {
     public let success: Bool
     public let message: String?
     public let error: String?
@@ -26,7 +26,7 @@ nonisolated public struct AuthMeResponseDTO: Codable {
     }
 }
 
-nonisolated public struct AuthMeDataDTO: Codable {
+public struct AuthMeDataDTO: Codable {
     public let userId: String?
     public let activeRole: String?
     public let hasMenteeProfile: Bool?

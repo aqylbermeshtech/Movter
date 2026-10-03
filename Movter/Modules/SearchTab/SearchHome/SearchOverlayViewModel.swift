@@ -11,10 +11,7 @@ import Foundation
 /// shows for a given query.
 final class SearchOverlayViewModel {
 
-    /// The list's sections, ordered as they appear. `nonisolated` because the project
-    /// defaults types to `@MainActor`, and the diffable data source needs a `Sendable`
-    /// (non-isolated) `Hashable` conformance for its identifier types.
-    nonisolated enum Section: Hashable {
+    enum Section: Hashable {
         /// The single "Search for …" row shown while typing.
         case query
         /// Recents as wrapping chips — the idle state.
@@ -26,7 +23,7 @@ final class SearchOverlayViewModel {
         case skeleton
     }
 
-    nonisolated enum Item: Hashable {
+    enum Item: Hashable {
         case query(String)
         /// A recent term. Which section it lands in — `chips` or `recentRows` — decides
         /// how it's drawn; the two never coexist in one snapshot.

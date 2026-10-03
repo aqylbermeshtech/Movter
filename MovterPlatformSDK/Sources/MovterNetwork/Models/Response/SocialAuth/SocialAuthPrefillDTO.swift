@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct SocialAuthPrefillDTO: Codable {
+public struct SocialAuthPrefillDTO: Codable {
     public let name: String?
     public let email: String?
     public let photoUrl: String?

@@ -8,7 +8,7 @@
 ///TODO: Переписать все под приложение
 import Foundation
 
-nonisolated public final class UseCaseBuilder: @unchecked Sendable {
+public final class UseCaseBuilder {
     
     public static let shared = UseCaseBuilder()
     
@@ -225,17 +225,17 @@ nonisolated public final class UseCaseBuilder: @unchecked Sendable {
 //
 //    // MARK: - OTP
 //    
-//    public func makeVerifyOTPUseCase() -> VerifyOTPUseCaseProtocol {
-//        let dataSource = RemoteAuthenticationDataSource()
-//        let repository = OTPRepositoryImpl(dataSource: dataSource)
-//        return VerifyOTPUseCase(repository: repository)
-//    }
+    public func makeVerifyOTPUseCase() -> VerifyOTPUseCaseProtocol {
+        let dataSource = RemoteAuthenticationDataSource()
+        let repository = OTPRepositoryImpl(dataSource: dataSource)
+        return VerifyOTPUseCase(repository: repository)
+    }
 //    
-//    public func makeResendOTPUseCase() -> ResendOTPUseCaseProtocol {
-//        let dataSource = RemoteAuthenticationDataSource()
-//        let repository = OTPRepositoryImpl(dataSource: dataSource)
-//        return ResendOTPUseCase(repository: repository)
-//    }
+    public func makeResendOTPUseCase() -> ResendOTPUseCaseProtocol {
+        let dataSource = RemoteAuthenticationDataSource()
+        let repository = OTPRepositoryImpl(dataSource: dataSource)
+        return ResendOTPUseCase(repository: repository)
+    }
 //    
 //    // MARK: - Country
 //    

@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct UpdateProfilePersonalRequestDTO: Codable {
+public struct UpdateProfilePersonalRequestDTO: Codable {
     public let name: String?
     public let email: String?
 

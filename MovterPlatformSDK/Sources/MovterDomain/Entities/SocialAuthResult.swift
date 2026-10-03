@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct SocialAuthResult {
+public struct SocialAuthResult {
     public enum AuthStatus {
         case authenticated
         case onboardingRequired
@@ -22,7 +22,7 @@ nonisolated public struct SocialAuthResult {
     }
 }
 
-nonisolated public struct SocialAuthPrefill {
+public struct SocialAuthPrefill {
     public let name: String?
     public let email: String?
     public let photo: String?

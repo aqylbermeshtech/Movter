@@ -7,6 +7,6 @@
 
 import Foundation
 
-nonisolated public protocol LegalRepositoryProtocol {
+public protocol LegalRepositoryProtocol {
     func getTermsURL(lang: String) async throws -> String
 }

@@ -5,21 +5,19 @@
 //  Created by Nurtore on 28.09.2026.
 //
 
-@preconcurrency import Alamofire
+import Alamofire
 import Foundation
-//@preconcurrency import MentorCore
-//@preconcurrency import MentorStorage
 
 /// A refresh token may be spent once: the backend revokes it and issues a replacement, so a
 /// second request carrying the same one fails and would log the person out. The app runs two
 /// Alamofire stacks, and both can meet a 401 at the same moment, so the single-flight guard
 /// has to live here, above them, rather than inside one interceptor instance.
-nonisolated public final class TokenRefreshCoordinator: @unchecked Sendable {
-    nonisolated public static let shared = TokenRefreshCoordinator()
+public final class TokenRefreshCoordinator {
+    public static let shared = TokenRefreshCoordinator()
 
     private let queue = DispatchQueue(label: "com.mentor.auth.refresh")
-    private nonisolated(unsafe) var isRefreshing = false
-    private nonisolated(unsafe) var handlers: [(Bool) -> Void] = []
+    private var isRefreshing = false
+    private var handlers: [(Bool) -> Void] = []
 
     private init() {}
 
@@ -127,7 +125,7 @@ nonisolated public final class TokenRefreshCoordinator: @unchecked Sendable {
     }
 }
 
-nonisolated private struct RefreshTokenEndpoint: APIEndpoint {
+private struct RefreshTokenEndpoint: APIEndpoint {
     
     let refreshToken: String
 

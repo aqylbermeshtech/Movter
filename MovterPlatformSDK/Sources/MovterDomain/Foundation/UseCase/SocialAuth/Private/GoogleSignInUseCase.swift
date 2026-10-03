@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public final class GoogleSignInUseCase: GoogleSignInUseCaseProtocol {
+public final class GoogleSignInUseCase: GoogleSignInUseCaseProtocol {
     private let repository: AuthRepositoryProtocol
 
     public init(repository: AuthRepositoryProtocol) {

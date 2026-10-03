@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct UpdateProfilePhotoResponseDTO: Codable {
+public struct UpdateProfilePhotoResponseDTO: Codable {
     public let success: Bool
     public let message: String?
     public let error: String?

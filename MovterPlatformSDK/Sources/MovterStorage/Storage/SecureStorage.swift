@@ -8,7 +8,7 @@
 import Foundation
 import Security
 
-nonisolated public protocol StorageProtocol: Sendable {
+public protocol StorageProtocol {
     func saveSecure(_ data: Data, for key: String) throws
     func loadSecure(for key: String) throws -> Data?
     func deleteSecure(for key: String) throws
@@ -26,7 +26,7 @@ nonisolated public protocol StorageProtocol: Sendable {
     func loadCodable<T: Codable>(_ type: T.Type, for key: String) throws -> T?
 }
 
-nonisolated public final class SecureStorage: StorageProtocol, @unchecked Sendable {
+public final class SecureStorage: StorageProtocol {
     private let userDefaults = UserDefaults.standard
 
     private var keychainService: String {
@@ -139,7 +139,7 @@ nonisolated public final class SecureStorage: StorageProtocol, @unchecked Sendab
     }
 }
 
-nonisolated public enum StorageError: Error, LocalizedError {
+public enum StorageError: Error, LocalizedError {
     case keychainError(OSStatus)
     case invalidData
 

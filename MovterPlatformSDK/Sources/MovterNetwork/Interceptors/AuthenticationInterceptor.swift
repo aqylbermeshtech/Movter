@@ -5,13 +5,11 @@
 //  Created by Nurtore on 28.09.2026.
 //
 
-@preconcurrency import Alamofire
+import Alamofire
 import Foundation
-//@preconcurrency import MovterCore
-//@preconcurrency import MovterDomain
 
 
-nonisolated public final class AuthenticationInterceptor: RequestInterceptor {
+public final class AuthenticationInterceptor: RequestInterceptor {
     private let logger: LoggerProtocol
     
     public static let refreshThresholdSeconds: TimeInterval = 300
@@ -106,7 +104,7 @@ nonisolated public final class AuthenticationInterceptor: RequestInterceptor {
     }
 }
 
-nonisolated public enum AuthenticationError: Error, LocalizedError {
+public enum AuthenticationError: Error, LocalizedError {
     case tokenRefreshFailed
     case noRefreshToken
 

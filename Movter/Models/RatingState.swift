@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated enum RatingState {
+enum RatingState {
     case rated(score: Double, votes: Int)
     case provisional(score: Double, votes: Int)
     case unrated

@@ -8,7 +8,7 @@
 import Foundation
 //import MentorNetwork
 
-nonisolated public final class GetCountryByIdUseCase: GetCountryByIdUseCaseProtocol {
+public final class GetCountryByIdUseCase: GetCountryByIdUseCaseProtocol {
     private let repository: CountryRepositoryProtocol
     
     public init(repository: CountryRepositoryProtocol) {

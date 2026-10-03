@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct SocialAuthDataDTO: Codable {
+public struct SocialAuthDataDTO: Codable {
     public let userId: String?
     public let status: String
     public let isNewUser: Bool?

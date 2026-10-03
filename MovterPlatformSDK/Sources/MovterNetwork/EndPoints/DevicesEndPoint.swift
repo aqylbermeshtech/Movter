@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public enum DevicesEndPoint {
+public enum DevicesEndPoint {
     case registerPushToken(request: PushDeviceTokenRequestDTO)
 }
 
@@ -43,7 +43,7 @@ extension DevicesEndPoint: EndPointType {
     }
 }
 
-nonisolated public struct PushDeviceTokenRequestDTO: Encodable, Sendable {
+public struct PushDeviceTokenRequestDTO: Encodable {
     public let fcmToken: String
     public let platform: String
 

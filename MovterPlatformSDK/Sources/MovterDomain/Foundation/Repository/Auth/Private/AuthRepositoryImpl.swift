@@ -9,7 +9,7 @@ import Foundation
 //import MentorNetwork
 //import MentorStorage
 
-nonisolated public final class AuthRepositoryImpl: AuthRepositoryProtocol {
+public final class AuthRepositoryImpl: AuthRepositoryProtocol {
     private let dataSource: AuthenticationDataSourceProtocol
 
     public init(dataSource: AuthenticationDataSourceProtocol) {

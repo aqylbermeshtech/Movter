@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated public struct LegalResponseDTO: Codable {
+public struct LegalResponseDTO: Codable {
     public let data: LegalDataDTO?
     public let error: String?
     public let message: String?
@@ -21,7 +21,7 @@ nonisolated public struct LegalResponseDTO: Codable {
     }
 }
 
-nonisolated public struct LegalDataDTO: Codable {
+public struct LegalDataDTO: Codable {
     public let url: String
     public let version: String?
     
