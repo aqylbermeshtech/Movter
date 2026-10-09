@@ -27,7 +27,7 @@ public final class AppLanguageProvider: AppLanguageProviderProtocol {
 
     public var currentLanguageCode: String {
         let rawCode = Bundle.main.preferredLocalizations.first
-            .flatMap { Locale(identifier: $0).language.languageCode?.identifier }
+            .flatMap { Locale(identifier: $0).languageCode }
             ?? fallbackLanguageCode
         return supportedLanguageCodes.contains(rawCode) ? rawCode : fallbackLanguageCode
     }

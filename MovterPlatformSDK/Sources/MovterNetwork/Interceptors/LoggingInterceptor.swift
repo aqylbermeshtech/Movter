@@ -7,6 +7,7 @@
 
 import Alamofire
 import Foundation
+import MovterCore
 
 public final class LoggingInterceptor: EventMonitor {
     private let logger: LoggerProtocol

@@ -7,6 +7,7 @@
 
 import Alamofire
 import Foundation
+import MovterCore
 
 
 public protocol NetworkServiceProtocol {
@@ -32,15 +33,14 @@ public final class NetworkService: NetworkServiceProtocol {
         configuration.urlCache = URLCache.shared
         configuration.requestCachePolicy = .useProtocolCachePolicy
 
-        let authInterceptor = AuthenticationInterceptor(logger: resolvedLogger)
         let loggingInterceptor = LoggingInterceptor(logger: resolvedLogger)
         let errorInterceptor = ErrorHandlingInterceptor(logger: resolvedLogger)
 
         self.session = Session(
             configuration: configuration,
             interceptor: Interceptor(
-                adapters: [authInterceptor, errorInterceptor],
-                retriers: [authInterceptor, errorInterceptor]
+                adapters: [errorInterceptor],
+                retriers: [errorInterceptor]
             ),
             eventMonitors: [loggingInterceptor]
         )

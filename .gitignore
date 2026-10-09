@@ -15,3 +15,7 @@ MovieListApp.zip
 # Xcode's per-user state: window layout, breakpoints, the last scheme picked.
 xcuserdata/
 *.xcuserdatad
+
+# Swift Package Manager
+.build/
+*.build/

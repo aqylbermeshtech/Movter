@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import MovterUI
 
 class SignUpViewController: UIViewController {
     private let titleLabel: UILabel = {

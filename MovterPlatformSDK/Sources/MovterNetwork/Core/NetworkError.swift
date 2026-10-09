@@ -98,23 +98,34 @@ public enum NetworkError: Error, LocalizedError {
         apiCode?.caseInsensitiveCompare(code) == .orderedSame
     }
 
-    /// The backend sends `error` as an object on fixed routes, as a `"CODE: text"` string in
-    /// legacy ones and sometimes as `null`. A code or a field list alone is enough to build the
-    /// error: the machine-readable part must survive even when `message` is empty.
+    private struct GenericErrorResponse: Decodable {
+        let statusMessage: String?
+        let message: String?
+        let error: String?
+
+        enum CodingKeys: String, CodingKey {
+            case statusMessage = "status_message"
+            case message
+            case error
+        }
+    }
+
+    /// Extracts error message from response body (supporting TMDb's `status_message` and standard REST payloads).
     public static func fromResponseBody(_ data: Data?, statusCode: Int) -> NetworkError? {
         guard let data, !data.isEmpty else { return nil }
-        guard let envelope = try? JSONDecoder().decode(APIErrorEnvelopeDTO.self, from: data) else { return nil }
-        let code = envelope.errorCode
-        let fields = envelope.errorFields
-        let message = envelope.userFacingMessage
-        guard message != nil || code != nil || !fields.isEmpty else { return nil }
-        return .apiError(
-            message: message ?? "",
-            statusCode: statusCode,
-            apiCode: code,
-            fields: fields,
-            details: envelope.error?.details
-        )
+        if let decoded = try? JSONDecoder().decode(GenericErrorResponse.self, from: data) {
+            let msg = decoded.statusMessage ?? decoded.message ?? decoded.error ?? ""
+            if !msg.isEmpty {
+                return .apiError(
+                    message: msg,
+                    statusCode: statusCode,
+                    apiCode: nil,
+                    fields: [],
+                    details: nil
+                )
+            }
+        }
+        return nil
     }
 }
 

@@ -8,6 +8,7 @@
 //TODO: - Make didTapLogin button code short (
 
 import UIKit
+import MovterUI
 
 class LoginViewController: UIViewController {
     private let titleLabel: UILabel = {
