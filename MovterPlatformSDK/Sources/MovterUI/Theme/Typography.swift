@@ -28,7 +28,6 @@ public struct Typography {
     public static let resendButtonTitle = Font.system(size: 17, weight: .medium, design: .default)
     public static let resendButtonSubtitle = Font.system(size: 13, weight: .regular, design: .default)
     public static let otpSubtitle = Font.system(size: 15, weight: .regular, design: .default)
-    public static let aboutMentor: Font = .system(size: 22, weight: .semibold)
     public static let descriptionText = Font.system(size: 15, weight: .regular, design: .default)
     public static let reviewText = Font.system(size: 15, weight: .regular, design: .default).italic()
 
@@ -36,10 +35,6 @@ public struct Typography {
     public static let setupRowText = Font.system(size: 15, weight: .regular, design: .default)
     public static let addLaterButton = Font.system(size: 16, weight: .regular, design: .default)
 
-    // MARK: - Role Selection Styles
-    public static let roleCardTitle = Font.system(size: 24, weight: .semibold, design: .default)
-    public static let roleCardSubtitle = Font.system(size: 14, weight: .regular, design: .default)
-    public static let navigationTitle = Font.system(size: 17, weight: .semibold, design: .default)
 
     // MARK: - TabBar Styles
     public static let tabBarLabel = Font.system(size: 10, weight: .medium, design: .default)
@@ -141,57 +136,6 @@ public struct Typography {
     public static let emojiLarge: Font = .system(size: 24)
 }
 
-// MARK: - Font Extensions
-public extension Font {
-    static func mentor(_ style: MentorFontStyle) -> Font {
-        switch style {
-        case .authTitle: return Typography.authTitle
-        case .segmentActive: return Typography.segmentActive
-        case .segmentInactive: return Typography.segmentInactive
-        case .inputText: return Typography.inputText
-        case .buttonPrimary: return Typography.buttonPrimary
-        case .policyText: return Typography.policyText
-        case .policyLink: return Typography.policyLink
-        case .dividerText: return Typography.dividerText
-        case .displayLarge: return Typography.displayLarge
-        case .displayMedium: return Typography.displayMedium
-        case .displaySmall: return Typography.displaySmall
-        case .headlineLarge: return Typography.headlineLarge
-        case .headlineMedium: return Typography.headlineMedium
-        case .headlineSmall: return Typography.headlineSmall
-        case .titleLarge: return Typography.titleLarge
-        case .titleMedium: return Typography.titleMedium
-        case .titleSmall: return Typography.titleSmall
-        case .labelLarge: return Typography.labelLarge
-        case .labelMedium: return Typography.labelMedium
-        case .labelSmall: return Typography.labelSmall
-        case .bodyLarge: return Typography.bodyLarge
-        case .bodyMedium: return Typography.bodyMedium
-        case .bodySmall: return Typography.bodySmall
-        case .buttonLarge: return Typography.buttonLarge
-        case .buttonMedium: return Typography.buttonMedium
-        case .buttonSmall: return Typography.buttonSmall
-        case .caption: return Typography.caption
-        case .overline: return Typography.overline
-        }
-    }
-}
-
-public enum MentorFontStyle: CaseIterable {
-    case authTitle
-    case segmentActive, segmentInactive
-    case inputText
-    case buttonPrimary
-    case policyText, policyLink
-    case dividerText
-    case displayLarge, displayMedium, displaySmall
-    case headlineLarge, headlineMedium, headlineSmall
-    case titleLarge, titleMedium, titleSmall
-    case labelLarge, labelMedium, labelSmall
-    case bodyLarge, bodyMedium, bodySmall
-    case buttonLarge, buttonMedium, buttonSmall
-    case caption, overline
-}
 
 // MARK: - UIFont Semantic Tokens
 //

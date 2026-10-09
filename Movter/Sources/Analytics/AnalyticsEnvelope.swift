@@ -6,7 +6,6 @@
 //
 
 import Foundation
-//import MentorNetwork
 
 /// Builds the request once so a retry reuses the same `event_id` and timestamp.
 enum AnalyticsEnvelope {

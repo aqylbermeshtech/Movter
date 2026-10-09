@@ -55,13 +55,3 @@ public struct AppleSignInRequestDTO: Encodable {
         case name
     }
 }
-
-// MARK: - Role Switch
-
-public struct SwitchRoleRequest: Encodable {
-    public let role: String
-
-    public init(role: String) {
-        self.role = role
-    }
-}

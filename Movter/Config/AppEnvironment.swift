@@ -20,7 +20,6 @@ public enum AppEnvironment {
     }
 }
 
-
 public struct AppConfiguration {
     public static let shared = AppConfiguration()
 
@@ -29,12 +28,7 @@ public struct AppConfiguration {
     // MARK: - API Configuration
 
     public var baseURL: String {
-        switch AppEnvironment.current {
-        case .debug:
-            return "https://www.platform-mentor.com/api"
-        case .release:
-            return "https://mentor-platform-staging-staging.up.railway.app/api"
-        }
+        return "https://api.themoviedb.org/3"
     }
 
     public var baseURLAsURL: URL {
@@ -54,38 +48,10 @@ public struct AppConfiguration {
 
     // MARK: - External Services
 
-    public var questWebURL: URL {
-        let urlString: String
-        switch AppEnvironment.current {
-        case .debug:
-            urlString = "https://mirror-quests-web-production.up.railway.app"
-        case .release:
-            urlString = "https://mirror-quests-web-production.up.railway.app"
-        }
-        guard let url = URL(string: urlString) else {
-            fatalError("Invalid questWebURL: \(urlString)")
-        }
-        return url
-    }
-
-    public func mentorProfileShareURL(mentorId: String) -> URL? {
-        let trimmed = mentorId.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return URL(string: "https://www.platform-mentor.com/mentor/catalog/\(trimmed)")
-    }
-
     public var appleEULAURL: URL {
         let urlString = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
         guard let url = URL(string: urlString) else {
             fatalError("Invalid appleEULAURL: \(urlString)")
-        }
-        return url
-    }
-
-    public var questflyWebURL: URL {
-        let urlString = "https://mentor-questfly-webview-production.up.railway.app/roadmap.html"
-        guard let url = URL(string: urlString) else {
-            fatalError("Invalid questflyWebURL: \(urlString)")
         }
         return url
     }
@@ -119,6 +85,6 @@ public struct AppConfiguration {
     }
 
     public var bundleIdentifier: String {
-        return Bundle.main.bundleIdentifier ?? "com.mentor.app"
+        return Bundle.main.bundleIdentifier ?? "kz.movter.app"
     }
 }

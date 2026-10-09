@@ -15,7 +15,7 @@ import Foundation
 public final class TokenRefreshCoordinator {
     public static let shared = TokenRefreshCoordinator()
 
-    private let queue = DispatchQueue(label: "com.mentor.auth.refresh")
+    private let queue = DispatchQueue(label: "kz.movter.auth.refresh")
     private var isRefreshing = false
     private var handlers: [(Bool) -> Void] = []
 

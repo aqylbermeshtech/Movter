@@ -6,7 +6,6 @@
 //
 
 import Foundation
-//import MentorNetwork
 
 public final class VerifyOTPUseCase: VerifyOTPUseCaseProtocol {
     private let repository: OTPRepositoryProtocol

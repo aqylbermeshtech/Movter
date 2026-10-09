@@ -6,7 +6,6 @@
 //
 
 import Foundation
-//import MovterNetwork
 
 public protocol AuthenticationDataSourceProtocol {
     func sendEmailOTP(email: String) async throws -> EmailOTPSendResponse
@@ -14,8 +13,7 @@ public protocol AuthenticationDataSourceProtocol {
     func refreshToken(refreshToken: String) async throws -> RefreshTokenResponse
     func logout() async throws -> LogoutResponse
     func getAuthMe() async throws -> AuthMeResponseDTO
-    func deleteAccount() async throws -> DeleteAccountOutcome
-    func switchRole(role: String) async throws -> SwitchRoleResponse
+    func deleteAccount() async throws
     func signInWithGoogle(idToken: String) async throws -> SocialAuthResponseDTO
     func signInWithApple(idToken: String, name: String?) async throws -> SocialAuthResponseDTO
 }

@@ -6,7 +6,6 @@
 //
 
 import Foundation
-//import MentorNetwork
 
 public final class ResendOTPUseCase: ResendOTPUseCaseProtocol {
     private let repository: OTPRepositoryProtocol

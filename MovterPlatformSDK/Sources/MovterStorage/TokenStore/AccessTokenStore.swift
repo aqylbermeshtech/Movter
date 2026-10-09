@@ -80,10 +80,6 @@ public final class AccessTokenStore {
         accessToken != nil && refreshToken != nil
     }
 
-    public var activeRoleInAccessToken: String? {
-        guard let token = accessToken else { return nil }
-        return AccessTokenJWTActiveRole.persistedAppRoleRaw(from: token)
-    }
 
     public var userIdInAccessToken: String? {
         guard let token = accessToken else { return nil }
@@ -112,15 +108,6 @@ public final class AccessTokenStore {
         self.refreshToken = refreshToken
         self.tokenExpiresAt = Date().timeIntervalSince1970 + Double(expiresIn)
         self.timeFromLastTokenUpdate = Date().timeIntervalSince1970
-        syncPersistedUserRoleFromCurrentAccessToken()
-    }
-
-    public func syncPersistedUserRoleFromCurrentAccessToken() {
-        guard let token = accessToken,
-              let role = AccessTokenJWTActiveRole.persistedAppRoleRaw(from: token) else {
-            return
-        }
-        UserDefaults.standard.set(role, forKey: MovterAppStoredUserDefaultsKey.persistedUserRoleRawValue)
     }
 
     public func clear() {
@@ -129,7 +116,6 @@ public final class AccessTokenStore {
         tokenExpiresAt = nil
         timeFromLastTokenUpdate = nil
         UserDefaults.standard.removeObject(forKey: Keys.profileBootstrapPending)
-        UserDefaults.standard.removeObject(forKey: MovterAppStoredUserDefaultsKey.persistedUserRoleRawValue)
     }
 
     public func clearAndNotifySessionInvalidated() {

@@ -22,9 +22,6 @@ public enum AuthEndPoint {
     // Social auth
     case googleSignIn(request: GoogleSignInRequestDTO)
     case appleSignIn(request: AppleSignInRequestDTO)
-
-    // Role
-    case switchRole(request: SwitchRoleRequest)
 }
 
 extension AuthEndPoint: EndPointType {
@@ -51,14 +48,12 @@ extension AuthEndPoint: EndPointType {
             return "/v1/auth/google"
         case .appleSignIn:
             return "/v1/auth/apple"
-        case .switchRole:
-            return "/v1/auth/switch-role"
         }
     }
 
     public var httpMethod: RequestMethod {
         switch self {
-        case .sendEmailOTP, .verifyEmailOTP, .refreshToken, .logout, .switchRole, .googleSignIn, .appleSignIn:
+        case .sendEmailOTP, .verifyEmailOTP, .refreshToken, .logout, .googleSignIn, .appleSignIn:
             return .post
         case .authMe:
             return .get
@@ -91,8 +86,6 @@ extension AuthEndPoint: EndPointType {
             return .requestEncodable(requestModel: request)
         case let .appleSignIn(request):
             return .requestEncodable(requestModel: request)
-        case let .switchRole(request):
-            return .requestEncodable(requestModel: request)
         }
     }
     
@@ -103,4 +96,3 @@ extension AuthEndPoint: EndPointType {
         ]
     }
 }
-

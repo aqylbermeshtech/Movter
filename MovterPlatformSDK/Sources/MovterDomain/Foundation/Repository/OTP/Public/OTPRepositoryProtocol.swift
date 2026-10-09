@@ -6,7 +6,6 @@
 //
 
 import Foundation
-//import MentorNetwork
 
 public protocol OTPRepositoryProtocol {
     func verifyOTP(verification: OTPVerificationDTO) async throws -> OTPVerificationResultDTO

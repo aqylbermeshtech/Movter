@@ -7,13 +7,9 @@
 
 import Foundation
 import OSLog
-//import MentorDomain
-//import MentorNetwork
-//import MentorStorage
-
 enum PushDeviceTokenRegistrar {
-    private static let log = os.Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mentorapp.mentor", category: "PushToken")
-    private static let lastSentTokenKey = "mentor.push.lastRegisteredFcmToken"
+    private static let log = os.Logger(subsystem: Bundle.main.bundleIdentifier ?? "kz.movter.app", category: "PushToken")
+    private static let lastSentTokenKey = "movter.push.lastRegisteredFcmToken"
     private static var lastBecomeActiveForcedSyncWallClock: TimeInterval = 0
     private static let minBecomeActiveForcedSyncIntervalSeconds: TimeInterval = 45
 

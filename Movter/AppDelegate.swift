@@ -27,9 +27,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 enum MovterPushNotificationRuntime {
     /// Observe from features that call your API (e.g. after login): `userInfo["fcmToken"] as? String`
-    static let fcmTokenDidUpdateNotification = Notification.Name("com.mentorapp.mentor.kz.push.fcmTokenUpdated")
+    static let fcmTokenDidUpdateNotification = Notification.Name("com.movter.push.fcmTokenUpdated")
 
-    private static let fcmTokenUserDefaultsKey = "mentor.push.fcmToken"
+    private static let fcmTokenUserDefaultsKey = "movter.push.fcmToken"
 
     static var lastFCMToken: String? {
         UserDefaults.standard.string(forKey: fcmTokenUserDefaultsKey)

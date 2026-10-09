@@ -21,7 +21,7 @@ public final class NetworkConfiguration: NetworkConfigurationProtocol {
     public var timeout: TimeInterval
 
     public init(
-        baseURL: URL = URL(string: "https://www.platform-mentor.com/api")!,
+        baseURL: URL = URL(string: "https://api.themoviedb.org/3")!,
         timeout: TimeInterval = 30.0
     ) {
         self.baseURL = baseURL

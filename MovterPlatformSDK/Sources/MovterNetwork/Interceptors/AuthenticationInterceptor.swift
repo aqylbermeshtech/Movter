@@ -89,13 +89,14 @@ public final class AuthenticationInterceptor: RequestInterceptor {
             return true
         }
         
-        let publicCatalogSuffixes = [
-            "/v1/catalog/directions",
-            "/v1/catalog/mentors",
-            "/v1/skills/taxonomy"
+        let publicEndpoints = [
+            "/3/movie",
+            "/3/search",
+            "/3/discover",
+            "/3/genre"
         ]
-        return publicCatalogSuffixes.contains { suffix in
-            path == suffix || path.hasSuffix(suffix)
+        return publicEndpoints.contains { prefix in
+            path.hasPrefix(prefix)
         }
     }
 

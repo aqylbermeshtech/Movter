@@ -13,7 +13,6 @@ struct AuthenticationOutput {
     let onNavigateToOTP: (OTPMethod, String) -> Void
     let onNavigateToCountryList: (@escaping (Country) -> Void) -> Void
     let onNavigateToMainScreen: (UserModel) -> Void
-    let onNavigateToRoleSelection: ((UserModel) -> Void)?
     let onAuthenticationCompleted: ((UserModel) -> Void)?
     let onSkipAuthentication: () -> Void
     let onGoBack: (() -> Void)?

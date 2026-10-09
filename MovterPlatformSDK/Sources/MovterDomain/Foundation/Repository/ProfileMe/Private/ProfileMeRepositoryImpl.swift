@@ -6,7 +6,6 @@
 //
 
 import Foundation
-//import MentorNetwork
 
 public final class ProfileMeRepositoryImpl: ProfileMeRepositoryProtocol {
     private let dataSource: ProfileMeDataSourceProtocol
@@ -48,11 +47,6 @@ public final class ProfileMeRepositoryImpl: ProfileMeRepositoryProtocol {
 
     public func updatePhoto(_ request: UpdateProfilePhotoRequestDTO) async throws {
         try await dataSource.updatePhoto(request)
-    }
-
-    public func updateMenteeProfile(_ request: UpdateMenteeProfileRequestDTO) async throws -> ProfileMeDataDTO? {
-        let response = try await dataSource.updateMenteeProfile(request)
-        return response.data
     }
 
     public func confirmEmailChange(code: String) async throws {

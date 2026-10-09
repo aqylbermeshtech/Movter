@@ -7,8 +7,7 @@
 
 import Alamofire
 import Foundation
-//import MentorCore
-//import MentorStorage
+
 
 public protocol NetworkManagerProtocol {
     func request<T: Codable>(_ endpoint: APIEndpoint, responseType: T.Type) async throws -> T

@@ -6,9 +6,6 @@
 //
 
 import Foundation
-//import MentorNetwork
-//import MentorStorage
-
 public final class AuthRepositoryImpl: AuthRepositoryProtocol {
     private let dataSource: AuthenticationDataSourceProtocol
 
@@ -31,35 +28,9 @@ public final class AuthRepositoryImpl: AuthRepositoryProtocol {
         return response.success
     }
 
-    public func deleteAccount() async throws -> DeleteAccountOutcome {
-        let outcome = try await dataSource.deleteAccount()
-        switch outcome {
-        case .accountFullyRemoved:
-            return outcome
-        case let .retainedRemainingPersona(data):
-            AccessTokenStore.shared.saveTokens(
-                accessToken: data.accessToken,
-                refreshToken: data.refreshToken,
-                expiresIn: data.expiresIn
-            )
-            return outcome
-        }
-    }
-
-    public func switchRole(toRole role: String) async throws -> SwitchRoleResultDTO {
-        let response = try await dataSource.switchRole(role: role)
-
-        guard response.success, let data = response.data else {
-            throw NetworkError.invalidResponse
-        }
-
-        AccessTokenStore.shared.saveTokens(
-            accessToken: data.accessToken,
-            refreshToken: data.refreshToken,
-            expiresIn: data.expiresIn
-        )
-
-        return SwitchRoleResultDTO(activeRole: data.activeRole)
+    public func deleteAccount() async throws {
+        try await dataSource.deleteAccount()
+        AccessTokenStore.shared.clear()
     }
 
     public func getAuthMe() async throws -> AuthMeDataDTO? {

@@ -8,8 +8,8 @@
 import Foundation
 
 enum SocialAuthNameStore {
-    private static let firstNameKey = "mentor.social_auth_prefill_first_name"
-    private static let lastNameKey = "mentor.social_auth_prefill_last_name"
+    private static let firstNameKey = "movter.social_auth_prefill_first_name"
+    private static let lastNameKey = "movter.social_auth_prefill_last_name"
 
     static func save(fullName: String?) {
         let trimmed = fullName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

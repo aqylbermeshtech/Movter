@@ -28,27 +28,14 @@ public struct AuthMeResponseDTO: Codable {
 
 public struct AuthMeDataDTO: Codable {
     public let userId: String?
-    public let activeRole: String?
-    public let hasMenteeProfile: Bool?
-    public let hasMentorProfile: Bool?
 
     public init(
-        userId: String? = nil,
-        activeRole: String? = nil,
-        hasMenteeProfile: Bool? = nil,
-        hasMentorProfile: Bool? = nil
+        userId: String? = nil
     ) {
         self.userId = userId
-        self.activeRole = activeRole
-        self.hasMenteeProfile = hasMenteeProfile
-        self.hasMentorProfile = hasMentorProfile
     }
 
     private enum CodingKeys: String, CodingKey {
         case userId = "user_id"
-        case activeRole = "active_role"
-        case hasMenteeProfile = "has_mentee_profile"
-        case hasMentorProfile = "has_mentor_profile"
     }
 }
-

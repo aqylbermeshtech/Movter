@@ -6,7 +6,6 @@
 //
 
 import Foundation
-//import MentorNetwork
 
 public final class GetProfileMeUseCase: GetProfileMeUseCaseProtocol {
     private let repository: ProfileMeRepositoryProtocol

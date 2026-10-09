@@ -112,52 +112,18 @@ public final class RemoteAuthenticationDataSource: AuthenticationDataSourceProto
         return result
     }
 
-    public func deleteAccount() async throws -> DeleteAccountOutcome {
+    public func deleteAccount() async throws {
         logger.debug("Deleting account")
 
         let endPoint = AuthEndPoint.deleteAccount
         let urlRequest = try router.request(endPoint)
-        let (data, response) = try await networkService.request(urlRequest)
+        let (_, response) = try await networkService.request(urlRequest)
 
         guard let http = response as? HTTPURLResponse else {
             throw NetworkError.invalidResponse
         }
 
-        switch http.statusCode {
-        case 204:
-            return .accountFullyRemoved
-        case 200:
-            let strategy = DefaultParseStrategy(data, response)
-            let context = ParseContext(parseStrategy: strategy)
-
-            guard let decoded: SwitchRoleResponse = try await context.process(),
-                  decoded.success,
-                  let payload = decoded.data else {
-                throw NetworkError.decodingError
-            }
-
-            let normalizedRole = payload.activeRole
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .lowercased()
-            guard normalizedRole == "mentor" || normalizedRole == "mentee" else {
-                throw NetworkError.decodingError
-            }
-
-            guard !payload.accessToken.isEmpty,
-                  !payload.refreshToken.isEmpty,
-                  payload.expiresIn > 0 else {
-                throw NetworkError.decodingError
-            }
-
-            let tokens = SwitchRoleData(
-                activeRole: normalizedRole,
-                accessToken: payload.accessToken,
-                refreshToken: payload.refreshToken,
-                expiresIn: payload.expiresIn,
-                tokenType: payload.tokenType
-            )
-            return .retainedRemainingPersona(tokens: tokens)
-        default:
+        guard (200...299).contains(http.statusCode) else {
             throw NetworkError.serverError(http.statusCode)
         }
     }
@@ -194,25 +160,6 @@ public final class RemoteAuthenticationDataSource: AuthenticationDataSourceProto
         let context = ParseContext(parseStrategy: strategy)
 
         guard let result: SocialAuthResponseDTO = try await context.process() else {
-            throw NetworkError.decodingError
-        }
-
-        return result
-    }
-
-    public func switchRole(role: String) async throws -> SwitchRoleResponse {
-        logger.debug("Switching role to: \(role)")
-
-        let request = SwitchRoleRequest(role: role)
-        let endPoint = AuthEndPoint.switchRole(request: request)
-        let urlRequest = try router.request(endPoint)
-
-        let (data, response) = try await networkService.request(urlRequest)
-
-        let strategy = DefaultParseStrategy(data, response)
-        let context = ParseContext(parseStrategy: strategy)
-
-        guard let result: SwitchRoleResponse = try await context.process() else {
             throw NetworkError.decodingError
         }
 

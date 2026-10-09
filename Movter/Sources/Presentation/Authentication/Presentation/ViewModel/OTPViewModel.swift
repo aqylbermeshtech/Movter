@@ -188,8 +188,6 @@ final class OTPViewModel: ObservableObject {
         }
         if result.isCompletedOnboarding, let onCompleted = output.onAuthenticationCompleted {
             onCompleted(user)
-        } else if let onRoleSelection = output.onNavigateToRoleSelection {
-            onRoleSelection(user)
         } else {
             output.onNavigateToMainScreen(user)
         }
@@ -244,11 +242,7 @@ extension OTPViewModel: OTPViewManagerDelegate {
             do {
                 let user = try await loadUserFromProfile()
                 isLoading = false
-                if let onRoleSelection = output.onNavigateToRoleSelection {
-                    onRoleSelection(user)
-                } else {
-                    output.onNavigateToMainScreen(user)
-                }
+                output.onNavigateToMainScreen(user)
             } catch {
                 isLoading = false
                 errorMessage = LocalizedString.genericError

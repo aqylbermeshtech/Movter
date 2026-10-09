@@ -6,13 +6,10 @@
 //
 
 import Foundation
-//import MentorCore
-//import MentorNetwork
 
 public final class ProfileMeRemoteDataSource: ProfileMeDataSourceProtocol {
     private let networkService: NetworkServiceProtocol
     private let router = Router<ProfileEndPoint>()
-    private let menteeProfileRouter = Router<MenteeProfileEndPoint>()
     private let logger: LoggerProtocol
 
     public init(networkService: NetworkServiceProtocol = NetworkService.shared) {
@@ -91,29 +88,6 @@ public final class ProfileMeRemoteDataSource: ProfileMeDataSourceProtocol {
         }
     }
 
-    public func updateMenteeProfile(_ request: UpdateMenteeProfileRequestDTO) async throws -> ProfileMeResponseDTO {
-        let endPoint = MenteeProfileEndPoint.updateProfile(request)
-        let urlRequest = try menteeProfileRouter.request(endPoint)
-        let (data, response) = try await networkService.request(urlRequest)
-        let strategy = DefaultParseStrategy(data, response)
-        let context = ParseContext(parseStrategy: strategy)
-
-        guard let parsed: ProfileMeResponseDTO = try await context.process() else {
-            throw NetworkError.decodingError
-        }
-        guard parsed.success else {
-            let text = parsed.error ?? parsed.message ?? ""
-            throw NetworkError.unknown(
-                NSError(
-                    domain: "UpdateMenteeProfile",
-                    code: 0,
-                    userInfo: [NSLocalizedDescriptionKey: text.isEmpty ? "Request failed" : text]
-                )
-            )
-        }
-        return parsed
-    }
-
     public func confirmEmailChange(code: String) async throws {
         let request = EmailChangeConfirmRequestDTO(code: code)
         let endPoint = ProfileEndPoint.confirmEmailChange(request)
@@ -138,4 +112,3 @@ public final class ProfileMeRemoteDataSource: ProfileMeDataSourceProtocol {
         }
     }
 }
-

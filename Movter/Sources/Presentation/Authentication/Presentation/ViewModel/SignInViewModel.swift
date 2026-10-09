@@ -173,9 +173,7 @@ final class SignInViewModel: ObservableObject {
                 avatarUrl: result.prefill?.photo,
                 userType: nil
             )
-            if let onRoleSelection = output.onNavigateToRoleSelection {
-                onRoleSelection(user)
-            } else if let onOnboarding = output.onSocialAuthNeedsOnboarding {
+            if let onOnboarding = output.onSocialAuthNeedsOnboarding {
                 onOnboarding(result.prefill)
             } else {
                 output.onNavigateToMainScreen(user)

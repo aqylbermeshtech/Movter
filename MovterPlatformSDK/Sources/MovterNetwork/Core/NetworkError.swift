@@ -79,8 +79,8 @@ public enum NetworkError: Error, LocalizedError {
         return code
     }
 
-    /// Fields the backend named as missing, for example the sections a mentor profile
-    /// still needs before it can be published.
+    /// Fields the backend named as missing, for example the sections a user profile
+    /// still needs before it can be completed.
     public var apiFields: [String] {
         guard case let .apiError(_, _, _, fields, _) = self else { return [] }
         return fields

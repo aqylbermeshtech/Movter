@@ -21,10 +21,6 @@ struct UserModel: Identifiable, Equatable {
         self.userType = userType
     }
     
-    var resolvedRole: UserRole? {
-        guard let userType else { return nil }
-        return UserRole(rawValue: userType)
-    }
     
     var avatarImageName: String {
         ImageAsset.avatarPlaceholderNotionType.name

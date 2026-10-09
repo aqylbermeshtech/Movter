@@ -31,9 +31,9 @@ public final class SecureStorage: StorageProtocol {
 
     private var keychainService: String {
         #if DEBUG
-        return "com.mentor.app.debug"
+        return "kz.movter.app.debug"
         #else
-        return "com.mentor.app"
+        return "kz.movter.app"
         #endif
     }
 
