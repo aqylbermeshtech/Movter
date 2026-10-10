@@ -1,17 +1,16 @@
 //
 //  TMDBRequestBuilder.swift
-//  Movter
+//  MovterNetwork
 //
 //  Created by Nurtore on 10.10.2026.
 //
 
 import Foundation
-import MovterNetwork
 
-enum TMDBRequestBuilder {
+public enum TMDBRequestBuilder {
     private static let baseURLString = "https://api.themoviedb.org/3"
 
-    static func buildURL(
+    public static func buildURL(
         path: String,
         apiKey: String,
         queryItems: [URLQueryItem] = []

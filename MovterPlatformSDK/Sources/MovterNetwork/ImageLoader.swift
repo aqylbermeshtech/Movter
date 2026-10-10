@@ -1,16 +1,16 @@
 //
 //  ImageLoader.swift
-//  Movter
+//  MovterNetwork
 //
 //  Created by Nurtore on 24.03.2026.
 //
 
 import UIKit
 
-final class ImageLoader {
+public final class ImageLoader {
     private static let cache = NSCache<NSString, UIImage>()
 
-    static func load(url: URL, completion: @escaping (UIImage?) -> Void) {
+    public static func load(url: URL, completion: @escaping (UIImage?) -> Void) {
         if let cached = cache.object(forKey: url.absoluteString as NSString) {
             completion(cached)
             return

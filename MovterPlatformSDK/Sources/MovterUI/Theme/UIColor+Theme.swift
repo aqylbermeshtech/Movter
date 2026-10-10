@@ -1,13 +1,13 @@
 //
-//  Color.swift
-//  Movter
+//  UIColor+Theme.swift
+//  MovterUI
 //
 //  Created by Nurtore on 22.03.2026.
 //
 
 import UIKit
 
-extension UIColor {
+public extension UIColor {
     convenience init(hex: String) {
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
 
@@ -25,7 +25,8 @@ extension UIColor {
         self.init(red: r, green: g, blue: b, alpha: 1.0)
     }
 }
-extension UIColor {
+
+public extension UIColor {
 
     // MARK: - Neutral ramp
     static let canvas        = adaptive(light: "FFFFFF", dark: "0A0A0B")

@@ -1,6 +1,6 @@
 //
 //  NetworkMonitor.swift
-//  Movter
+//  MovterNetwork
 //
 //  Created by Nurtore on 29.08.2026.
 //
@@ -8,22 +8,22 @@
 import Foundation
 import Network
 
-protocol NetworkMonitoring: AnyObject {
+public protocol NetworkMonitoring: AnyObject {
     var isOnline: Bool { get }
 }
 
-final class NetworkMonitor: NetworkMonitoring {
+public final class NetworkMonitor: NetworkMonitoring {
 
-    static let shared = NetworkMonitor()
+    public static let shared = NetworkMonitor()
 
-    static let connectivityDidChangeNotification = Notification.Name("NetworkConnectivityDidChange")
+    public static let connectivityDidChangeNotification = Notification.Name("NetworkConnectivityDidChange")
 
-    private(set) var isOnline = true
+    public private(set) var isOnline = true
 
     private let monitor = NWPathMonitor()
     private let queue = DispatchQueue(label: "com.nurtore.movter.networkmonitor")
 
-    init() {
+    public init() {
         monitor.pathUpdateHandler = { [weak self] path in
             let online = path.status == .satisfied
             Task { @MainActor in

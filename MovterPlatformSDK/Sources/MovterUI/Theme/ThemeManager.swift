@@ -1,18 +1,18 @@
 //
 //  ThemeManager.swift
-//  Movter
+//  MovterUI
 //
 //  Created by Nurtore on 02.07.2026.
 //
 
 import UIKit
 
-enum AppTheme: String, CaseIterable {
+public enum AppTheme: String, CaseIterable {
     case system
     case light
     case dark
 
-    var userInterfaceStyle: UIUserInterfaceStyle {
+    public var userInterfaceStyle: UIUserInterfaceStyle {
         switch self {
         case .system: return .unspecified
         case .light:  return .light
@@ -20,7 +20,7 @@ enum AppTheme: String, CaseIterable {
         }
     }
 
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .system: return "Automatic"
         case .light:  return "Light"
@@ -29,14 +29,14 @@ enum AppTheme: String, CaseIterable {
     }
 }
 
-final class ThemeManager {
-    static let shared = ThemeManager()
+public final class ThemeManager {
+    public static let shared = ThemeManager()
 
-    static let themeDidChangeNotification = Notification.Name("ThemeDidChangeNotification")
+    public static let themeDidChangeNotification = Notification.Name("ThemeDidChangeNotification")
 
     private let themeKey = "selected_app_theme"
 
-    private(set) var currentTheme: AppTheme = .system
+    public private(set) var currentTheme: AppTheme = .system
 
     private init() {
         if let savedRaw = UserDefaults.standard.string(forKey: themeKey),
@@ -45,7 +45,7 @@ final class ThemeManager {
         }
     }
 
-    func selectTheme(_ theme: AppTheme) {
+    public func selectTheme(_ theme: AppTheme) {
         self.currentTheme = theme
         UserDefaults.standard.set(theme.rawValue, forKey: themeKey)
         applyToConnectedScenes()
@@ -53,12 +53,12 @@ final class ThemeManager {
         NotificationCenter.default.post(name: ThemeManager.themeDidChangeNotification, object: nil)
     }
 
-    func apply(to window: UIWindow) {
+    public func apply(to window: UIWindow) {
         window.overrideUserInterfaceStyle = currentTheme.userInterfaceStyle
         window.tintColor = .accent
     }
 
-    func applyToConnectedScenes() {
+    public func applyToConnectedScenes() {
         UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .flatMap { $0.windows }

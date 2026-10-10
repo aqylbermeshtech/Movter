@@ -1,26 +1,26 @@
 //
 //  RatingState.swift
-//  Movter
+//  MovterDomain
 //
 //  Created by Nurtore on 18.08.2026.
 //
 
 import Foundation
 
-enum RatingState {
+public enum RatingState: Equatable, Sendable {
     case rated(score: Double, votes: Int)
     case provisional(score: Double, votes: Int)
     case unrated
     case upcoming(releaseDate: Date?)
 
-    static let confidentVoteThreshold = 10
+    public static let confidentVoteThreshold = 10
 
-    var isUpcoming: Bool {
+    public var isUpcoming: Bool {
         if case .upcoming = self { return true }
         return false
     }
 
-    init(voteAverage: Double, voteCount: Int, releaseDate: String?) {
+    public init(voteAverage: Double, voteCount: Int, releaseDate: String?) {
         let date = releaseDate.flatMap { Self.isoFormatter.date(from: $0) }
 
         guard voteCount > 0 else {
