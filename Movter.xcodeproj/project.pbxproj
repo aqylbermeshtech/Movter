@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		811BEE1D307990010079E43D /* MovterCore in Frameworks */ = {isa = PBXBuildFile; productRef = 811BEE1C307990010079E43D /* MovterCore */; };
+		811BEE1F3079900F0079E43D /* MovterDomain in Frameworks */ = {isa = PBXBuildFile; productRef = 811BEE1E3079900F0079E43D /* MovterDomain */; };
+		811BEE21307990150079E43D /* MovterNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = 811BEE20307990150079E43D /* MovterNetwork */; };
+		811BEE233079901B0079E43D /* MovterStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 811BEE223079901B0079E43D /* MovterStorage */; };
+		811BEE25307990200079E43D /* MovterUI in Frameworks */ = {isa = PBXBuildFile; productRef = 811BEE24307990200079E43D /* MovterUI */; };
 		813A9BD92FF719C600E94E91 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 813A9BD82FF719C600E94E91 /* FirebaseAuth */; };
 		81AB0A37306BB6980016928D /* Swinject in Frameworks */ = {isa = PBXBuildFile; productRef = 81AB0A36306BB6980016928D /* Swinject */; };
 		81AB0A3A306BB6AD0016928D /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 81AB0A39306BB6AD0016928D /* Alamofire */; };
@@ -38,11 +43,6 @@
 			path = Movter;
 			sourceTree = "<group>";
 		};
-		812EE05F305ECB5400C9B9F8 /* MovterPlatformSDK */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MovterPlatformSDK;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,10 +50,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				811BEE1D307990010079E43D /* MovterCore in Frameworks */,
+				811BEE25307990200079E43D /* MovterUI in Frameworks */,
+				811BEE1F3079900F0079E43D /* MovterDomain in Frameworks */,
 				81AB0A3A306BB6AD0016928D /* Alamofire in Frameworks */,
+				811BEE21307990150079E43D /* MovterNetwork in Frameworks */,
 				813A9BD92FF719C600E94E91 /* FirebaseAuth in Frameworks */,
 				81AB0A37306BB6980016928D /* Swinject in Frameworks */,
 				81C72CB2306D9D26004267F3 /* SwiftfulLoadingIndicators in Frameworks */,
+				811BEE233079901B0079E43D /* MovterStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,7 +76,6 @@
 		5EB895492F69824800C8A3F3 = {
 			isa = PBXGroup;
 			children = (
-				812EE05F305ECB5400C9B9F8 /* MovterPlatformSDK */,
 				2A00000000000000000002 /* Config */,
 				5EB895542F69824800C8A3F3 /* Movter */,
 				813A9BD72FF719C600E94E91 /* Frameworks */,
@@ -111,7 +115,6 @@
 			);
 			fileSystemSynchronizedGroups = (
 				5EB895542F69824800C8A3F3 /* Movter */,
-				812EE05F305ECB5400C9B9F8 /* MovterPlatformSDK */,
 			);
 			name = Movter;
 			packageProductDependencies = (
@@ -119,6 +122,11 @@
 				81AB0A36306BB6980016928D /* Swinject */,
 				81AB0A39306BB6AD0016928D /* Alamofire */,
 				81C72CB1306D9D26004267F3 /* SwiftfulLoadingIndicators */,
+				811BEE1C307990010079E43D /* MovterCore */,
+				811BEE1E3079900F0079E43D /* MovterDomain */,
+				811BEE20307990150079E43D /* MovterNetwork */,
+				811BEE223079901B0079E43D /* MovterStorage */,
+				811BEE24307990200079E43D /* MovterUI */,
 			);
 			productName = Movter;
 			productReference = 5EB895522F69824800C8A3F3 /* Movter.app */;
@@ -153,6 +161,7 @@
 				81AB0A35306BB6980016928D /* XCRemoteSwiftPackageReference "Swinject" */,
 				81AB0A38306BB6AD0016928D /* XCRemoteSwiftPackageReference "Alamofire" */,
 				81C72CB0306D9D26004267F3 /* XCRemoteSwiftPackageReference "SwiftfulLoadingIndicators" */,
+				811BEE1B30798FD60079E43D /* XCLocalSwiftPackageReference "MovterPlatformSDK" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5EB895532F69824800C8A3F3 /* Products */;
@@ -203,6 +212,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MARKETING_VERSION = 1.0;
 				OTHER_SWIFT_FLAGS = "-Werror ActorIsolatedCall";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nurtore.MovieListApp;
@@ -235,6 +245,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MARKETING_VERSION = 1.0;
 				OTHER_SWIFT_FLAGS = "-Werror ActorIsolatedCall";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nurtore.MovieListApp;
@@ -397,6 +408,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		811BEE1B30798FD60079E43D /* XCLocalSwiftPackageReference "MovterPlatformSDK" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = MovterPlatformSDK;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		813A9BD62FF7194C00E94E91 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -433,6 +451,31 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		811BEE1C307990010079E43D /* MovterCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 811BEE1B30798FD60079E43D /* XCLocalSwiftPackageReference "MovterPlatformSDK" */;
+			productName = MovterCore;
+		};
+		811BEE1E3079900F0079E43D /* MovterDomain */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 811BEE1B30798FD60079E43D /* XCLocalSwiftPackageReference "MovterPlatformSDK" */;
+			productName = MovterDomain;
+		};
+		811BEE20307990150079E43D /* MovterNetwork */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 811BEE1B30798FD60079E43D /* XCLocalSwiftPackageReference "MovterPlatformSDK" */;
+			productName = MovterNetwork;
+		};
+		811BEE223079901B0079E43D /* MovterStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 811BEE1B30798FD60079E43D /* XCLocalSwiftPackageReference "MovterPlatformSDK" */;
+			productName = MovterStorage;
+		};
+		811BEE24307990200079E43D /* MovterUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 811BEE1B30798FD60079E43D /* XCLocalSwiftPackageReference "MovterPlatformSDK" */;
+			productName = MovterUI;
+		};
 		813A9BD82FF719C600E94E91 /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 813A9BD62FF7194C00E94E91 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
