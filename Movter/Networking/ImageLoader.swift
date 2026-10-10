@@ -7,11 +7,11 @@
 
 import UIKit
 
-let imageCache = NSCache<NSString, UIImage>()
-
 final class ImageLoader {
+    private static let cache = NSCache<NSString, UIImage>()
+
     static func load(url: URL, completion: @escaping (UIImage?) -> Void) {
-        if let cached = imageCache.object(forKey: url.absoluteString as NSString) {
+        if let cached = cache.object(forKey: url.absoluteString as NSString) {
             completion(cached)
             return
         }
@@ -22,7 +22,7 @@ final class ImageLoader {
                 }
                 return
             }
-            imageCache.setObject(image, forKey: url.absoluteString as NSString)
+            cache.setObject(image, forKey: url.absoluteString as NSString)
             DispatchQueue.main.async {
                 completion(image)
             }

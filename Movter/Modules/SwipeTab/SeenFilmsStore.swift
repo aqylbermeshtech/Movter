@@ -34,10 +34,6 @@ final class LocalSeenFilmsStore: SeenFilmsStoring {
         self.userIDProvider = userIDProvider
     }
 
-    convenience init(userID: String?) {
-        self.init(userIDProvider: { userID })
-    }
-
     func fetchIDs(completion: @escaping (Set<Int>) -> Void) {
         completion(readIDs())
     }

@@ -23,7 +23,6 @@ final class ReviewsListViewModel {
         self.store = store
     }
     
-    var isEmpty: Bool { reviews.isEmpty }
     var summaryText: String? {
         guard !reviews.isEmpty else { return nil }
         let average = Double(reviews.reduce(0) { $0 + $1.score }) / Double(reviews.count)

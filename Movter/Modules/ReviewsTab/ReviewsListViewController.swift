@@ -131,15 +131,6 @@ final class ReviewsListViewController: UIViewController {
         viewModel.load()
     }
 
-    private func render() {
-        tableView.reloadData()
-        let isEmpty = viewModel.isEmpty
-        emptyStateView.isHidden = !isEmpty
-        tableView.isHidden = isEmpty
-        skeletonView.endLoading()
-        updateSummaryHeader()
-    }
-
     private func updateSummaryHeader() {
         guard let summary = viewModel.summaryText else {
             tableView.tableHeaderView = nil

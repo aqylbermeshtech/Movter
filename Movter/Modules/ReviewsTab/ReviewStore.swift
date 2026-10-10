@@ -70,10 +70,6 @@ final class LocalReviewStore: ReviewStoring {
         self.userIDProvider = userIDProvider
     }
 
-    convenience init(userID: String?) {
-        self.init(userIDProvider: { userID })
-    }
-
     // MARK: - Modern Async APIs
 
     func fetchAll() async throws -> [Review] {

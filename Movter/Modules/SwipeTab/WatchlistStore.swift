@@ -61,10 +61,6 @@ final class LocalWatchlistStore: WatchlistStoring {
         self.userIDProvider = userIDProvider
     }
 
-    convenience init(userID: String?, listName: String = "watchlist") {
-        self.init(listName: listName, userIDProvider: { userID })
-    }
-
     // MARK: - Modern Async APIs
 
     func fetchAll() async throws -> [WatchlistItem] {

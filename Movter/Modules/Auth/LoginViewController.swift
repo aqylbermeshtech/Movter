@@ -5,10 +5,7 @@
 //  Created by Nurtore on 03.07.2026.
 //
 
-//TODO: - Make didTapLogin button code short (
-
 import UIKit
-import MovterUI
 
 class LoginViewController: UIViewController {
     private let titleLabel: UILabel = {

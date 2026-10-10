@@ -46,18 +46,7 @@ final class TMDBService {
 
     func performRequest<T: Decodable>(url: URL) async throws -> T {
         let request = URLRequest(url: url)
-        let (data, response) = try await networkService.plainRequest(request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
-        }
-
-        guard (200...299).contains(httpResponse.statusCode) else {
-            if let apiError = NetworkError.fromResponseBody(data, statusCode: httpResponse.statusCode) {
-                throw apiError
-            }
-            throw NetworkError.serverError(httpResponse.statusCode)
-        }
+        let (data, _) = try await networkService.plainRequest(request)
 
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -78,33 +67,11 @@ final class TMDBService {
         return trailer?.key
     }
 
-    func fetchVideo(for id: Int, type: MediaType, completion: @escaping (String?) -> Void) {
-        Task {
-            do {
-                let key = try await fetchVideo(for: id, type: type)
-                await MainActor.run { completion(key) }
-            } catch {
-                await MainActor.run { completion(nil) }
-            }
-        }
-    }
-
     // MARK: - Credits
 
     func fetchCredits(for id: Int, type: MediaType) async throws -> MovieCredits {
         let url = try TMDBRequestBuilder.buildURL(path: "\(type.path)/\(id)/credits", apiKey: apiKey)
         return try await performRequest(url: url)
-    }
-
-    func fetchCredits(for id: Int, type: MediaType, completion: @escaping (MovieCredits?) -> Void) {
-        Task {
-            do {
-                let credits = try await fetchCredits(for: id, type: type)
-                await MainActor.run { completion(credits) }
-            } catch {
-                await MainActor.run { completion(nil) }
-            }
-        }
     }
 
     // MARK: - Similar / Recommendations
@@ -132,34 +99,12 @@ final class TMDBService {
         return similar.results
     }
 
-    func fetchSimilar(for id: Int, type: MediaType, completion: @escaping ([Media]?) -> Void) {
-        Task {
-            do {
-                let similar = try await fetchSimilar(for: id, type: type)
-                await MainActor.run { completion(similar) }
-            } catch {
-                await MainActor.run { completion(nil) }
-            }
-        }
-    }
-
     // MARK: - Genres
 
     func fetchGenres(type: MediaType) async throws -> [GenreListResponse.Genre] {
         let url = try TMDBRequestBuilder.buildURL(path: "genre/\(type.path)/list", apiKey: apiKey)
         let response: GenreListResponse = try await performRequest(url: url)
         return response.genres
-    }
-
-    func fetchGenres(type: MediaType, completion: @escaping ([GenreListResponse.Genre]?) -> Void) {
-        Task {
-            do {
-                let genres = try await fetchGenres(type: type)
-                await MainActor.run { completion(genres) }
-            } catch {
-                await MainActor.run { completion(nil) }
-            }
-        }
     }
 
     // MARK: - People
@@ -169,32 +114,10 @@ final class TMDBService {
         return try await performRequest(url: url)
     }
 
-    func fetchPersonDetails(for id: Int, completion: @escaping (PersonDetails?) -> Void) {
-        Task {
-            do {
-                let details = try await fetchPersonDetails(for: id)
-                await MainActor.run { completion(details) }
-            } catch {
-                await MainActor.run { completion(nil) }
-            }
-        }
-    }
-
     func fetchPersonCredits(for id: Int) async throws -> [PersonCredit] {
         let url = try TMDBRequestBuilder.buildURL(path: "person/\(id)/combined_credits", apiKey: apiKey)
         let response: PersonCreditsResponse = try await performRequest(url: url)
         return response.cast
-    }
-
-    func fetchPersonCredits(for id: Int, completion: @escaping ([PersonCredit]) -> Void) {
-        Task {
-            do {
-                let credits = try await fetchPersonCredits(for: id)
-                await MainActor.run { completion(credits) }
-            } catch {
-                await MainActor.run { completion([]) }
-            }
-        }
     }
 
     // MARK: - Discover
@@ -207,17 +130,6 @@ final class TMDBService {
         return Self.page(from: response, requested: page)
     }
 
-    func fetchDiscover(query: DiscoverQuery, page: Int, completion: @escaping (MediaPage?) -> Void) {
-        Task {
-            do {
-                let pageResult = try await fetchDiscover(query: query, page: page)
-                await MainActor.run { completion(pageResult) }
-            } catch {
-                await MainActor.run { completion(nil) }
-            }
-        }
-    }
-
     // MARK: - Popular Movies
 
     func fetchPopularMovies(page: Int) async throws -> MediaPage {
@@ -228,17 +140,6 @@ final class TMDBService {
         )
         let response: MovieResponse = try await performRequest(url: url)
         return Self.page(from: response, requested: page)
-    }
-
-    func fetchPopularMovies(page: Int, completion: @escaping (MediaPage?) -> Void) {
-        Task {
-            do {
-                let pageResult = try await fetchPopularMovies(page: page)
-                await MainActor.run { completion(pageResult) }
-            } catch {
-                await MainActor.run { completion(nil) }
-            }
-        }
     }
 
     // MARK: - Search
@@ -255,17 +156,6 @@ final class TMDBService {
         )
         let response: MovieResponse = try await performRequest(url: url)
         return Self.page(from: response, requested: page)
-    }
-
-    func searchMovies(query: String, page: Int, completion: @escaping (MediaPage?) -> Void) {
-        Task {
-            do {
-                let pageResult = try await searchMovies(query: query, page: page)
-                await MainActor.run { completion(pageResult) }
-            } catch {
-                await MainActor.run { completion(nil) }
-            }
-        }
     }
 
     // MARK: - Helpers
