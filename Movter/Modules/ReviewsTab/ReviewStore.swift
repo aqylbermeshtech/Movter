@@ -9,22 +9,28 @@ import Foundation
 import FirebaseAuth
 
 /// Where a user's reviews live.
-///
-/// Completion-based even though the local store could answer synchronously: a remote
-/// backend can't, and a synchronous protocol would force every call site to change the
-/// day sync is added. Callbacks land on the main queue.
 protocol ReviewStoring: AnyObject {
+    // MARK: - Modern Async APIs
     /// Newest first.
-    func fetchAll(completion: @escaping (Result<[Review], Error>) -> Void)
+    func fetchAll() async throws -> [Review]
     /// Inserts, or replaces the existing review with the same `id`.
+    func save(_ review: Review) async throws
+    func delete(_ reviewID: UUID) async throws
+    func fetchReview(forTMDBID tmdbID: Int) async throws -> Review?
+
+    // MARK: - Backward-Compatible Completion APIs
+    func fetchAll(completion: @escaping (Result<[Review], Error>) -> Void)
     func save(_ review: Review, completion: @escaping (Result<Void, Error>) -> Void)
     func delete(_ reviewID: UUID, completion: @escaping (Result<Void, Error>) -> Void)
+    func fetchReview(forTMDBID tmdbID: Int, completion: @escaping (Result<Review?, Error>) -> Void)
 }
 
 extension ReviewStoring {
+    func fetchReview(forTMDBID tmdbID: Int) async throws -> Review? {
+        let reviews = try await fetchAll()
+        return reviews.first { $0.tmdbID == tmdbID }
+    }
 
-    /// Defaulted rather than required so a remote backend can override it with an
-    /// indexed query instead of fetching the whole diary.
     func fetchReview(forTMDBID tmdbID: Int, completion: @escaping (Result<Review?, Error>) -> Void) {
         fetchAll { result in
             completion(result.map { reviews in
@@ -37,17 +43,23 @@ extension ReviewStoring {
 /// The single place that picks the storage backend.
 enum ReviewStoreFactory {
     static func makeStore() -> ReviewStoring {
-        LocalReviewStore(userID: Auth.auth().currentUser?.uid)
+        LocalReviewStore()
     }
 }
 
-/// Reviews as a JSON file in Documents, one file per account so switching users can't
-/// expose the previous user's diary.
+/// Reviews as a JSON file in Documents, dynamically resolving per active user account so
+/// switching users can never expose the previous user's diary or cause session staleness.
 final class LocalReviewStore: ReviewStoring {
 
-    private let fileURL: URL
+    private let userIDProvider: () -> String?
     /// Serial: every operation rewrites the whole file.
     private let queue = DispatchQueue(label: "com.nurtore.movter.reviewstore")
+
+    private var fileURL: URL {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let userID = userIDProvider() ?? "local"
+        return documents.appendingPathComponent("reviews-\(userID).json")
+    }
 
     private let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
@@ -62,13 +74,67 @@ final class LocalReviewStore: ReviewStoring {
         return decoder
     }()
 
-    /// - Parameter userID: Firebase uid; nil falls back to a shared local file.
-    init(userID: String?) {
-        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        self.fileURL = documents.appendingPathComponent("reviews-\(userID ?? "local").json")
+    /// - Parameter userIDProvider: Evaluates active user ID dynamically (defaults to FirebaseAuth currentUser.uid).
+    init(userIDProvider: @escaping () -> String? = { Auth.auth().currentUser?.uid }) {
+        self.userIDProvider = userIDProvider
     }
 
-    // MARK: - ReviewStoring
+    convenience init(userID: String?) {
+        self.init(userIDProvider: { userID })
+    }
+
+    // MARK: - Modern Async APIs
+
+    func fetchAll() async throws -> [Review] {
+        try await withCheckedThrowingContinuation { continuation in
+            queue.async {
+                do {
+                    let reviews = try self.readFromDisk().sorted { $0.updatedAt > $1.updatedAt }
+                    continuation.resume(returning: reviews)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    func save(_ review: Review) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            mutate(completion: { result in
+                switch result {
+                case .success:
+                    continuation.resume()
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }) { reviews in
+                var updated = review
+                updated.updatedAt = Date()
+                if let index = reviews.firstIndex(where: { $0.id == review.id }) {
+                    reviews[index] = updated
+                } else {
+                    reviews.append(updated)
+                }
+            }
+        }
+    }
+
+    func delete(_ reviewID: UUID) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            mutate(completion: { result in
+                switch result {
+                case .success:
+                    continuation.resume()
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }) { reviews in
+                reviews.removeAll { $0.id == reviewID }
+            }
+        }
+    }
+
+    // MARK: - Completion-based APIs
 
     func fetchAll(completion: @escaping (Result<[Review], Error>) -> Void) {
         queue.async {
@@ -115,17 +181,18 @@ final class LocalReviewStore: ReviewStoring {
     }
 
     private func readFromDisk() throws -> [Review] {
-        // Missing file is the first-launch state, not a failure.
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return [] }
-        let data = try Data(contentsOf: fileURL)
+        let targetURL = fileURL
+        guard FileManager.default.fileExists(atPath: targetURL.path) else { return [] }
+        let data = try Data(contentsOf: targetURL)
         guard !data.isEmpty else { return [] }
         return try decoder.decode([Review].self, from: data)
     }
 
     private func writeToDisk(_ reviews: [Review]) throws {
+        let targetURL = fileURL
         let data = try encoder.encode(reviews)
         // Atomic: a crash mid-write leaves the previous file intact rather than a
         // truncated one that fails to decode.
-        try data.write(to: fileURL, options: .atomic)
+        try data.write(to: targetURL, options: .atomic)
     }
 }

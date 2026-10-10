@@ -5,67 +5,78 @@
 //  Created by Nurtore on 21.08.2026.
 //
 
+import Foundation
 import UIKit
 
 final class ReviewsListViewModel {
-
-    var onChange: (() -> Void)?
-    var onError: ((String) -> Void)?
-
+    // MARK: - State & Output
+    private(set) var state: ViewState<[Review]> = .idle {
+        didSet {
+            onStateChange?(state)
+        }
+    }
+    
+    var onStateChange: ((ViewState<[Review]>) -> Void)?
     private let store: ReviewStoring
     private(set) var reviews: [Review] = []
-
-    init(store: ReviewStoring) {
+    init(store: ReviewStoring = ReviewStoreFactory.makeStore()) {
         self.store = store
     }
-
+    
     var isEmpty: Bool { reviews.isEmpty }
-
     var summaryText: String? {
         guard !reviews.isEmpty else { return nil }
         let average = Double(reviews.reduce(0) { $0 + $1.score }) / Double(reviews.count)
         let filmCount = "\(reviews.count) film\(reviews.count == 1 ? "" : "s")"
         return String(format: "%@  ·  %.1f average", filmCount, average)
     }
-
+    
+    // MARK: - Actions
     func load() {
-        store.fetchAll { [weak self] result in
+        state = .loading
+        Task { [weak self] in
             guard let self = self else { return }
-            switch result {
-            case let .success(reviews):
-                self.reviews = reviews
-                self.onChange?()
-            case let .failure(error):
-                self.onError?(error.localizedDescription)
+            do {
+                let fetched = try await self.store.fetchAll()
+                await MainActor.run {
+                    self.reviews = fetched
+                    if fetched.isEmpty {
+                        self.state = .empty(message: "No reviews yet. Rate a film to add your first review!")
+                    } else {
+                        self.state = .loaded(fetched)
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.state = .failure(message: error.localizedDescription)
+                }
             }
         }
     }
-
+    
     func review(at indexPath: IndexPath) -> Review? {
         reviews[safe: indexPath.row]
     }
-
-    func delete(at indexPath: IndexPath, completion: @escaping (Bool) -> Void) {
-        guard let review = review(at: indexPath) else {
-            completion(false)
-            return
-        }
-        // Optimistic: a failed write reloads from disk and puts the row back.
+    
+    func delete(at indexPath: IndexPath) {
+        guard let review = review(at: indexPath) else { return }
+        let originalReviews = reviews
         reviews.remove(at: indexPath.row)
-
-        store.delete(review.id) { [weak self] result in
+        state = reviews.isEmpty ? .empty(message: "No reviews yet.") : .loaded(reviews)
+        Task { [weak self] in
             guard let self = self else { return }
-            switch result {
-            case .success:
-                completion(true)
-            case let .failure(error):
-                self.onError?(error.localizedDescription)
-                self.load()
-                completion(false)
+            do {
+                try await self.store.delete(review.id)
+            } catch {
+                await MainActor.run {
+                    // Rollback on failure
+                    self.reviews = originalReviews
+                    self.state = .failure(message: "Failed to delete review: \(error.localizedDescription)")
+                }
             }
         }
     }
-
+    
     func makeEditorViewModel(for review: Review?) -> ReviewEditorViewModel {
         ReviewEditorViewModel(
             store: store,

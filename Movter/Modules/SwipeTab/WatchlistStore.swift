@@ -11,14 +11,16 @@ import FirebaseAuth
 /// Where a list of saved films lives — the watchlist, and the films marked watched.
 /// Both are the same shape (a film plus the date it was added to the list), so they
 /// share this protocol and differ only in which file they read.
-///
-/// Completion-based even though the local store could answer synchronously: a remote
-/// backend can't, and a synchronous protocol would force every call site to change the
-/// day sync is added. Callbacks land on the main queue.
 protocol WatchlistStoring: AnyObject {
+    // MARK: - Modern Async APIs
     /// Newest first.
-    func fetchAll(completion: @escaping (Result<[WatchlistItem], Error>) -> Void)
+    func fetchAll() async throws -> [WatchlistItem]
     /// Inserts, or replaces the existing entry for the same film.
+    func save(_ item: WatchlistItem) async throws
+    func delete(_ itemID: UUID) async throws
+
+    // MARK: - Backward-Compatible Completion APIs
+    func fetchAll(completion: @escaping (Result<[WatchlistItem], Error>) -> Void)
     func save(_ item: WatchlistItem, completion: @escaping (Result<Void, Error>) -> Void)
     func delete(_ itemID: UUID, completion: @escaping (Result<Void, Error>) -> Void)
 }
@@ -26,7 +28,7 @@ protocol WatchlistStoring: AnyObject {
 /// The single place that picks the storage backend.
 enum WatchlistStoreFactory {
     static func makeStore() -> WatchlistStoring {
-        LocalWatchlistStore(userID: Auth.auth().currentUser?.uid)
+        LocalWatchlistStore()
     }
 }
 
@@ -37,17 +39,24 @@ enum WatchlistStoreFactory {
 /// seen this film", and only the second is worth counting or listing.
 enum WatchedFilmsStoreFactory {
     static func makeStore() -> WatchlistStoring {
-        LocalWatchlistStore(userID: Auth.auth().currentUser?.uid, listName: "watched")
+        LocalWatchlistStore(listName: "watched")
     }
 }
 
-/// Watchlist entries as a JSON file in Documents, one file per account so switching
-/// users can't expose the previous user's list.
+/// Watchlist entries as a JSON file in Documents, dynamically resolving per active user account so
+/// switching users can never expose the previous user's list or cause session staleness.
 final class LocalWatchlistStore: WatchlistStoring {
 
-    private let fileURL: URL
+    private let listName: String
+    private let userIDProvider: () -> String?
     /// Serial: every operation rewrites the whole file.
     private let queue = DispatchQueue(label: "com.nurtore.movter.watchliststore")
+
+    private var fileURL: URL {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let userID = userIDProvider() ?? "local"
+        return documents.appendingPathComponent("\(listName)-\(userID).json")
+    }
 
     private let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
@@ -62,15 +71,67 @@ final class LocalWatchlistStore: WatchlistStoring {
         return decoder
     }()
 
-    /// - Parameter userID: Firebase uid; nil falls back to a shared local file.
-    /// - Parameter listName: which list this instance backs, and so which file. Two
-    ///   lists of the same shape rather than two near-identical store classes.
-    init(userID: String?, listName: String = "watchlist") {
-        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        self.fileURL = documents.appendingPathComponent("\(listName)-\(userID ?? "local").json")
+    /// - Parameter listName: which list this instance backs ("watchlist" or "watched").
+    /// - Parameter userIDProvider: Evaluates active user ID dynamically (defaults to FirebaseAuth currentUser.uid).
+    init(listName: String = "watchlist", userIDProvider: @escaping () -> String? = { Auth.auth().currentUser?.uid }) {
+        self.listName = listName
+        self.userIDProvider = userIDProvider
     }
 
-    // MARK: - WatchlistStoring
+    convenience init(userID: String?, listName: String = "watchlist") {
+        self.init(listName: listName, userIDProvider: { userID })
+    }
+
+    // MARK: - Modern Async APIs
+
+    func fetchAll() async throws -> [WatchlistItem] {
+        try await withCheckedThrowingContinuation { continuation in
+            queue.async {
+                do {
+                    let items = try self.readFromDisk().sorted { $0.addedAt > $1.addedAt }
+                    continuation.resume(returning: items)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    func save(_ item: WatchlistItem) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            mutate(completion: { result in
+                switch result {
+                case .success:
+                    continuation.resume()
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }) { items in
+                if let index = items.firstIndex(where: { $0.tmdbID == item.tmdbID }) {
+                    items[index] = item
+                } else {
+                    items.append(item)
+                }
+            }
+        }
+    }
+
+    func delete(_ itemID: UUID) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            mutate(completion: { result in
+                switch result {
+                case .success:
+                    continuation.resume()
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }) { items in
+                items.removeAll { $0.id == itemID }
+            }
+        }
+    }
+
+    // MARK: - Completion-based APIs
 
     func fetchAll(completion: @escaping (Result<[WatchlistItem], Error>) -> Void) {
         queue.async {
@@ -117,17 +178,18 @@ final class LocalWatchlistStore: WatchlistStoring {
     }
 
     private func readFromDisk() throws -> [WatchlistItem] {
-        // Missing file is the first-launch state, not a failure.
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return [] }
-        let data = try Data(contentsOf: fileURL)
+        let targetURL = fileURL
+        guard FileManager.default.fileExists(atPath: targetURL.path) else { return [] }
+        let data = try Data(contentsOf: targetURL)
         guard !data.isEmpty else { return [] }
         return try decoder.decode([WatchlistItem].self, from: data)
     }
 
     private func writeToDisk(_ items: [WatchlistItem]) throws {
+        let targetURL = fileURL
         let data = try encoder.encode(items)
         // Atomic: a crash mid-write leaves the previous file intact rather than a
         // truncated one that fails to decode.
-        try data.write(to: fileURL, options: .atomic)
+        try data.write(to: targetURL, options: .atomic)
     }
 }

@@ -92,6 +92,9 @@ public final class NetworkService: NetworkServiceProtocol {
             throw NetworkError.invalidResponse
         }
         guard (200...299).contains(http.statusCode) else {
+            if let apiError = NetworkError.fromResponseBody(data, statusCode: http.statusCode) {
+                throw apiError
+            }
             throw NetworkError.serverError(http.statusCode)
         }
         return (data, http)

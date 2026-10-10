@@ -124,10 +124,7 @@ final class ReviewsListViewController: UIViewController {
             skeletonView.bottomAnchor.constraint(equalTo: tableView.bottomAnchor)
         ])
 
-        viewModel.onChange = { [weak self] in self?.render() }
-        viewModel.onError = { [weak self] message in self?.presentError(message) }
-
-        skeletonView.beginLoading()
+        bindViewModel()
         viewModel.load()
     }
 
@@ -195,6 +192,33 @@ final class ReviewsListViewController: UIViewController {
         let alert = UIAlertController(title: "Something went wrong", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+    
+    private func bindViewModel() {
+        viewModel.onStateChange = { [weak self] state in
+            guard let self = self else { return }
+            switch state {
+            case .idle:
+                break
+            case .loading:
+                self.skeletonView.beginLoading()
+            case .loaded:
+                self.skeletonView.endLoading()
+                self.emptyStateView.isHidden = true
+                self.tableView.isHidden = false
+                self.tableView.reloadData()
+                self.updateSummaryHeader()
+            case .empty(let message):
+                self.skeletonView.endLoading()
+                self.tableView.isHidden = true
+                self.emptyStateView.isHidden = false
+                self.emptyBodyLabel.text = message
+                self.updateSummaryHeader()
+            case .failure(let error):
+                self.skeletonView.endLoading()
+                self.presentError(error)
+            }
+        }
     }
 }
 
@@ -269,10 +293,8 @@ extension ReviewsListViewController: UITableViewDataSource, UITableViewDelegate 
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in completion(false) })
         alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
             guard let self = self else { return }
-            self.viewModel.delete(at: indexPath) { success in
-                completion(success)
-                self.render()
-            }
+            self.viewModel.delete(at: indexPath)
+            completion(true)
         })
         present(alert, animated: true)
     }

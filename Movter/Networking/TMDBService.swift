@@ -8,7 +8,7 @@
 import Foundation
 import MovterNetwork
 
-//MARK: - Struct
+// MARK: - Structs
 struct MovieResponse: Codable {
     let results: [Media]
     /// TMDB caps paging at 500; without this the grid kept requesting pages forever.
@@ -28,7 +28,6 @@ struct VideoResponse: Codable {
 /// network layer — for all HTTP calls. No separate URLSession here.
 final class TMDBService {
     static let shared = TMDBService()
-    private let baseURL = "https://api.themoviedb.org/3"
 
     // Injected at build time from Config/Secrets.xcconfig (gitignored); see
     // Movter/Config/Secrets.xcconfig.example.
@@ -37,7 +36,7 @@ final class TMDBService {
     /// The SDK's unified network service handles the actual HTTP calls.
     private let networkService: NetworkServiceProtocol
 
-    private init(networkService: NetworkServiceProtocol = NetworkService.shared) {
+    init(networkService: NetworkServiceProtocol = NetworkService.shared) {
         self.networkService = networkService
     }
 
@@ -48,136 +47,248 @@ final class TMDBService {
         }
         return value
     }
-    
-    private func performRequest<T: Decodable>(urlString: String, completion: @escaping (T?) -> Void) {
-        guard let url = URL(string: urlString) else {
-            completion(nil)
-            return
+
+    // MARK: - Core Request Execution
+
+    func performRequest<T: Decodable>(url: URL) async throws -> T {
+        let request = URLRequest(url: url)
+        let (data, response) = try await networkService.plainRequest(request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
         }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            if let apiError = NetworkError.fromResponseBody(data, statusCode: httpResponse.statusCode) {
+                throw apiError
+            }
+            throw NetworkError.serverError(httpResponse.statusCode)
+        }
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            throw NetworkError.decodingFailed(error)
+        }
+    }
+
+    // MARK: - Videos
+
+    func fetchVideo(for id: Int, type: MediaType) async throws -> String? {
+        let url = try TMDBRequestBuilder.buildURL(path: "\(type.path)/\(id)/videos", apiKey: apiKey)
+        let response: VideoResponse = try await performRequest(url: url)
+        // Prefer an actual trailer, then any YouTube clip — TMDB also returns
+        // teasers, featurettes and clips under the same endpoint.
+        let trailer = response.results.first { $0.site == "YouTube" && $0.type == "Trailer" }
+                   ?? response.results.first { $0.site == "YouTube" }
+        return trailer?.key
+    }
+
+    func fetchVideo(for id: Int, type: MediaType, completion: @escaping (String?) -> Void) {
         Task {
             do {
-                let request = URLRequest(url: url)
-                let (data, _) = try await networkService.plainRequest(request)
-                let decoder = JSONDecoder()
-                decoder.keyDecodingStrategy = .convertFromSnakeCase
-                let result = try decoder.decode(T.self, from: data)
-                await MainActor.run { completion(result) }
+                let key = try await fetchVideo(for: id, type: type)
+                await MainActor.run { completion(key) }
             } catch {
-                print("Network/decoding error: \(error)")
                 await MainActor.run { completion(nil) }
             }
         }
     }
 
-    func fetchVideo(for id: Int, type: MediaType, completion: @escaping (String?) -> Void) {
-        let urlString = "\(baseURL)/\(type.path)/\(id)/videos?api_key=\(apiKey)"
-        performRequest(urlString: urlString) { (result: VideoResponse?) in
-            // Prefer an actual trailer, then any YouTube clip — TMDB also returns
-            // teasers, featurettes and clips under the same endpoint.
-            let trailer = result?.results.first { $0.site == "YouTube" && $0.type == "Trailer" }
-                       ?? result?.results.first { $0.site == "YouTube" }
-            completion(trailer?.key)
-        }
-    }
-    
+    // MARK: - Credits
+
     /// Cast and crew arrive on the same call, so this hands back the whole payload
     /// rather than the cast alone — the cast and crew screen needs both halves.
-    func fetchCredits(for id: Int, type: MediaType, completion: @escaping (MovieCredits?) -> Void) {
-        let urlString = "\(baseURL)/\(type.path)/\(id)/credits?api_key=\(apiKey)"
-        performRequest(urlString: urlString, completion: completion)
+    func fetchCredits(for id: Int, type: MediaType) async throws -> MovieCredits {
+        let url = try TMDBRequestBuilder.buildURL(path: "\(type.path)/\(id)/credits", apiKey: apiKey)
+        return try await performRequest(url: url)
     }
-    
+
+    func fetchCredits(for id: Int, type: MediaType, completion: @escaping (MovieCredits?) -> Void) {
+        Task {
+            do {
+                let credits = try await fetchCredits(for: id, type: type)
+                await MainActor.run { completion(credits) }
+            } catch {
+                await MainActor.run { completion(nil) }
+            }
+        }
+    }
+
+    // MARK: - Similar / Recommendations
+
     /// What to watch after this one. TMDB's recommendations come from what audiences
     /// actually went on to watch, so they lead; `similar` — matched on genre and
     /// keywords — is the fallback for titles nobody has recommendations for yet.
-    ///
-    /// Nil only when both requests fail. An empty list is a real answer.
-    func fetchSimilar(for id: Int, type: MediaType, completion: @escaping ([Media]?) -> Void) {
-        performRequest(urlString: relatedTitlesURL("recommendations", for: id, type: type)) { (recommended: MovieResponse?) in
-            if let results = recommended?.results, !results.isEmpty {
-                completion(results)
-                return
+    func fetchSimilar(for id: Int, type: MediaType) async throws -> [Media] {
+        let recURL = try TMDBRequestBuilder.buildURL(
+            path: "\(type.path)/\(id)/recommendations",
+            apiKey: apiKey,
+            queryItems: [URLQueryItem(name: "page", value: "1")]
+        )
+        do {
+            let recommended: MovieResponse = try await performRequest(url: recURL)
+            if !recommended.results.isEmpty {
+                return recommended.results
             }
-            self.performRequest(urlString: self.relatedTitlesURL("similar", for: id, type: type)) { (similar: MovieResponse?) in
-                guard let results = similar?.results else {
-                    completion(recommended == nil ? nil : [])
-                    return
-                }
-                completion(results)
+        } catch {
+            // If recommendations endpoint fails, fall through to similar.
+        }
+
+        let simURL = try TMDBRequestBuilder.buildURL(
+            path: "\(type.path)/\(id)/similar",
+            apiKey: apiKey,
+            queryItems: [URLQueryItem(name: "page", value: "1")]
+        )
+        let similar: MovieResponse = try await performRequest(url: simURL)
+        return similar.results
+    }
+
+    func fetchSimilar(for id: Int, type: MediaType, completion: @escaping ([Media]?) -> Void) {
+        Task {
+            do {
+                let similar = try await fetchSimilar(for: id, type: type)
+                await MainActor.run { completion(similar) }
+            } catch {
+                await MainActor.run { completion(nil) }
             }
         }
     }
 
-    private func relatedTitlesURL(_ path: String, for id: Int, type: MediaType) -> String {
-        "\(baseURL)/\(type.path)/\(id)/\(path)?api_key=\(apiKey)&language=en-US&page=1"
+    // MARK: - Genres
+
+    func fetchGenres(type: MediaType) async throws -> [GenreListResponse.Genre] {
+        let url = try TMDBRequestBuilder.buildURL(path: "genre/\(type.path)/list", apiKey: apiKey)
+        let response: GenreListResponse = try await performRequest(url: url)
+        return response.genres
     }
 
     func fetchGenres(type: MediaType, completion: @escaping ([GenreListResponse.Genre]?) -> Void) {
-        let urlString = "\(baseURL)/genre/\(type.path)/list?api_key=\(apiKey)&language=en-US"
-        performRequest(urlString: urlString) { (result: GenreListResponse?) in
-            completion(result?.genres)
+        Task {
+            do {
+                let genres = try await fetchGenres(type: type)
+                await MainActor.run { completion(genres) }
+            } catch {
+                await MainActor.run { completion(nil) }
+            }
         }
+    }
+
+    // MARK: - People
+
+    func fetchPersonDetails(for id: Int) async throws -> PersonDetails {
+        let url = try TMDBRequestBuilder.buildURL(path: "person/\(id)", apiKey: apiKey)
+        return try await performRequest(url: url)
     }
 
     func fetchPersonDetails(for id: Int, completion: @escaping (PersonDetails?) -> Void) {
-        let urlString = "\(baseURL)/person/\(id)?api_key=\(apiKey)&language=en-US"
-        performRequest(urlString: urlString, completion: completion)
+        Task {
+            do {
+                let details = try await fetchPersonDetails(for: id)
+                await MainActor.run { completion(details) }
+            } catch {
+                await MainActor.run { completion(nil) }
+            }
+        }
+    }
+
+    func fetchPersonCredits(for id: Int) async throws -> [PersonCredit] {
+        let url = try TMDBRequestBuilder.buildURL(path: "person/\(id)/combined_credits", apiKey: apiKey)
+        let response: PersonCreditsResponse = try await performRequest(url: url)
+        return response.cast
     }
 
     func fetchPersonCredits(for id: Int, completion: @escaping ([PersonCredit]) -> Void) {
-        let urlString = "\(baseURL)/person/\(id)/combined_credits?api_key=\(apiKey)&language=en-US"
-        performRequest(urlString: urlString) { (result: PersonCreditsResponse?) in
-            completion(result?.cast ?? [])
+        Task {
+            do {
+                let credits = try await fetchPersonCredits(for: id)
+                await MainActor.run { completion(credits) }
+            } catch {
+                await MainActor.run { completion([]) }
+            }
         }
     }
 
+    // MARK: - Discover
+
+    func fetchDiscover(query: DiscoverQuery, page: Int) async throws -> MediaPage {
+        var queryItems = query.queryItems
+        queryItems.append(URLQueryItem(name: "page", value: "\(page)"))
+        let url = try TMDBRequestBuilder.buildURL(path: query.path, apiKey: apiKey, queryItems: queryItems)
+        let response: MovieResponse = try await performRequest(url: url)
+        return Self.page(from: response, requested: page)
+    }
+
     func fetchDiscover(query: DiscoverQuery, page: Int, completion: @escaping (MediaPage?) -> Void) {
-        var components = URLComponents(string: baseURL + query.path)
-        components?.queryItems = query.queryItems + [
-            URLQueryItem(name: "page", value: "\(page)"),
-            URLQueryItem(name: "api_key", value: apiKey),
-            URLQueryItem(name: "language", value: "en-US")
-        ]
-        guard let urlString = components?.url?.absoluteString else {
-            completion(nil)
-            return
-        }
-        performRequest(urlString: urlString) { (result: MovieResponse?) in
-            completion(result.map { Self.page(from: $0, requested: page) })
+        Task {
+            do {
+                let pageResult = try await fetchDiscover(query: query, page: page)
+                await MainActor.run { completion(pageResult) }
+            } catch {
+                await MainActor.run { completion(nil) }
+            }
         }
     }
+
+    // MARK: - Popular Movies
+
+    /// Feeds the swipe deck. Plain `/movie/popular`, paginated the same way as
+    /// `fetchDiscover`/`searchMovies`.
+    func fetchPopularMovies(page: Int) async throws -> MediaPage {
+        let url = try TMDBRequestBuilder.buildURL(
+            path: "movie/popular",
+            apiKey: apiKey,
+            queryItems: [URLQueryItem(name: "page", value: "\(page)")]
+        )
+        let response: MovieResponse = try await performRequest(url: url)
+        return Self.page(from: response, requested: page)
+    }
+
+    func fetchPopularMovies(page: Int, completion: @escaping (MediaPage?) -> Void) {
+        Task {
+            do {
+                let pageResult = try await fetchPopularMovies(page: page)
+                await MainActor.run { completion(pageResult) }
+            } catch {
+                await MainActor.run { completion(nil) }
+            }
+        }
+    }
+
+    // MARK: - Search
+
+    func searchMovies(query: String, page: Int) async throws -> MediaPage {
+        let url = try TMDBRequestBuilder.buildURL(
+            path: "search/movie",
+            apiKey: apiKey,
+            queryItems: [
+                URLQueryItem(name: "query", value: query),
+                URLQueryItem(name: "page", value: "\(page)"),
+                URLQueryItem(name: "include_adult", value: "false")
+            ]
+        )
+        let response: MovieResponse = try await performRequest(url: url)
+        return Self.page(from: response, requested: page)
+    }
+
+    func searchMovies(query: String, page: Int, completion: @escaping (MediaPage?) -> Void) {
+        Task {
+            do {
+                let pageResult = try await searchMovies(query: query, page: page)
+                await MainActor.run { completion(pageResult) }
+            } catch {
+                await MainActor.run { completion(nil) }
+            }
+        }
+    }
+
+    // MARK: - Helpers
 
     /// TMDB refuses pages past 500 regardless of `total_pages`.
     private static func page(from response: MovieResponse, requested: Int) -> MediaPage {
         let cap = min(response.totalPages ?? requested, 500)
         return MediaPage(items: response.results, isLastPage: requested >= cap || response.results.isEmpty)
     }
-
-    /// Feeds the swipe deck. Plain `/movie/popular`, paginated the same way as
-    /// `fetchDiscover`/`searchMovies`.
-    func fetchPopularMovies(page: Int, completion: @escaping (MediaPage?) -> Void) {
-        let urlString = "\(baseURL)/movie/popular?page=\(page)&api_key=\(apiKey)&language=en-US"
-        performRequest(urlString: urlString) { (result: MovieResponse?) in
-            completion(result.map { Self.page(from: $0, requested: page) })
-        }
-    }
-
-    func searchMovies(query: String, page: Int, completion: @escaping (MediaPage?) -> Void) {
-        var components = URLComponents(string: baseURL + "/search/movie")
-        components?.queryItems = [
-            URLQueryItem(name: "query", value: query),
-            URLQueryItem(name: "page", value: "\(page)"),
-            URLQueryItem(name: "api_key", value: apiKey),
-            URLQueryItem(name: "language", value: "en-US"),
-            URLQueryItem(name: "include_adult", value: "false")
-        ]
-        guard let urlString = components?.url?.absoluteString else {
-            completion(nil)
-            return
-        }
-        performRequest(urlString: urlString) { (result: MovieResponse?) in
-            completion(result.map { Self.page(from: $0, requested: page) })
-        }
-    }
-
 }

@@ -24,19 +24,28 @@ protocol SeenFilmsStoring: AnyObject {
 
 enum SeenFilmsStoreFactory {
     static func makeStore() -> SeenFilmsStoring {
-        LocalSeenFilmsStore(userID: Auth.auth().currentUser?.uid)
+        LocalSeenFilmsStore()
     }
 }
 
-/// A flat `Set<Int>` in `UserDefaults`, one key per account — small enough that a JSON
-/// file (like `ReviewStore`/`WatchlistStore` use) would be overkill.
+/// A flat `Set<Int>` in `UserDefaults`, dynamic key per active account so switching accounts
+/// never exposes or pollutes swipe history.
 final class LocalSeenFilmsStore: SeenFilmsStoring {
 
-    private let defaultsKey: String
+    private let userIDProvider: () -> String?
     private let defaults = UserDefaults.standard
 
-    init(userID: String?) {
-        self.defaultsKey = "com.nurtore.movter.seenFilms.\(userID ?? "local")"
+    private var defaultsKey: String {
+        let userID = userIDProvider() ?? "local"
+        return "com.nurtore.movter.seenFilms.\(userID)"
+    }
+
+    init(userIDProvider: @escaping () -> String? = { Auth.auth().currentUser?.uid }) {
+        self.userIDProvider = userIDProvider
+    }
+
+    convenience init(userID: String?) {
+        self.init(userIDProvider: { userID })
     }
 
     func fetchIDs(completion: @escaping (Set<Int>) -> Void) {
