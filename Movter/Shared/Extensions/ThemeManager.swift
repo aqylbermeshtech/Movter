@@ -7,15 +7,11 @@
 
 import UIKit
 
-/// Which appearance the app runs in. That is the whole of the theme setting — the
-/// palette itself lives in the dynamic colours on `UIColor`, which resolve off whatever
-/// interface style this produces, so no screen has to ask which theme is current.
 enum AppTheme: String, CaseIterable {
     case system
     case light
     case dark
 
-    /// `.unspecified` is what hands the choice back to iOS.
     var userInterfaceStyle: UIUserInterfaceStyle {
         switch self {
         case .system: return .unspecified
@@ -40,8 +36,6 @@ final class ThemeManager {
 
     private let themeKey = "selected_app_theme"
 
-    /// Follow the device unless the user has said otherwise. A value saved by an older
-    /// build names an accent that no longer exists, so it fails to parse and lands here.
     private(set) var currentTheme: AppTheme = .system
 
     private init() {
@@ -59,8 +53,6 @@ final class ThemeManager {
         NotificationCenter.default.post(name: ThemeManager.themeDidChangeNotification, object: nil)
     }
 
-    /// Overriding the window's style is what makes the choice visible: every dynamic
-    /// colour below resolves against it, and UIKit re-renders the tree for free.
     func apply(to window: UIWindow) {
         window.overrideUserInterfaceStyle = currentTheme.userInterfaceStyle
         window.tintColor = .accent

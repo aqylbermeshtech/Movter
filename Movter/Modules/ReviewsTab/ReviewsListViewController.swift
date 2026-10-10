@@ -7,7 +7,6 @@
 
 import UIKit
 
-/// Every film the user has scored, newest first.
 final class ReviewsListViewController: UIViewController {
 
     private let viewModel: ReviewsListViewModel
@@ -82,8 +81,6 @@ final class ReviewsListViewController: UIViewController {
         view.backgroundColor = .canvas
         navigationItem.title = "Recent reviews"
         navigationController?.navigationBar.prefersLargeTitles = true
-        // Explicit rather than inherited: pushed onto a stack whose previous screen
-        // opted out, `.automatic` would inherit that and render inline.
         navigationItem.largeTitleDisplayMode = .always
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(
@@ -143,8 +140,6 @@ final class ReviewsListViewController: UIViewController {
         updateSummaryHeader()
     }
 
-    /// A table header rather than `navigationItem.prompt`, which sits outside the bar
-    /// and pushes the large title down.
     private func updateSummaryHeader() {
         guard let summary = viewModel.summaryText else {
             tableView.tableHeaderView = nil
@@ -164,7 +159,6 @@ final class ReviewsListViewController: UIViewController {
             return view
         }()
 
-        // Header views size from their frame, not constraints.
         container.frame = CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 40)
         container.layoutIfNeeded()
         tableView.tableHeaderView = container
@@ -241,15 +235,12 @@ extension ReviewsListViewController: UITableViewDataSource, UITableViewDelegate 
         return cell
     }
 
-    /// A tap opens the ticket, not the editor. These are films you have already logged
-    /// — looking one up is the common intent, and changing the score you gave it is not.
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         guard let review = viewModel.review(at: indexPath) else { return }
         showTicket(for: review)
     }
 
-    /// Editing keeps a home on the row, opposite Delete, rather than in the tap.
     func tableView(
         _ tableView: UITableView,
         leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath
@@ -277,8 +268,7 @@ extension ReviewsListViewController: UITableViewDataSource, UITableViewDelegate 
         delete.backgroundColor = .destructive
         return UISwipeActionsConfiguration(actions: [delete])
     }
-
-    /// No undo behind this, so the swipe confirms first.
+    
     private func confirmDelete(at indexPath: IndexPath, completion: @escaping (Bool) -> Void) {
         guard let review = viewModel.review(at: indexPath) else {
             completion(false)

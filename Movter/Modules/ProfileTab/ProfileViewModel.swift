@@ -22,7 +22,6 @@ struct ProfileOption {
     let title: String
     let iconName: String
     let type: ProfileOptionType
-    /// Right-hand detail text, e.g. the theme currently selected.
     var detail: String?
 }
 
@@ -33,11 +32,9 @@ struct ProfileSection {
 
 final class ProfileViewModel {
 
-    /// Points at the data provider's until the app publishes its own.
     static let privacyPolicyURL = URL(string: "https://www.themoviedb.org/privacy-policy")!
 
     var onNavigationRequired: ((ProfileOptionType) -> Void)?
-    /// Each count lands separately, so the header redraws as they arrive.
     var onStatsChange: (() -> Void)?
 
     private let watchlistStore: WatchlistStoring
@@ -63,8 +60,6 @@ final class ProfileViewModel {
     private(set) var reviewsCount = 0
     private(set) var watchlistCount = 0
 
-    /// Three independent stores, so three independent requests — each one publishes as
-    /// it lands rather than the header waiting on the slowest.
     func loadStats() {
         watchedStore.fetchAll { [weak self] result in
             if case let .success(items) = result { self?.watchedCount = items.count }
@@ -81,7 +76,6 @@ final class ProfileViewModel {
     }
 
     private func publishStats() {
-        // The watchlist row carries its count, so the rows move with the numbers.
         rebuildSections()
         onStatsChange?()
     }
@@ -91,7 +85,6 @@ final class ProfileViewModel {
     var userName: String {
         let displayName = user?.displayName?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let displayName = displayName, !displayName.isEmpty { return displayName }
-        // Something recognisable, rather than a generic "User".
         if let emailName = user?.email?.split(separator: "@").first { return String(emailName) }
         return "Your Profile"
     }
@@ -100,7 +93,6 @@ final class ProfileViewModel {
         InitialsAvatar.image(name: user?.displayName, email: user?.email, size: 200)
     }
 
-    /// "Member since August 2026", from real account metadata.
     var memberSinceText: String? {
         guard let created = user?.metadata.creationDate else { return nil }
         let formatter = DateFormatter()
@@ -120,7 +112,6 @@ final class ProfileViewModel {
                     title: "My Watchlist",
                     iconName: "bookmark",
                     type: .watchlist,
-                    // Nothing rather than a "0" for an empty watchlist.
                     detail: watchlistCount > 0 ? "\(watchlistCount)" : nil
                 ),
                 ProfileOption(title: "Edit Profile", iconName: "person.crop.circle", type: .editProfile)

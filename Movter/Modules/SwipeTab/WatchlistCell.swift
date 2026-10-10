@@ -7,7 +7,6 @@
 
 import UIKit
 
-/// One saved film: poster, title, and when it was added.
 final class WatchlistCell: UITableViewCell {
 
     static let identifier = "WatchlistCell"
@@ -98,8 +97,6 @@ final class WatchlistCell: UITableViewCell {
         }
     }
 
-    /// `RelativeDateTimeFormatter` renders a near-zero interval as "in 0 seconds" —
-    /// future tense on an item just added.
     private static func dateText(for date: Date) -> String {
         let secondsAgo = Date().timeIntervalSince(date)
         guard secondsAgo >= 60 else { return "just now" }

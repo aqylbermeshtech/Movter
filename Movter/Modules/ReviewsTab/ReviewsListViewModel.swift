@@ -69,7 +69,6 @@ final class ReviewsListViewModel {
                 try await self.store.delete(review.id)
             } catch {
                 await MainActor.run {
-                    // Rollback on failure
                     self.reviews = originalReviews
                     self.state = .failure(message: "Failed to delete review: \(error.localizedDescription)")
                 }

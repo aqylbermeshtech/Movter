@@ -2,10 +2,6 @@
 //  UseCaseBuilder.swift
 //  MentorDomain
 //
-//  Единый builder для создания всех UseCases.
-//  Собирает полную цепочку зависимостей: DataSource → Repository → UseCase
-//  Возвращает ТОЛЬКО готовые UseCases.
-//
 
 import Foundation
 public final class UseCaseBuilder {

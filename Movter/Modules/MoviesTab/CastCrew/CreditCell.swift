@@ -7,13 +7,11 @@
 
 import UIKit
 
-/// A person in the cast and crew list: headshot, name, and what they did on the title.
 final class CreditCell: UITableViewCell {
 
     static let identifier = "CreditCell"
     static let rowHeight: CGFloat = 74
 
-    /// Guards against a slow headshot landing in a cell that has been reused.
     private var profileURL: URL?
 
     private let profileImageView: UIImageView = {

@@ -222,7 +222,6 @@ final class ActorViewController: UIViewController {
         profileImageView.contentMode = .center
     }
 
-    /// True when the biography needs more room than the collapsed line limit allows.
     private var isBiographyTruncated: Bool {
         guard let text = biographyLabel.text, biographyLabel.bounds.width > 0 else { return true }
         let bounding = (text as NSString).boundingRect(
@@ -266,8 +265,6 @@ final class ActorViewController: UIViewController {
 
         view.addSubview(scrollView)
         scrollView.translatesAutoresizingMaskIntoConstraints = false
-        // Safe-area inset has to become content inset, or the last row sits under the
-        // tab bar.
         scrollView.contentInsetAdjustmentBehavior = .always
         scrollView.addSubview(stack)
         view.addSubview(loadingIndicator)

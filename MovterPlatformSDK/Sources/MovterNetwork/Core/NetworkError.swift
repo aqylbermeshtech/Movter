@@ -72,22 +72,16 @@ public enum NetworkError: Error, LocalizedError {
         statusCode == 401
     }
 
-    /// Machine readable code the backend puts in `error.code`, used to tell apart
-    /// outcomes that share a status code such as `RATE_LIMIT_EXCEEDED` and `AI_QUOTA_EXCEEDED`.
     public var apiCode: String? {
         guard case let .apiError(_, _, code, _, _) = self else { return nil }
         return code
     }
 
-    /// Fields the backend named as missing, for example the sections a user profile
-    /// still needs before it can be completed.
     public var apiFields: [String] {
         guard case let .apiError(_, _, _, fields, _) = self else { return [] }
         return fields
     }
 
-    /// Free-form diagnostic text from `error.details`; never a branching key and never
-    /// shown to the user, it only makes a report or a log line readable.
     public var apiDetails: String? {
         guard case let .apiError(_, _, _, _, details) = self else { return nil }
         let trimmed = details?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -110,7 +104,6 @@ public enum NetworkError: Error, LocalizedError {
         }
     }
 
-    /// Extracts error message from response body (supporting TMDb's `status_message` and standard REST payloads).
     public static func fromResponseBody(_ data: Data?, statusCode: Int) -> NetworkError? {
         guard let data, !data.isEmpty else { return nil }
         if let decoded = try? JSONDecoder().decode(GenericErrorResponse.self, from: data) {

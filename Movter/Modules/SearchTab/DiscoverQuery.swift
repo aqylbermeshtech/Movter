@@ -7,8 +7,6 @@
 
 import Foundation
 
-/// A browse selection turned into a real TMDB request. Unsupported selections return
-/// nil so the screen can say so, rather than showing an unfiltered catalogue.
 struct DiscoverQuery {
 
     let path: String
@@ -23,16 +21,12 @@ struct DiscoverQuery {
         DiscoverQuery("/discover/movie", items.map { URLQueryItem(name: $0.key, value: $0.value) })
     }
 
-    /// The home screen's default feed, and what its "See all" opens.
     static let trendingToday = DiscoverQuery("/trending/movie/day")
 
-    /// A single genre by id, for the chip rows — `MovieGenre` carries TMDB's ids.
     static func genre(id: Int) -> DiscoverQuery {
         discover(["with_genres": "\(id)", "sort_by": "popularity.desc"])
     }
 
-    /// Animation made in Japanese. TMDB has no anime genre, and the language is what
-    /// separates it from Western animation under the one id they share.
     static let anime = discover([
         "with_genres": "16",
         "with_original_language": "ja",
@@ -56,7 +50,6 @@ struct DiscoverQuery {
     // MARK: - Categories
 
     private static func releaseDate(_ value: String) -> DiscoverQuery? {
-        // TMDB coerces "2020s" to the year 2020, so a decade needs an explicit range.
         if value.hasSuffix("s"), let start = Int(value.dropLast()) {
             return discover([
                 "primary_release_date.gte": "\(start)-01-01",
@@ -92,7 +85,6 @@ struct DiscoverQuery {
         case "Top 250 Movies", "TMDB Top Rated":
             return DiscoverQuery("/movie/top_rated")
         case "Critically Acclaimed":
-            // A high average is meaningless without volume behind it.
             return discover(["sort_by": "vote_average.desc", "vote_count.gte": "3000"])
         default: return nil
         }
@@ -126,7 +118,6 @@ struct DiscoverQuery {
                 "sort_by": "popularity.desc"
             ])
         case "Announced Projects":
-            // Far enough out that nothing has a firm release yet.
             return discover([
                 "primary_release_date.gte": isoDay(Date().addingTimeInterval(180 * 86_400)),
                 "sort_by": "popularity.desc"
@@ -141,7 +132,6 @@ struct DiscoverQuery {
             return discover(["with_companies": "420", "sort_by": "popularity.desc"])
         case "Christopher Nolan Collection":
             return discover(["with_crew": "525", "sort_by": "primary_release_date.desc"])
-        // No TMDB filter behind these; they'd need a curated list.
         default: return nil
         }
     }
@@ -149,7 +139,6 @@ struct DiscoverQuery {
     private static func official(_ value: String) -> DiscoverQuery? {
         switch value {
         case "TMDB Top Rated": return DiscoverQuery("/movie/top_rated")
-        // Not TMDB data, and no backend of our own to serve it.
         default: return nil
         }
     }

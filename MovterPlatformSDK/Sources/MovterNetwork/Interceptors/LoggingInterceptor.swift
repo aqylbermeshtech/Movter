@@ -31,13 +31,11 @@ public final class LoggingInterceptor: EventMonitor {
         logger.debug(line)
         mirrorDebugLog(line)
 
-        // Log headers in debug mode
         #if DEBUG
         if let headers = httpRequest?.allHTTPHeaderFields, !headers.isEmpty {
             logger.debug("Headers:")
             mirrorDebugLog("Headers:")
             for (key, value) in headers {
-                // Hide sensitive headers
                 if key.lowercased() == "authorization" {
                     let h = "   \(key): Bearer ***"
                     logger.debug(h)
@@ -50,7 +48,6 @@ public final class LoggingInterceptor: EventMonitor {
             }
         }
 
-        // Log body for POST/PUT requests
         if let httpBody = httpRequest?.httpBody,
            let method = httpRequest?.httpMethod,
            ["POST", "PUT", "PATCH"].contains(method) {
@@ -74,7 +71,6 @@ public final class LoggingInterceptor: EventMonitor {
         logger.debug(summary)
         mirrorDebugLog(summary)
 
-        // Log response data in debug mode
         #if DEBUG
         if let data = response.data,
            let responseString = String(data: data, encoding: .utf8) {

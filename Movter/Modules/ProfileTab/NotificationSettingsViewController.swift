@@ -53,8 +53,6 @@ final class NotificationSettingsViewController: UIViewController {
 
     @objc private func refreshAuthorizationStatus() {
         UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
-            // Read the enum out here: `UNNotificationSettings` is a non-Sendable class,
-            // so the object itself can't cross to the main actor — the status can.
             let status = settings.authorizationStatus
             DispatchQueue.main.async {
                 self?.authorizationStatus = status
@@ -150,7 +148,6 @@ extension NotificationSettingsViewController: UITableViewDelegate, UITableViewDa
 
             cell.accessoryView = toggle
             cell.selectionStyle = .none
-            // Dim the row so it's clear why the toggles don't respond.
             content.textProperties.color = isAuthorized ? .textPrimary : .textSecondary
         }
 

@@ -7,15 +7,10 @@
 
 import UIKit
 
-/// Compact score-and-opinion card for the details screen: the short form of
-/// `ReviewEditorViewController`, writing the same record to the same store.
 final class MiniReviewView: UIView {
 
-    /// Score and opinion text, once the user commits them.
     var onSave: ((Int, String) -> Void)?
-    /// Only ever called while a saved review exists — the button is disabled until then.
     var onSeeTicket: (() -> Void)?
-    /// Every change of the score control, including mid-drag.
     var onScoreChange: ((Int) -> Void)?
 
     private var hasExistingReview = false
@@ -55,8 +50,6 @@ final class MiniReviewView: UIView {
         textView.textContainerInset = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
         textView.delegate = self
         textView.translatesAutoresizingMaskIntoConstraints = false
-        // No accessory bar: the system Done item renders as a blue tick, and the owning
-        // screen already dismisses on drag, on tap-outside, and on Save.
         return textView
     }()
 
@@ -82,8 +75,6 @@ final class MiniReviewView: UIView {
         return button
     }()
 
-    /// Sits beside Save from the start, so the reward for writing a review is visible
-    /// before there is one — but there is nothing to print until the review is saved.
     private lazy var ticketButton: UIButton = {
         var config = UIButton.Configuration.filled()
         config.baseBackgroundColor = .canvas
@@ -150,7 +141,6 @@ final class MiniReviewView: UIView {
             stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
             stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -14),
 
-            // ~3 lines: a note, not the full editor.
             textView.heightAnchor.constraint(equalToConstant: 76),
             placeholderLabel.topAnchor.constraint(equalTo: textView.topAnchor, constant: 10),
             placeholderLabel.leadingAnchor.constraint(equalTo: textView.leadingAnchor, constant: 15)
@@ -170,7 +160,6 @@ final class MiniReviewView: UIView {
 
     // MARK: - Configuration
 
-    /// Shows an existing review, or an empty card.
     func configure(with review: Review?) {
         hasExistingReview = review != nil
         scorePicker.value = review?.score ?? 0
@@ -190,7 +179,6 @@ final class MiniReviewView: UIView {
 
         placeholderLabel.isHidden = !textView.text.isEmpty
 
-        // Same rule as the full editor: score required, words optional.
         let canSave = Review.scoreRange.contains(score)
         saveButton.isEnabled = canSave
         saveButton.configuration?.title = hasExistingReview ? "Update Review" : "Save Review"
@@ -199,8 +187,6 @@ final class MiniReviewView: UIView {
 
         statusLabel.isHidden = statusLabel.text == nil
 
-        // The button holds its place, but there is no ticket to print until the film
-        // has actually been logged.
         ticketButton.isEnabled = hasExistingReview
         ticketButton.configuration?.baseForegroundColor = hasExistingReview
             ? .textPrimary : .textSecondary
@@ -229,7 +215,6 @@ final class MiniReviewView: UIView {
     // MARK: - Actions
 
     @objc private func scoreChanged() {
-        // A change invalidates the "Saved" note.
         statusLabel.text = nil
         render()
         onScoreChange?(scorePicker.value)

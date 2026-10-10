@@ -39,8 +39,6 @@ final class AuthManager {
         }
     }
 
-    // Collapses credential errors into one message so a failed login can't enumerate
-    // registered emails. Other errors pass through — they leak nothing and read better.
     private static func genericLoginError(from error: Error) -> Error {
         let nsError = error as NSError
         guard let code = AuthErrorCode(rawValue: nsError.code) else { return error }

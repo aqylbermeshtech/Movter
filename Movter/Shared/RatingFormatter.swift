@@ -8,8 +8,6 @@
 import UIKit
 
 enum RatingFormatter {
-
-    /// `compact` drops the vote count for narrow contexts like a grid cell.
     static func attributedRating(
         _ state: RatingState,
         font: UIFont,
@@ -22,7 +20,6 @@ enum RatingFormatter {
             return scoreLine(score: score, font: font, textColor: textColor, starColor: starColor)
 
         case let .provisional(score, votes):
-            // Dimmed so a 10.0 off one vote doesn't read as loudly as a real one.
             let line = NSMutableAttributedString(attributedString: scoreLine(
                 score: score,
                 font: font,
@@ -50,9 +47,6 @@ enum RatingFormatter {
             return label(monthYearFormatter.string(from: releaseDate), font: font, symbol: "calendar")
         }
     }
-
-
-    /// "★ 7.9/10 · 2026 · Science Fiction"; missing pieces drop with their separator.
     static func metadataLine(
         state: RatingState,
         year: String?,
@@ -73,7 +67,6 @@ enum RatingFormatter {
         case .unrated:
             chips.append(label("Not rated", font: font))
         case .upcoming:
-            // The year already says "not out yet".
             break
         }
 
@@ -138,8 +131,6 @@ enum RatingFormatter {
         ))
         return result
     }
-
-    /// A non-score state: muted text, optionally led by an SF Symbol.
     private static func label(
         _ text: String,
         font: UIFont,
@@ -166,8 +157,6 @@ enum RatingFormatter {
         return result
     }
 
-    /// What a badge says in place of a score for a title that isn't out. The month when
-    /// TMDB has a date for it, and a plain "SOON" when all it has is an announcement.
     static func upcomingBadgeText(releaseDate: Date?) -> String {
         guard let releaseDate = releaseDate else { return "SOON" }
         return monthYearFormatter.string(from: releaseDate).uppercased()
@@ -181,9 +170,6 @@ enum RatingFormatter {
 }
 
 extension RatingFormatter {
-
-    /// The user's own score, as "★ 8/10". Unlike `attributedRating` it never dims —
-    /// a personal score has no vote count to hedge about.
     static func attributedPersonalScore(
         _ score: Int,
         font: UIFont,

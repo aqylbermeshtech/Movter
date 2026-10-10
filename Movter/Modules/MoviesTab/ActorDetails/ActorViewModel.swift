@@ -10,7 +10,6 @@ import Foundation
 final class ActorViewModel {
 
     private let actorId: Int
-    /// Lets the header render before the fetch lands.
     private let fallbackName: String
 
     private(set) var details: PersonDetails?
@@ -36,8 +35,7 @@ final class ActorViewModel {
         self.service = service
         self.monitor = monitor
     }
-
-    /// Reloads once a connection returns, if the first attempt came back empty.
+    
     func connectivityDidChange() {
         guard monitor.isOnline, credits.isEmpty else { return }
         hasLoaded = false
@@ -50,7 +48,6 @@ final class ActorViewModel {
 
     var profileURL: URL? { details?.profileURL }
 
-    /// "Acting · Born 30 January 1974 (age 52)" — each piece dropped when TMDB has no value.
     var subtitleText: String? {
         var parts: [String] = []
         if let department = details?.knownForDepartment, !department.isEmpty {
@@ -85,8 +82,6 @@ final class ActorViewModel {
     }
 
     var emptyFilmographyText: String {
-        // Offline first: "no credits listed" would be a claim about TMDB's data when the
-        // truth is that we never got to ask.
         if !monitor.isOnline { return "You're offline. Filmography loads when you reconnect." }
         return didFailToLoadDetails ? "Couldn’t load filmography." : "No credits listed for \(name) yet."
     }
@@ -150,7 +145,6 @@ final class ActorViewModel {
         }
     }
 
-    /// An actor can be credited twice on one title, so collapse by media id.
     private static func sortedUniqueCredits(from credits: [PersonCredit]) -> [PersonCredit] {
         var seen = Set<Int>()
         return credits

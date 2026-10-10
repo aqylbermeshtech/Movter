@@ -7,15 +7,9 @@
 
 import Foundation
 import FirebaseAuth
-
-/// Where a list of saved films lives — the watchlist, and the films marked watched.
-/// Both are the same shape (a film plus the date it was added to the list), so they
-/// share this protocol and differ only in which file they read.
 protocol WatchlistStoring: AnyObject {
     // MARK: - Modern Async APIs
-    /// Newest first.
     func fetchAll() async throws -> [WatchlistItem]
-    /// Inserts, or replaces the existing entry for the same film.
     func save(_ item: WatchlistItem) async throws
     func delete(_ itemID: UUID) async throws
 
@@ -25,31 +19,22 @@ protocol WatchlistStoring: AnyObject {
     func delete(_ itemID: UUID, completion: @escaping (Result<Void, Error>) -> Void)
 }
 
-/// The single place that picks the storage backend.
 enum WatchlistStoreFactory {
     static func makeStore() -> WatchlistStoring {
         LocalWatchlistStore()
     }
 }
 
-/// Films the user has said they actually watched.
-///
-/// Deliberately not `SeenFilmsStoring`, which records every card the swipe deck dealt
-/// including the rejections — that set answers "don't deal me this again", not "I have
-/// seen this film", and only the second is worth counting or listing.
 enum WatchedFilmsStoreFactory {
     static func makeStore() -> WatchlistStoring {
         LocalWatchlistStore(listName: "watched")
     }
 }
 
-/// Watchlist entries as a JSON file in Documents, dynamically resolving per active user account so
-/// switching users can never expose the previous user's list or cause session staleness.
 final class LocalWatchlistStore: WatchlistStoring {
 
     private let listName: String
     private let userIDProvider: () -> String?
-    /// Serial: every operation rewrites the whole file.
     private let queue = DispatchQueue(label: "com.nurtore.movter.watchliststore")
 
     private var fileURL: URL {
@@ -71,8 +56,6 @@ final class LocalWatchlistStore: WatchlistStoring {
         return decoder
     }()
 
-    /// - Parameter listName: which list this instance backs ("watchlist" or "watched").
-    /// - Parameter userIDProvider: Evaluates active user ID dynamically (defaults to FirebaseAuth currentUser.uid).
     init(listName: String = "watchlist", userIDProvider: @escaping () -> String? = { Auth.auth().currentUser?.uid }) {
         self.listName = listName
         self.userIDProvider = userIDProvider
@@ -141,8 +124,6 @@ final class LocalWatchlistStore: WatchlistStoring {
         }
     }
 
-    /// Dedupes by `tmdbID`, not `id` — re-liking a film already on the list updates
-    /// its timestamp in place rather than adding a second entry.
     func save(_ item: WatchlistItem, completion: @escaping (Result<Void, Error>) -> Void) {
         mutate(completion: completion) { items in
             if let index = items.firstIndex(where: { $0.tmdbID == item.tmdbID }) {
@@ -160,9 +141,6 @@ final class LocalWatchlistStore: WatchlistStoring {
     }
 
     // MARK: - Disk
-
-    /// Read-modify-write on the serial queue so concurrent saves can't clobber
-    /// each other.
     private func mutate(
         completion: @escaping (Result<Void, Error>) -> Void,
         _ changes: @escaping (inout [WatchlistItem]) -> Void
@@ -188,8 +166,6 @@ final class LocalWatchlistStore: WatchlistStoring {
     private func writeToDisk(_ items: [WatchlistItem]) throws {
         let targetURL = fileURL
         let data = try encoder.encode(items)
-        // Atomic: a crash mid-write leaves the previous file intact rather than a
-        // truncated one that fails to decode.
         try data.write(to: targetURL, options: .atomic)
     }
 }

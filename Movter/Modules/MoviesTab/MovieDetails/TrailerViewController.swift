@@ -7,10 +7,6 @@
 
 import UIKit
 import WebKit
-
-/// The trailer on a screen of its own, reached from the Trailer button on the details
-/// header. The player used to sit inline at the bottom of the details screen, where it
-/// competed with the rest of the page for the same scroll.
 final class TrailerViewController: UIViewController {
 
     private let filmTitle: String

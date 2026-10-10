@@ -7,8 +7,6 @@
 
 import UIKit
 
-/// The poster row under the home screen's hero carousel: a section title, a way into
-/// the full grid behind it, and the titles themselves.
 final class TrendingMediaGridView: UIView {
     var onMovieSelected: ((Media) -> Void)?
     var onSeeAllSelected: (() -> Void)?
@@ -34,14 +32,11 @@ final class TrendingMediaGridView: UIView {
         return button
     }()
 
-    /// Poster width in the carousel; everything else derives from it.
     private static let itemWidth: CGFloat = 128
-    /// Posters only — TMDB artwork is 2:3, so no caption means no spare height.
     private static let itemHeight: CGFloat = itemWidth * 1.5
     private static let titleHeight: CGFloat = 28
     private static let horizontalInset: CGFloat = 16
 
-    /// The height this section needs, for the caller laying it out.
     static var carouselSectionHeight: CGFloat { titleHeight + 12 + itemHeight }
 
     private lazy var collectionView: UICollectionView = {
@@ -60,9 +55,6 @@ final class TrendingMediaGridView: UIView {
 
     private let skeletonView = SkeletonGridView(style: .carousel(itemWidth: itemWidth))
 
-    /// Call when a fetch is issued; `update(with:)` ends it. The old row goes now rather
-    /// than when the response lands, or last genre's posters sit under the skeleton
-    /// while the new one loads.
     func beginLoading() {
         movies = []
         collectionView.reloadData()
@@ -149,8 +141,6 @@ extension TrendingMediaGridView: UICollectionViewDataSource, UICollectionViewDel
 // MARK: - Poster transition
 
 extension TrendingMediaGridView {
-
-    /// The poster for `id` is showing in this carousel, if it's scrolled into view.
     func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
         collectionView.mediaPosterAnchor(forMediaID: id) { [weak self] index in
             self?.movies[safe: index]?.id

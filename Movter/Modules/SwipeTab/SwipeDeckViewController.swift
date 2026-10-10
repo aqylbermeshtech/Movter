@@ -10,25 +10,17 @@ import UIKit
 final class SwipeDeckViewController: UIViewController {
 
     private static let maxVisibleCards = 3
-    /// Each card behind the front one steps down in scale, and its top edge pokes out
-    /// above the card in front of it — the classic "deck of cards" peek — with a
-    /// slight alternating tilt and fade so it reads as depth rather than a flat stack.
     private static let stackScaleStep: CGFloat = 0.06
     private static let stackOffsetStep: CGFloat = 20
     private static let stackAlphaStep: CGFloat = 0.08
-    /// Front-to-back, radians. Alternating sign so consecutive cards don't lean the
-    /// same way.
     private static let stackTilts: [CGFloat] = [0, -0.05, 0.035]
     private static let cardHorizontalInset: CGFloat = 20
-    /// Extra headroom above the front card so the peeking cards behind it have
-    /// somewhere to poke out into.
     private static let cardTopInset: CGFloat = 28
     private static let cardBottomInset: CGFloat = 96
 
     private let watchlistStore: WatchlistStoring
     private let viewModel: SwipeDeckViewModel
 
-    /// Front-to-back: index 0 is the interactive top card.
     private var cardViews: [SwipeCardView] = []
     private let posterTransition = PosterTransitionController()
 
@@ -44,17 +36,12 @@ final class SwipeDeckViewController: UIViewController {
     private let likeButton = SwipeDeckViewController.makeActionButton(systemImage: "heart.fill", tint: .accent)
 
     // MARK: - Placeholder cards
-    //
-    // Sit exactly where a real card would, same shape and size, rather than floating
-    // text over blank space — the deck never looks "broken", just paused.
 
     private lazy var emptyStateCard = SwipeDeckViewController.makePlaceholderCard(
         title: "You're all caught up",
         body: "Check back later for more films to swipe through."
     )
 
-    /// A third paused-card state, in the same shape as the other two: the deck can't
-    /// be dealt offline, and it refills itself once a connection returns.
     private lazy var offlineCard = SwipeDeckViewController.makePlaceholderCard(
         title: "You're offline",
         body: "The deck needs a connection. It'll start dealing as soon as you're back."
@@ -94,8 +81,6 @@ final class SwipeDeckViewController: UIViewController {
         navigationController?.navigationBar.standardAppearance = appearance
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
         navigationController?.navigationBar.tintColor = .textPrimary
-        // The watchlist is this tab's primary action, so it lives on the tab bar's
-        // action button rather than up here.
     }
 
     private func setupLayout() {
@@ -181,8 +166,6 @@ final class SwipeDeckViewController: UIViewController {
         card.onTapped = { [weak self] media in
             self?.showDetails(for: media)
         }
-        // New cards join the back of the stack, so they render under everything
-        // already there.
         cardContainer.insertSubview(card, at: 0)
         cardViews.append(card)
 
@@ -215,15 +198,11 @@ final class SwipeDeckViewController: UIViewController {
         guard !cardViews.isEmpty else { return }
         let swiped = cardViews.removeFirst()
         swiped.removeFromSuperview()
-        // Triggers `onQueueChange` -> `syncCardsFromQueue`, which appends the next
-        // card (if any) and re-lays-out the remaining stack.
         viewModel.consumeFrontCard(direction: direction)
     }
 
     private func updateEmptyState() {
         let sessionComplete = viewModel.isSessionComplete
-        // Offline outranks "ran out": with no connection the deck hasn't run out of
-        // films, it just can't reach them, and saying otherwise would be a lie.
         let offline = cardViews.isEmpty && viewModel.isOffline && !sessionComplete
         let ranOut = cardViews.isEmpty && viewModel.isExhausted && !sessionComplete && !offline
         offlineCard.isHidden = !offline
@@ -267,8 +246,6 @@ final class SwipeDeckViewController: UIViewController {
         present(alert, animated: true)
     }
 
-    /// Same shape and corner radius as `SwipeCardView`, so it sits in the stack as a
-    /// paused card rather than an empty gap.
     private static func makePlaceholderCard(title: String, body: String) -> UIView {
         let card = UIView()
         card.backgroundColor = .surface
@@ -339,10 +316,6 @@ extension SwipeDeckViewController: TabActionProviding {
 // MARK: - Poster transition
 
 extension SwipeDeckViewController: PosterTransitionSource {
-
-    /// Only the top card counts. The ones behind it are stacked, scaled and partly
-    /// covered, so flying a poster back into one would land it somewhere the viewer
-    /// never saw it.
     func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
         guard let top = cardViews.first, top.media.id == id else { return nil }
         return top.posterAnchor

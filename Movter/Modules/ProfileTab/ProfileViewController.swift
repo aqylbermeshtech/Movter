@@ -49,8 +49,6 @@ final class ProfileViewController: UIViewController {
         label.textColor = .textPrimary
         label.textAlignment = .center
         label.numberOfLines = 1
-        // The header is frame-sized, so any shortfall in its height has to come out of
-        // some subview. Never this one — a clipped name is worse than a tight header.
         label.setContentCompressionResistancePriority(.required, for: .vertical)
         return label
     }()
@@ -84,8 +82,6 @@ final class ProfileViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // Edit Profile may have changed the Firebase user, and the counts move whenever
-        // a film is rated, saved, or swiped past on another tab.
         configureData()
         viewModel.rebuildSections()
         tableView.reloadData()
@@ -95,11 +91,8 @@ final class ProfileViewController: UIViewController {
     private func setupNavigationBar() {
         navigationItem.title = "Profile"
         navigationController?.navigationBar.prefersLargeTitles = false
-        // Pushing the reviews list turns large titles on for this whole stack, and
-        // `prefersLargeTitles` above only runs once — so opt this screen out by mode.
         navigationItem.largeTitleDisplayMode = .never
 
-        // The system's grouped background doesn't match the graphite content.
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = .canvas
@@ -134,8 +127,6 @@ final class ProfileViewController: UIViewController {
                 reviews: self.viewModel.reviewsCount,
                 watchlist: self.viewModel.watchlistCount
             )
-            // Counts arriving can change the stats view's height, and the header is
-            // sized by frame — so it has to be measured again, not just redrawn.
             self.view.setNeedsLayout()
             self.tableView.reloadData()
         }
@@ -169,7 +160,6 @@ final class ProfileViewController: UIViewController {
         navigationController?.pushViewController(reviewsVC, animated: true)
     }
 
-    /// The same screen as the watchlist, over the other list and with its own words.
     private func showWatched() {
         let watchedVC = WatchlistListViewController(
             viewModel: WatchlistListViewModel(store: watchedStore, presentation: .watched)
@@ -177,7 +167,6 @@ final class ProfileViewController: UIViewController {
         navigationController?.pushViewController(watchedVC, animated: true)
     }
 
-    /// The same list the swipe deck opens, from the account that owns it.
     private func showWatchlist() {
         let watchlistVC = WatchlistListViewController(
             viewModel: WatchlistListViewModel(store: watchlistStore)
@@ -200,8 +189,6 @@ final class ProfileViewController: UIViewController {
     }
 
     private func confirmLogout() {
-        // `.alert`, not `.actionSheet`: as a centred popover a sheet drops its cancel
-        // action, leaving a destructive confirm with no way out.
         let alert = UIAlertController(
             title: "Log Out",
             message: "You'll need to sign in again to get back to your profile.",
@@ -235,8 +222,6 @@ final class ProfileViewController: UIViewController {
             preferredStyle: .actionSheet
         )
 
-        // No checkmark: the row's detail text already shows the active theme, and
-        // marking one would mean poking a private UIAlertAction key.
         for theme in AppTheme.allCases {
             alert.addAction(UIAlertAction(title: theme.displayName, style: .default) { [weak self] _ in
                 guard let self = self else { return }
@@ -249,7 +234,6 @@ final class ProfileViewController: UIViewController {
         presentCentred(alert)
     }
 
-    /// Action sheets need an anchor on iPad or they crash on presentation.
     private func presentCentred(_ alert: UIAlertController) {
         if let popover = alert.popoverPresentationController {
             popover.sourceView = view
@@ -274,7 +258,6 @@ final class ProfileViewController: UIViewController {
         headerView.addSubview(memberSinceLabel)
         headerView.addSubview(statsView)
 
-        // Inset to match the table's own cards, so the stats line up with the rows.
         NSLayoutConstraint.activate([
             avatarImageView.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 16),
             avatarImageView.centerXAnchor.constraint(equalTo: headerView.centerXAnchor),
@@ -304,9 +287,6 @@ final class ProfileViewController: UIViewController {
         sizeHeaderToFit()
     }
 
-    /// A table header sizes itself from its frame, not its constraints, so it has to be
-    /// measured and handed back — and only once the table has a real width, which it
-    /// does not have in `viewDidLoad`. Measuring there clipped the member-since line.
     private func sizeHeaderToFit() {
         guard let header = tableView.tableHeaderView, tableView.bounds.width > 0 else { return }
 
@@ -318,7 +298,6 @@ final class ProfileViewController: UIViewController {
 
         guard abs(header.frame.height - height) > 0.5 else { return }
         header.frame.size = CGSize(width: tableView.bounds.width, height: height)
-        // Reassigning is what makes the table adopt the new height.
         tableView.tableHeaderView = header
     }
 
@@ -359,7 +338,6 @@ extension ProfileViewController: UITableViewDelegate, UITableViewDataSource {
         let isDestructive = option.type == .logout
         let tint: UIColor = isDestructive ? .destructive : .textPrimary
 
-        // `valueCell` right-aligns the detail text and keeps the chevron.
         var content = option.detail == nil
             ? cell.defaultContentConfiguration()
             : UIListContentConfiguration.valueCell()
@@ -382,7 +360,6 @@ extension ProfileViewController: UITableViewDelegate, UITableViewDataSource {
         viewModel.didSelectOption(at: indexPath)
     }
 
-    /// Grouped-table headers default to a dark grey that disappears against graphite.
     func tableView(_ tableView: UITableView, willDisplayHeaderView view: UIView, forSection section: Int) {
         guard let header = view as? UITableViewHeaderFooterView else { return }
         header.textLabel?.textColor = .textSecondary
@@ -396,8 +373,6 @@ extension ProfileViewController: TabActionProviding {
 
     var tabActionSymbol: String { "pencil" }
     var tabActionLabel: String { "Edit profile" }
-
-    /// A shortcut to the row of the same name — the settings list still carries it.
     func performTabAction() {
         showEditProfile()
     }

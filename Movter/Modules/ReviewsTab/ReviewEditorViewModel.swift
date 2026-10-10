@@ -7,8 +7,6 @@
 
 import Foundation
 
-/// Backs both composing a new review and editing an existing one, so the validation
-/// rules can't drift apart.
 final class ReviewEditorViewModel {
 
     enum Mode {
@@ -77,12 +75,10 @@ final class ReviewEditorViewModel {
 
     var remainingCharactersText: String? {
         let remaining = Self.maxReviewLength - reviewText.count
-        // Only once it starts to matter.
         guard remaining <= 200 else { return nil }
         return "\(remaining) characters left"
     }
 
-    /// A film and a score are the record; the written review is optional.
     var canSave: Bool {
         hasFilm && Review.scoreRange.contains(score)
     }
@@ -122,7 +118,6 @@ final class ReviewEditorViewModel {
                 reviewText: reviewText.trimmingCharacters(in: .whitespacesAndNewlines)
             )
         case let .edit(existing):
-            // Same id and createdAt, so an edit updates in place.
             review = Review(
                 id: existing.id,
                 filmTitle: filmTitle,

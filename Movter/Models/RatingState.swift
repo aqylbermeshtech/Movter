@@ -15,8 +15,6 @@ enum RatingState {
 
     static let confidentVoteThreshold = 10
 
-    /// Not out yet — so there is no score, and "unrated" is the wrong thing to say
-    /// about it. Asked wherever a missing score has to explain itself.
     var isUpcoming: Bool {
         if case .upcoming = self { return true }
         return false

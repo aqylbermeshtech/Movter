@@ -11,17 +11,11 @@ final class MediaDetailsViewController: UIViewController {
 
     private let viewModel: MediaDetailsViewModel
     private let scrollView = UIScrollView()
-    /// Flies a poster from the "More Like This" row into the next details screen.
     private let posterTransition = PosterTransitionController()
-    /// True once the poster has scrolled up behind the navigation bar.
     private var isBarCollapsed = false
-    /// How much of the scroll view the keyboard currently covers.
     private var keyboardOverlap: CGFloat = 0
 
-    /// Opens straight into the trailer, for an entry point whose action was "play"
-    /// rather than "show me this film" — home's hero button.
     private let revealsTrailer: Bool
-    /// Guards that push to the first trailer to arrive; see `openTrailerIfRequested`.
     private var didRevealTrailer = false
 
     init(viewModel: MediaDetailsViewModel, revealsTrailer: Bool = false) {
@@ -34,8 +28,6 @@ final class MediaDetailsViewController: UIViewController {
         fatalError()
     }
 
-    /// Runs edge to edge and up behind the navigation bar, so it carries no corner
-    /// radius and sits outside the inset text stack.
     private let imageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
@@ -45,9 +37,6 @@ final class MediaDetailsViewController: UIViewController {
         return iv
     }()
 
-    /// The way into the trailer, beside the title where the artwork it belongs to is.
-    /// Hidden until a trailer is known to exist — a button that leads to an empty
-    /// player is worse than no button.
     private lazy var trailerButton: UIButton = {
         var config = UIButton.Configuration.filled()
         config.cornerStyle = .capsule
@@ -71,8 +60,6 @@ final class MediaDetailsViewController: UIViewController {
         return button
     }()
 
-    /// Takes the film name's place at the top of the page: the poster carries the title,
-    /// and the header carries what you can do about it.
     private lazy var watchlistButton: UIButton = {
         var config = UIButton.Configuration.filled()
         config.cornerStyle = .capsule
@@ -84,9 +71,6 @@ final class MediaDetailsViewController: UIViewController {
         return button
     }()
 
-    /// The one thing you can tell the app about a film without writing anything. A
-    /// full-width bar under the review card, in the same shape as Save Review — the two
-    /// are the same kind of statement about a film you've seen.
     private lazy var watchedButton: UIButton = {
         var config = UIButton.Configuration.filled()
         config.cornerStyle = .medium
@@ -98,14 +82,11 @@ final class MediaDetailsViewController: UIViewController {
         return button
     }()
 
-    /// "★ 7.9/10 · 2026 · Science Fiction"
     private let metadataLabel: UILabel = {
         let label = UILabel()
         label.font = .metadata
         label.textColor = .textPrimary
         label.numberOfLines = 1
-        // Shares its row with the watched button, so it has less width to shrink into
-        // than a full-width line would.
         label.adjustsFontSizeToFitWidth = true
         label.minimumScaleFactor = 0.65
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -153,9 +134,6 @@ final class MediaDetailsViewController: UIViewController {
         return iv
     }()
 
-    /// The section heading doubles as the way into the full credits. A control rather
-    /// than a tap gesture, so it disables itself when there is nothing behind it and
-    /// reads as a button to VoiceOver.
     private lazy var castHeaderView: UIControl = {
         let control = UIControl()
         control.addTarget(self, action: #selector(showCastAndCrew), for: .touchUpInside)
@@ -165,8 +143,6 @@ final class MediaDetailsViewController: UIViewController {
         control.accessibilityHint = "Shows the full cast and crew list"
         control.translatesAutoresizingMaskIntoConstraints = false
 
-        // Keeps the label and chevron together on the left instead of spreading the
-        // heading across the whole row.
         let spacer = UIView()
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
@@ -174,7 +150,6 @@ final class MediaDetailsViewController: UIViewController {
         row.axis = .horizontal
         row.spacing = 6
         row.alignment = .center
-        // The control takes the touch; the stack is only layout.
         row.isUserInteractionEnabled = false
         row.translatesAutoresizingMaskIntoConstraints = false
 
@@ -220,7 +195,6 @@ final class MediaDetailsViewController: UIViewController {
         return view
     }()
 
-    // Held as properties so the copy can switch between "empty" and "failed".
     private let castPlaceholderTitleLabel: UILabel = {
         let label = UILabel()
         label.font = .placeholderTitle
@@ -249,7 +223,6 @@ final class MediaDetailsViewController: UIViewController {
         container.translatesAutoresizingMaskIntoConstraints = false
 
         let config = UIImage.SymbolConfiguration(pointSize: 34, weight: .regular)
-        // person.2.slash is newer than this app's floor, so fall back to the plain glyph.
         let symbol = UIImage(systemName: "person.2.slash", withConfiguration: config)
             ?? UIImage(systemName: "person.2.fill", withConfiguration: config)
         let iconView = UIImageView(image: symbol)
@@ -297,8 +270,6 @@ final class MediaDetailsViewController: UIViewController {
         viewModel.fetchSimilar()
         viewModel.fetchGenre()
 
-        // The star is rasterised with the accent baked in, so it can't repaint itself
-        // when the theme changes the way a plain tinted view would.
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(themeDidChange),
@@ -358,7 +329,6 @@ final class MediaDetailsViewController: UIViewController {
         }
         viewModel.onReviewUpdate = { [weak self] in
             guard let self = self else { return }
-            // Don't overwrite the field mid-sentence if a reload lands while typing.
             guard !self.miniReviewView.isEditingOpinion else { return }
             self.miniReviewView.configure(with: self.viewModel.existingReview)
         }
@@ -369,7 +339,6 @@ final class MediaDetailsViewController: UIViewController {
             self.posterTransition.push(detailsVC, for: media, from: self)
         }
 
-        // Runs inside the reveal animation so the rest of the screen moves in step.
         descriptionView.onToggle = { [weak self] in
             self?.view.layoutIfNeeded()
         }
@@ -411,8 +380,6 @@ final class MediaDetailsViewController: UIViewController {
         viewModel.toggleWatchlist()
     }
 
-    /// Filled while the film is still on the list, quiet once it is — the opposite way
-    /// round from Mark as watched, whose invitation is the thing worth highlighting.
     private func renderWatchlistState() {
         let isInWatchlist = viewModel.isInWatchlist
         watchlistButton.configuration?.baseBackgroundColor = isInWatchlist ? .accent : .surface
@@ -429,8 +396,6 @@ final class MediaDetailsViewController: UIViewController {
             ? "In your watchlist. Double tap to remove." : "Add to watchlist"
     }
 
-    /// Filled while it is still an invitation and quiet once it has been taken — the
-    /// same way Save Review carries its own weight only while there is something to do.
     private func renderWatchedState() {
         let isWatched = viewModel.isWatched
         watchedButton.configuration?.baseBackgroundColor = isWatched ? .surface : .accent
@@ -453,8 +418,6 @@ final class MediaDetailsViewController: UIViewController {
     }
 
     private func renderCastState() {
-        // Only once the request has resolved — otherwise every title shows "no cast"
-        // for the frame between first layout and the response landing.
         let showPlaceholder = viewModel.hasLoadedActors && viewModel.actors.isEmpty
         castPlaceholderTitleLabel.text = viewModel.castPlaceholderTitle
         castPlaceholderSubtitleLabel.text = viewModel.castPlaceholderSubtitle
@@ -467,15 +430,12 @@ final class MediaDetailsViewController: UIViewController {
         castHeaderView.accessibilityTraits = viewModel.hasCredits ? .button : .header
     }
 
-    /// Cast and crew in full, on the same credits this screen already holds.
     @objc private func showCastAndCrew() {
         guard viewModel.hasCredits else { return }
         let castCrewVC = CastCrewViewController(viewModel: viewModel.makeCastCrewViewModel())
         navigationController?.pushViewController(castCrewVC, animated: true)
     }
-
-    /// An empty shelf is no shelf: the heading goes with it rather than standing over
-    /// a blank strip.
+    
     private func renderSimilar() {
         similarCarouselView.update(with: viewModel.similar)
         similarLabel.isHidden = !viewModel.hasSimilar
@@ -491,7 +451,6 @@ final class MediaDetailsViewController: UIViewController {
         )
     }
     
-    /// The stub for this film, once there is a review to print on it.
     private func showTicket() {
         guard let review = viewModel.existingReview else { return }
         let ticketVC = TicketViewController(review: review)
@@ -504,9 +463,6 @@ final class MediaDetailsViewController: UIViewController {
         navigationController?.pushViewController(trailerVC, animated: true)
     }
 
-    /// Home's hero "Play" opens this screen meaning "play it", so the trailer goes on
-    /// screen as soon as there is one. Only the first to arrive: pushing a player over
-    /// someone who has since started reading would be worse than not pushing at all.
     private func openTrailerIfRequested() {
         guard revealsTrailer, !didRevealTrailer, viewModel.trailerRequest != nil else { return }
         didRevealTrailer = true
@@ -514,23 +470,14 @@ final class MediaDetailsViewController: UIViewController {
     }
 
     private func setupUI() {
-        // The poster is pinned to the scroll view directly; only the text below it is
-        // inset, which is what lets the artwork run edge to edge.
         metadataLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        // The pair spans the content width, roughly 70/30 in the watchlist button's
-        // favour — it carries the longer label and is the more common thing to want.
-        // A hidden button drops out of a stack, so with no trailer the first one takes
-        // the whole row.
         let actionRow = UIStackView(arrangedSubviews: [watchlistButton, trailerButton])
         actionRow.axis = .horizontal
         actionRow.spacing = 10
         actionRow.alignment = .fill
         actionRow.distribution = .fill
 
-        // Just short of required: above the equal widths the stack fills with by
-        // default, but still under the trailer button's own text, so a narrow screen
-        // widens it rather than truncating the label to hold the ratio.
         let splitRatio = trailerButton.widthAnchor.constraint(
             equalTo: watchlistButton.widthAnchor, multiplier: 3.0 / 7.0
         )
@@ -559,20 +506,16 @@ final class MediaDetailsViewController: UIViewController {
         stack.spacing = 20
         stack.setCustomSpacing(10, after: reviewLabel)
         stack.setCustomSpacing(10, after: castHeaderView)
-        // Reads as part of the review card's business rather than a section of its own.
         stack.setCustomSpacing(12, after: miniReviewView)
         stack.setCustomSpacing(10, after: similarLabel)
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(scrollView)
         scrollView.translatesAutoresizingMaskIntoConstraints = false
-        // Content starts at the very top of the screen, under the status and nav bars.
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.delegate = self
         scrollView.keyboardDismissMode = .interactive
 
-        // `cancelsTouchesInView` stays false so this never swallows a tap meant for
-        // the synopsis, a cast member, or the trailer.
         let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboardOnTap))
         dismissTap.cancelsTouchesInView = false
         dismissTap.delegate = self
@@ -611,11 +554,7 @@ final class MediaDetailsViewController: UIViewController {
         updateScrollInsets()
     }
 
-    /// `contentInsetAdjustmentBehavior` is `.never`, so the bottom inset is ours to
-    /// maintain. One owner, so layout and the keyboard can't overwrite each other.
     private func updateScrollInsets() {
-        // The floating tab bar hangs over this screen too, so the last section has to be
-        // able to scroll clear of it — the same clearance the tab roots reserve.
         let bottom = max(view.safeAreaInsets.bottom + MainTabBarController.contentClearance, keyboardOverlap)
         guard scrollView.contentInset.bottom != bottom else { return }
         scrollView.contentInset.bottom = bottom
@@ -628,8 +567,6 @@ final class MediaDetailsViewController: UIViewController {
         keyboardOverlap = max(0, view.bounds.maxY - view.convert(frame, from: nil).minY)
         updateScrollInsets()
 
-        // Converted first: the card lives in the stack view, so its own `frame` is in
-        // the stack's coordinates and would scroll somewhere arbitrary.
         if miniReviewView.isEditingOpinion {
             let rect = scrollView.convert(miniReviewView.bounds, from: miniReviewView)
             scrollView.scrollRectToVisible(rect.insetBy(dx: 0, dy: -12), animated: true)
@@ -669,15 +606,12 @@ final class MediaDetailsViewController: UIViewController {
         bar.scrollEdgeAppearance = appearance
         bar.compactAppearance = appearance
         bar.tintColor = .textPrimary
-        // The title only earns its place once the poster (which carries the name) is gone.
         navigationItem.title = collapsed ? viewModel.title : nil
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // Transparent over the poster; collapses to opaque as it scrolls away.
         applyBarAppearance(collapsed: isBarCollapsed)
-        // Keeps the review card in step with edits made elsewhere.
         viewModel.loadReview()
         viewModel.loadWatchedState()
         viewModel.loadWatchlistState()
@@ -685,8 +619,6 @@ final class MediaDetailsViewController: UIViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        // The bar is shared with the rest of the tab, so hand it back opaque — this also
-        // covers pushing onward to the actor screen, not just popping back.
         let opaque = Self.opaqueBarAppearance()
         navigationController?.navigationBar.standardAppearance = opaque
         navigationController?.navigationBar.scrollEdgeAppearance = opaque
@@ -697,8 +629,6 @@ final class MediaDetailsViewController: UIViewController {
 extension MediaDetailsViewController: UIScrollViewDelegate {
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        // The cast collection view is also delegated to this object, and its horizontal
-        // scrolling must not drive the navigation bar.
         guard scrollView === self.scrollView else { return }
 
         let barBottom = view.safeAreaInsets.top + (navigationController?.navigationBar.bounds.height ?? 44)
@@ -737,8 +667,6 @@ extension MediaDetailsViewController: UICollectionViewDelegate, UICollectionView
 
 extension MediaDetailsViewController: UIGestureRecognizerDelegate {
 
-    /// Ignore taps inside the review card, or tapping the opinion field would end
-    /// editing in the same gesture meant to begin it.
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldReceive touch: UITouch
@@ -752,18 +680,11 @@ extension MediaDetailsViewController: UIGestureRecognizerDelegate {
 // MARK: - Poster transition
 
 extension MediaDetailsViewController: PosterTransitionSource {
-
-    /// The recommendation the tap started from, when it's still scrolled into view.
     func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
         similarCarouselView.transitionPoster(forMediaID: id)
     }
 }
 
 extension MediaDetailsViewController: PosterTransitionDestination {
-
-    /// The header artwork the tapped poster flies into. It sits at the top of the scroll
-    /// view's content rather than the screen, so once the view has scrolled this frame
-    /// travels with it — which is what lets the pop fly back out of wherever the poster
-    /// actually is, and what lets the transition bow out when it's scrolled away.
     var transitionPoster: UIImageView { imageView }
 }

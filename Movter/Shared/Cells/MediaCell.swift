@@ -10,8 +10,6 @@ import UIKit
 final class MediaCell: UICollectionViewCell {
     static let identifier = "MediaCell"
 
-    /// Guards against a slow poster landing in a cell that has been reused. Without it
-    /// a film scrolled past can paint its artwork over whatever took its place.
     private var posterURL: URL?
 
     private let imageView: UIImageView = {
@@ -40,9 +38,6 @@ final class MediaCell: UICollectionViewCell {
         return label
     }()
 
-    /// The score over the artwork, for carousels with no caption line to carry it.
-    /// White on a scrim rather than the accent: the accent inverts with the appearance,
-    /// and half of its range is invisible against a dark chip.
     private let ratingBadgeLabel: UILabel = {
         let label = UILabel()
         label.font = .badge
@@ -51,9 +46,6 @@ final class MediaCell: UICollectionViewCell {
         return label
     }()
 
-    /// Stands in for artwork TMDB hasn't got. A film with no release date yet usually
-    /// has no poster either, and "no artwork" is the wrong reason to give for that — so
-    /// an unreleased title says what it actually is instead of showing a film reel.
     private let placeholderIcon: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFit
@@ -132,8 +124,7 @@ final class MediaCell: UICollectionViewCell {
             stack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             imageView.heightAnchor.constraint(equalTo: stack.widthAnchor, multiplier: 1.5)
         ])
-
-        // Added before the badge so a score still reads over a placeholder.
+        
         contentView.addSubview(placeholderView)
         contentView.addSubview(ratingBadge)
         NSLayoutConstraint.activate([
@@ -150,21 +141,10 @@ final class MediaCell: UICollectionViewCell {
     }
 
     required init?(coder: NSCoder) { fatalError() }
-
-    /// The artwork alone, handed to the details transition to fly out of. The radius is
-    /// read off the layer so the flight can't drift out of step with the cell's own
-    /// rounding if that changes.
     var posterAnchor: PosterTransitionAnchor {
         PosterTransitionAnchor(view: imageView, cornerRadius: imageView.layer.cornerRadius)
     }
 
-    /// - Parameter showsCaption: false leaves just the poster, for the carousel.
-    ///   Hidden arranged subviews drop out of the stack, so the cell's height becomes
-    ///   the poster's alone.
-    /// - Parameter showsRatingBadge: puts the score on the artwork instead. A title that
-    ///   isn't out yet has no score to show, so it gets its release month there instead;
-    ///   one that is out but unvoted shows nothing, since neither a score nor a date
-    ///   would be true of it.
     func configure(with media: Media, showsCaption: Bool = true, showsRatingBadge: Bool = false) {
         titleLabel.isHidden = !showsCaption
         ratingLabel.isHidden = !showsCaption
@@ -213,14 +193,10 @@ final class MediaCell: UICollectionViewCell {
             ratingBadge.isHidden = false
 
         case .unrated:
-            // Out already, just not voted on. "Soon" would be a lie and an empty score
-            // chip says nothing, so the artwork carries the cell alone.
             ratingBadge.isHidden = true
         }
     }
 
-    /// Plenty of TMDB entries ship without artwork — talk-show credits especially, and
-    /// almost everything announced but not yet shot.
     private func showPosterPlaceholder(isUpcoming: Bool) {
         imageView.image = nil
         placeholderIcon.image = UIImage(

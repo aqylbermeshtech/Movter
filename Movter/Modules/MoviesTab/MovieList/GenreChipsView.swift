@@ -7,10 +7,6 @@
 
 import UIKit
 
-/// The home screen's genre filter: a scrolling row of chips, one of them always on.
-///
-/// Selection is a `MovieGenre` rather than an index, so the row and the feed under it
-/// can't disagree about what the third chip means.
 final class GenreChipsView: UIView {
 
     var onSelect: ((MovieGenre) -> Void)?
@@ -88,22 +84,17 @@ final class GenreChipsView: UIView {
     }
 
     private func handleTap(on genre: MovieGenre) {
-        // Re-tapping the current chip would only refetch what's already on screen.
         guard genre != selected else { return }
         select(genre)
         onSelect?(genre)
     }
-
-    /// Moves the selection without reporting it — for restoring state, where the feed
-    /// is being set up alongside rather than reacting to a tap.
+    
     func select(_ genre: MovieGenre) {
         selected = genre
         applyChipStyles()
         scrollSelectedIntoView()
     }
-
-    /// The chips are filled with `.accent`, which flips ends of the neutral ramp with
-    /// the appearance — so their colours are reapplied rather than left to resolve.
+    
     func updateTheme() {
         applyChipStyles()
     }
@@ -127,8 +118,7 @@ final class GenreChipsView: UIView {
 
     private func scrollSelectedIntoView() {
         guard let index = genres.firstIndex(of: selected), let chip = chips[safe: index] else { return }
-        // Laid out already for a tap; not yet on the first pass, where there is nothing
-        // to scroll to anyway.
+
         guard scrollView.bounds.width > 0 else { return }
         scrollView.scrollRectToVisible(
             chip.frame.insetBy(dx: -Self.horizontalInset, dy: 0),

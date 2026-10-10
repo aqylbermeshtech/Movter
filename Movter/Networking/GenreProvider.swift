@@ -15,8 +15,6 @@ struct GenreListResponse: Codable {
     let genres: [Genre]
 }
 
-/// Resolves `genre_ids` into names. TMDB's genre table is small and static, so it's
-/// fetched once per media type and kept for the process lifetime.
 final class GenreProvider {
 
     static let shared = GenreProvider()
@@ -31,7 +29,6 @@ final class GenreProvider {
     private var inFlight: [MediaType: [([Int: String]) -> Void]] = [:]
     private let queue = DispatchQueue(label: "GenreProvider", attributes: .concurrent)
 
-    /// First name only; TMDB orders them most-representative first.
     func primaryGenreName(for ids: [Int]?, type: MediaType, completion: @escaping (String?) -> Void) {
         guard let ids = ids, !ids.isEmpty else {
             completion(nil)
@@ -48,7 +45,6 @@ final class GenreProvider {
             return
         }
 
-        // Coalesce concurrent callers so a screenful of cells triggers one request.
         var shouldFetch = false
         queue.sync(flags: .barrier) {
             if inFlight[type] == nil {
@@ -65,7 +61,6 @@ final class GenreProvider {
 
             var waiting: [([Int: String]) -> Void] = []
             self.queue.sync(flags: .barrier) {
-                // Only cache a real answer, so a failed request retries next time.
                 if !table.isEmpty { self.cache[type] = table }
                 waiting = self.inFlight[type] ?? []
                 self.inFlight[type] = nil

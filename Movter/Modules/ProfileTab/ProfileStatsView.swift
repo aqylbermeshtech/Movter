@@ -7,12 +7,7 @@
 
 import UIKit
 
-/// What the account amounts to, in three numbers: films seen, films written about, and
-/// films still waiting. Sits where the avatar used to — a profile in this app is what
-/// you have watched, not what you look like.
 final class ProfileStatsView: UIView {
-
-    /// Each number is a way into the list behind it.
     enum Stat {
         case watched
         case reviews
@@ -79,7 +74,6 @@ final class ProfileStatsView: UIView {
         return divider
     }
 
-    /// One number over its caption, and a tap target over both.
     private final class ColumnView: UIControl {
 
         var onTap: (() -> Void)?
@@ -91,7 +85,6 @@ final class ProfileStatsView: UIView {
             }
         }
 
-        /// The whole column dims, since the number and its caption are one thing.
         override var isHighlighted: Bool {
             didSet { alpha = isHighlighted ? 0.5 : 1 }
         }
@@ -101,9 +94,6 @@ final class ProfileStatsView: UIView {
             label.font = .statValue
             label.textColor = .textPrimary
             label.textAlignment = .center
-            // A blank line rather than no line: the counts arrive asynchronously, and a
-            // column that starts with no number would size the header short and then
-            // grow under it. Shows nothing, holds the full height.
             label.text = " "
             return label
         }()
@@ -132,7 +122,6 @@ final class ProfileStatsView: UIView {
             stack.axis = .vertical
             stack.alignment = .center
             stack.spacing = 2
-            // The labels must not eat the touch meant for the column.
             stack.isUserInteractionEnabled = false
             stack.translatesAutoresizingMaskIntoConstraints = false
             addSubview(stack)

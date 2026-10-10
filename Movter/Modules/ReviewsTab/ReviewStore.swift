@@ -8,12 +8,8 @@
 import Foundation
 import FirebaseAuth
 
-/// Where a user's reviews live.
 protocol ReviewStoring: AnyObject {
-    // MARK: - Modern Async APIs
-    /// Newest first.
     func fetchAll() async throws -> [Review]
-    /// Inserts, or replaces the existing review with the same `id`.
     func save(_ review: Review) async throws
     func delete(_ reviewID: UUID) async throws
     func fetchReview(forTMDBID tmdbID: Int) async throws -> Review?
@@ -40,19 +36,15 @@ extension ReviewStoring {
     }
 }
 
-/// The single place that picks the storage backend.
 enum ReviewStoreFactory {
     static func makeStore() -> ReviewStoring {
         LocalReviewStore()
     }
 }
 
-/// Reviews as a JSON file in Documents, dynamically resolving per active user account so
-/// switching users can never expose the previous user's diary or cause session staleness.
 final class LocalReviewStore: ReviewStoring {
 
     private let userIDProvider: () -> String?
-    /// Serial: every operation rewrites the whole file.
     private let queue = DispatchQueue(label: "com.nurtore.movter.reviewstore")
 
     private var fileURL: URL {
@@ -74,7 +66,6 @@ final class LocalReviewStore: ReviewStoring {
         return decoder
     }()
 
-    /// - Parameter userIDProvider: Evaluates active user ID dynamically (defaults to FirebaseAuth currentUser.uid).
     init(userIDProvider: @escaping () -> String? = { Auth.auth().currentUser?.uid }) {
         self.userIDProvider = userIDProvider
     }
@@ -164,8 +155,6 @@ final class LocalReviewStore: ReviewStoring {
 
     // MARK: - Disk
 
-    /// Read-modify-write on the serial queue so concurrent saves can't clobber
-    /// each other.
     private func mutate(
         completion: @escaping (Result<Void, Error>) -> Void,
         _ changes: @escaping (inout [Review]) -> Void
@@ -191,8 +180,6 @@ final class LocalReviewStore: ReviewStoring {
     private func writeToDisk(_ reviews: [Review]) throws {
         let targetURL = fileURL
         let data = try encoder.encode(reviews)
-        // Atomic: a crash mid-write leaves the previous file intact rather than a
-        // truncated one that fails to decode.
         try data.write(to: targetURL, options: .atomic)
     }
 }

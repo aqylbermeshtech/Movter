@@ -28,12 +28,9 @@ public extension String {
 
 // MARK: - StringProtocol + Digits
 public extension StringProtocol {
-    /// Только цифры из строки. `"abc123def45" → "12345"`
     var digitsOnly: String {
         String(filter(\.isNumber))
     }
-
-    /// Только цифры, не длиннее `maxLength`. `"abc123def45".digits(max: 3) → "123"`
     func digits(max maxLength: Int) -> String {
         String(filter(\.isNumber).prefix(maxLength))
     }
@@ -81,12 +78,10 @@ private let apiDateFormatter: DateFormatter = {
 }()
 
 public extension Date {
-    /// Формат yyyy-MM-dd для API-запросов
     func toAPIDateString() -> String {
         apiDateFormatter.string(from: self)
     }
 
-    /// Парсинг строки yyyy-MM-dd в Date
     static func fromAPIDateString(_ string: String) -> Date? {
         apiDateFormatter.date(from: string)
     }

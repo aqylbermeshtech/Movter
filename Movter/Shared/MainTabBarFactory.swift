@@ -9,19 +9,14 @@ import FirebaseAuth
 enum MainTabBarFactory {
 
     static func makeTabBar() -> UIViewController {
-        // Built per sign-in, so the stores are always scoped to the current account.
         let watchlistStore = WatchlistStoreFactory.makeStore()
         let seenFilmsStore = SeenFilmsStoreFactory.makeStore()
         let reviewStore = ReviewStoreFactory.makeStore()
         let watchedStore = WatchedFilmsStoreFactory.makeStore()
 
-        // No Reviews tab: writing a review is reached through Profile › Reviews, which
-        // carries its own add button. Each remaining tab's own primary action lives on
-        // the bar's floating action button instead.
         let mediaListVC = MediaListViewController(watchlistStore: watchlistStore)
         let searchMoviesVC = SearchMoviesViewController()
         let swipeDeckVC = SwipeDeckViewController(watchlistStore: watchlistStore, seenFilmsStore: seenFilmsStore)
-        // Profile counts what the other tabs put in these, so they are the same stores.
         let profileVC = ProfileViewController(
             watchlistStore: watchlistStore,
             watchedStore: watchedStore,
@@ -29,9 +24,6 @@ enum MainTabBarFactory {
         )
 
         let roots: [TabActionProviding] = [mediaListVC, searchMoviesVC, swipeDeckVC, profileVC]
-        // Each root reserves its own clearance for the floating bar. Set here on the
-        // screen itself rather than on `MainTabBarController` — nested content doesn't
-        // reliably honour safe-area insets applied several ancestors up.
         for root in roots {
             root.additionalSafeAreaInsets.bottom = MainTabBarController.contentClearance
         }

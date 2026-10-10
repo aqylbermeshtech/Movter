@@ -10,7 +10,6 @@ import UIKit
 class ActorsCell:UICollectionViewCell {
     static let identifier = "ActorsCell"
 
-    /// Guards against a slow headshot landing in a cell that has been reused.
     private var profileURL: URL?
 
     private let profileImageView: UIImageView = {

@@ -11,7 +11,6 @@ import MovterNetwork
 // MARK: - Structs
 struct MovieResponse: Codable {
     let results: [Media]
-    /// TMDB caps paging at 500; without this the grid kept requesting pages forever.
     let totalPages: Int?
 }
 
@@ -24,16 +23,11 @@ struct VideoResponse: Codable {
     let results: [Video]
 }
 
-/// Uses `NetworkService.shared.plainRequest(_:)` under the hood — the SDK's unified
-/// network layer — for all HTTP calls. No separate URLSession here.
 final class TMDBService {
     static let shared = TMDBService()
 
-    // Injected at build time from Config/Secrets.xcconfig (gitignored); see
-    // Movter/Config/Secrets.xcconfig.example.
     private let apiKey = TMDBService.infoPlistValue(for: "TMDB_API_KEY")
 
-    /// The SDK's unified network service handles the actual HTTP calls.
     private let networkService: NetworkServiceProtocol
 
     init(networkService: NetworkServiceProtocol = NetworkService.shared) {
@@ -79,8 +73,6 @@ final class TMDBService {
     func fetchVideo(for id: Int, type: MediaType) async throws -> String? {
         let url = try TMDBRequestBuilder.buildURL(path: "\(type.path)/\(id)/videos", apiKey: apiKey)
         let response: VideoResponse = try await performRequest(url: url)
-        // Prefer an actual trailer, then any YouTube clip — TMDB also returns
-        // teasers, featurettes and clips under the same endpoint.
         let trailer = response.results.first { $0.site == "YouTube" && $0.type == "Trailer" }
                    ?? response.results.first { $0.site == "YouTube" }
         return trailer?.key
@@ -99,8 +91,6 @@ final class TMDBService {
 
     // MARK: - Credits
 
-    /// Cast and crew arrive on the same call, so this hands back the whole payload
-    /// rather than the cast alone — the cast and crew screen needs both halves.
     func fetchCredits(for id: Int, type: MediaType) async throws -> MovieCredits {
         let url = try TMDBRequestBuilder.buildURL(path: "\(type.path)/\(id)/credits", apiKey: apiKey)
         return try await performRequest(url: url)
@@ -119,9 +109,6 @@ final class TMDBService {
 
     // MARK: - Similar / Recommendations
 
-    /// What to watch after this one. TMDB's recommendations come from what audiences
-    /// actually went on to watch, so they lead; `similar` — matched on genre and
-    /// keywords — is the fallback for titles nobody has recommendations for yet.
     func fetchSimilar(for id: Int, type: MediaType) async throws -> [Media] {
         let recURL = try TMDBRequestBuilder.buildURL(
             path: "\(type.path)/\(id)/recommendations",
@@ -134,7 +121,6 @@ final class TMDBService {
                 return recommended.results
             }
         } catch {
-            // If recommendations endpoint fails, fall through to similar.
         }
 
         let simURL = try TMDBRequestBuilder.buildURL(
@@ -234,8 +220,6 @@ final class TMDBService {
 
     // MARK: - Popular Movies
 
-    /// Feeds the swipe deck. Plain `/movie/popular`, paginated the same way as
-    /// `fetchDiscover`/`searchMovies`.
     func fetchPopularMovies(page: Int) async throws -> MediaPage {
         let url = try TMDBRequestBuilder.buildURL(
             path: "movie/popular",
@@ -286,7 +270,6 @@ final class TMDBService {
 
     // MARK: - Helpers
 
-    /// TMDB refuses pages past 500 regardless of `total_pages`.
     private static func page(from response: MovieResponse, requested: Int) -> MediaPage {
         let cap = min(response.totalPages ?? requested, 500)
         return MediaPage(items: response.results, isLastPage: requested >= cap || response.results.isEmpty)

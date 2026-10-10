@@ -7,7 +7,6 @@
 
 import UIKit
 
-/// One diary entry: poster, film, score, and the opening of the review.
 final class ReviewCell: UITableViewCell {
 
     static let identifier = "ReviewCell"
@@ -79,7 +78,6 @@ final class ReviewCell: UITableViewCell {
             posterView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 14),
             posterView.widthAnchor.constraint(equalToConstant: 48),
             posterView.heightAnchor.constraint(equalToConstant: 72),
-            // Poster sets a minimum height without fighting a taller text column.
             posterView.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -14),
 
             textStack.leadingAnchor.constraint(equalTo: posterView.trailingAnchor, constant: 12),
@@ -114,7 +112,6 @@ final class ReviewCell: UITableViewCell {
         dateLabel.text = Self.dateText(for: review.updatedAt)
 
         guard let url = review.posterURL else {
-            // Hand-typed entries have no poster.
             posterView.contentMode = .center
             posterView.image = UIImage(systemName: "film")
             return
@@ -127,8 +124,6 @@ final class ReviewCell: UITableViewCell {
         }
     }
 
-    /// `RelativeDateTimeFormatter` renders a near-zero interval as "in 0 seconds" —
-    /// future tense on a review just saved.
     private static func dateText(for date: Date) -> String {
         let secondsAgo = Date().timeIntervalSince(date)
         guard secondsAgo >= 60 else { return "Just now" }

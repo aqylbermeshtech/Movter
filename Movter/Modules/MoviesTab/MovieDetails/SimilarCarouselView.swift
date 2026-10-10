@@ -7,20 +7,13 @@
 
 import UIKit
 
-/// The "More Like This" row on the details screen: a short shelf of titles to watch
-/// next.
-///
-/// Owns its own data source rather than adding a second one to the details screen,
-/// which already runs the cast carousel off itself.
 final class SimilarCarouselView: UIView {
 
     var onSelect: ((Media) -> Void)?
 
     private var media: [Media] = []
 
-    /// Poster width; the rest of the row derives from it.
     private static let itemWidth: CGFloat = 112
-    /// TMDB artwork is 2:3, plus the two caption lines under it.
     private static let captionHeight: CGFloat = 58
     static var preferredHeight: CGFloat { itemWidth * 1.5 + captionHeight }
 
@@ -55,13 +48,9 @@ final class SimilarCarouselView: UIView {
     func update(with media: [Media]) {
         self.media = media
         collectionView.reloadData()
-        // A row rebuilt after a reconnect starts at its beginning, not wherever the
-        // previous one was left.
         collectionView.setContentOffset(.zero, animated: false)
     }
 
-    /// The poster for `id`, if this row is scrolled to it — the details screen flies out
-    /// of it on the way to the next title.
     func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
         collectionView.mediaPosterAnchor(forMediaID: id) { [weak self] index in
             self?.media[safe: index]?.id

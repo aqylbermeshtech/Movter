@@ -133,7 +133,6 @@ final class EditProfileViewController: UIViewController {
         emailStack.spacing = 6
         emailStack.setCustomSpacing(10, after: emailValueLabel)
 
-        // A `.fill` stack would stretch the avatar past its own 100pt width.
         let avatarContainer = UIView()
         avatarContainer.addSubview(avatarImageView)
 

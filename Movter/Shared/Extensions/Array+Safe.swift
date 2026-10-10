@@ -8,7 +8,6 @@
 import Foundation
 
 extension Array {
-    /// Bounds-checked lookup: a stale index returns nil instead of trapping.
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
     }

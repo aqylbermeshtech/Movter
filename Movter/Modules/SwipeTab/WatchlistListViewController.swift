@@ -7,7 +7,6 @@
 
 import UIKit
 
-/// Every film the user has swiped right on, newest first.
 final class WatchlistListViewController: UIViewController {
 
     private let viewModel: WatchlistListViewModel
@@ -56,8 +55,6 @@ final class WatchlistListViewController: UIViewController {
         emptyTitleLabel.text = viewModel.presentation.emptyTitle
         emptyBodyLabel.text = viewModel.presentation.emptyBody
         navigationController?.navigationBar.prefersLargeTitles = true
-        // Explicit rather than inherited: pushed onto a stack whose previous screen
-        // opted out, `.automatic` would inherit that and render inline.
         navigationItem.largeTitleDisplayMode = .always
 
         tableView.dataSource = self

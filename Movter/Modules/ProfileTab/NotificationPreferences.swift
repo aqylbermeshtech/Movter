@@ -28,7 +28,6 @@ enum NotificationPreference: String, CaseIterable {
         }
     }
 
-    /// New installs opt into the quieter two and leave the daily-ish one off.
     var defaultValue: Bool {
         switch self {
         case .newTrailers: return true

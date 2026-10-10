@@ -7,10 +7,6 @@
 
 import UIKit
 
-/// The home screen's own title bar — the app's name and a shortcut into Search.
-///
-/// Home hides the navigation bar, which can't carry a title this size next to a round
-/// button without the large-title machinery moving it around as the feed scrolls.
 final class HomeHeaderView: UIView {
 
     var onSearch: (() -> Void)?

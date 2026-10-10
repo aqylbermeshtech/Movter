@@ -7,22 +7,16 @@
 
 import UIKit
 
-/// Full-bleed, paged carousel of portrait key art — the featured banner above the
-/// trending poster row. Each card carries the title, its year and genre, and the two
-/// things worth doing from the home screen: play the trailer, or save it for later.
 final class HeroCarouselView: UIView {
     var onMovieSelected: ((Media) -> Void)?
     var onPlaySelected: ((Media) -> Void)?
     var onWatchlistToggled: ((Media) -> Void)?
 
     private var items: [Media] = []
-    /// TMDB ids the user already has saved, so the bookmark starts in the right state.
     private var watchlistedIDs: Set<Int> = []
 
     private static let horizontalInset: CGFloat = 16
-    /// Portrait key art. Slightly wider than TMDB's 2:3 posters, which crops a little
-    /// off the top and bottom but leaves the overlay somewhere to sit that isn't over
-    /// the face of the artwork.
+
     static let imageAspect: CGFloat = 1.25
     private static let pageControlHeight: CGFloat = 16
     private static let pageControlSpacing: CGFloat = 14
@@ -106,9 +100,6 @@ final class HeroCarouselView: UIView {
         }
     }
 
-    /// The watchlist changes from three other places — the swipe deck, the watchlist
-    /// screen, and this carousel's own button — so membership is pushed in rather than
-    /// tracked per card.
     func setWatchlistedIDs(_ ids: Set<Int>) {
         guard ids != watchlistedIDs else { return }
         watchlistedIDs = ids
@@ -154,8 +145,6 @@ extension HeroCarouselView: UICollectionViewDataSource, UICollectionViewDelegate
     }
 }
 
-/// A capsule for the page you're on and plain dots for the rest — the current page
-/// reads at a glance rather than being found by comparing five identical circles.
 final class PageIndicatorView: UIView {
 
     private static let dotSize: CGFloat = 6
@@ -210,7 +199,6 @@ final class PageIndicatorView: UIView {
         dots = []
         widths = []
 
-        // One page is not a carousel; the indicator would only be saying so.
         guard numberOfPages > 1 else { return }
 
         for _ in 0..<numberOfPages {
@@ -247,9 +235,6 @@ final class PageIndicatorView: UIView {
     }
 }
 
-/// One full-bleed piece of key art with a bottom scrim, the title and its metadata, and
-/// the play / watchlist pair. No card chrome — the artwork is the whole cell, inset
-/// from the carousel's edges.
 final class HeroCarouselCell: UICollectionViewCell {
     static let identifier = "HeroCarouselCell"
 
@@ -259,7 +244,6 @@ final class HeroCarouselCell: UICollectionViewCell {
     private static let sideInset: CGFloat = 16
     private static let contentInset: CGFloat = 18
 
-    /// Guards a slow genre lookup landing in a cell that has since been reused.
     private var mediaID: Int?
 
     private let imageView: UIImageView = {
@@ -275,8 +259,6 @@ final class HeroCarouselCell: UICollectionViewCell {
         return iv
     }()
 
-    /// Bottom-anchored fade. Heavier than a caption alone would need, because posters
-    /// carry their own titles and artwork this bright leaves white text nowhere to sit.
     private let scrimView = GradientView(
         colors: [
             .clear,
@@ -286,10 +268,6 @@ final class HeroCarouselCell: UICollectionViewCell {
         locations: [0, 0.5, 1]
     )
 
-    /// White on dark rather than the accent pair, and likewise for the play button: the
-    /// overlay always sits on a dark scrim over artwork, never on the canvas, so a token
-    /// that inverts with the appearance would put a near-black chip on a black scrim in
-    /// light mode.
     private let featuredBadge: ChipLabel = {
         let label = ChipLabel()
         label.text = "FEATURED"
@@ -302,7 +280,6 @@ final class HeroCarouselCell: UICollectionViewCell {
         return label
     }()
 
-    /// "2026 · Thriller", once the genre lookup lands.
     private let metaBadge: ChipLabel = {
         let label = ChipLabel()
         label.font = .badge
@@ -342,9 +319,7 @@ final class HeroCarouselCell: UICollectionViewCell {
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
-
-    /// A scrim circle rather than a themed one: it sits on artwork, not on the canvas,
-    /// so the app's surface tone would vanish under half the posters in the catalogue.
+    
     private lazy var watchlistButton: UIButton = {
         let button = UIButton(type: .system)
         button.backgroundColor = UIColor.black.withAlphaComponent(0.45)
@@ -426,8 +401,6 @@ final class HeroCarouselCell: UICollectionViewCell {
             self.setMeta(year: media.year, genre: genre)
         }
 
-        // Portrait key art, so the poster leads and the backdrop is only the fallback
-        // for the handful of titles TMDB has no poster for.
         if let url = media.largePosterURL ?? media.fullBackdropURL {
             ImageLoader.load(url: url) { [weak self] image in
                 DispatchQueue.main.async {
@@ -456,16 +429,12 @@ final class HeroCarouselCell: UICollectionViewCell {
         watchlistButton.accessibilityLabel = isWatchlisted ? "Remove from watchlist" : "Add to watchlist"
     }
 
-    /// Either part can be missing, and with neither the chip goes rather than sitting
-    /// there as an empty rectangle.
     private func setMeta(year: String?, genre: String?) {
         let parts = [year, genre].compactMap { $0 }.filter { !$0.isEmpty }
         metaBadge.text = parts.joined(separator: " · ")
         metaBadge.isHidden = parts.isEmpty
     }
 
-    /// The card carries the year in its own chip, so the symbol alone is enough here to
-    /// separate "no artwork yet" from "no artwork at all".
     private func showArtworkPlaceholder(isUpcoming: Bool) {
         imageView.contentMode = .center
         imageView.image = UIImage(
@@ -475,8 +444,6 @@ final class HeroCarouselCell: UICollectionViewCell {
     }
 }
 
-/// A label with padding. The badges are chips, and a bare `UILabel` has nowhere to put
-/// the inset that makes one.
 final class ChipLabel: UILabel {
 
     var insets = UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)

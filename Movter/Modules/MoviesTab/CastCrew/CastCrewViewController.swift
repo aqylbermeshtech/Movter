@@ -7,9 +7,6 @@
 
 import UIKit
 
-/// The full credits for one title, a row per person, grouped into cast and then the
-/// crew departments. Reached from the cast header on the details screen; every row
-/// leads on to that person's own screen.
 final class CastCrewViewController: UIViewController {
 
     private let viewModel: CastCrewViewModel
@@ -48,8 +45,6 @@ final class CastCrewViewController: UIViewController {
         tableView.rowHeight = CreditCell.rowHeight
         tableView.sectionHeaderTopPadding = 0
         tableView.register(CreditCell.self, forCellReuseIdentifier: CreditCell.identifier)
-        // The floating tab bar hangs over pushed screens as well, so the last rows need
-        // room to scroll clear of it.
         tableView.contentInset.bottom = MainTabBarController.contentClearance
         tableView.verticalScrollIndicatorInsets.bottom = MainTabBarController.contentClearance
         tableView.translatesAutoresizingMaskIntoConstraints = false
@@ -96,8 +91,6 @@ extension CastCrewViewController: UITableViewDataSource, UITableViewDelegate {
         return cell
     }
 
-    /// A plain view rather than the system header, which would draw its own material
-    /// over the app's canvas colour.
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         guard let title = viewModel.title(forSection: section) else { return nil }
 

@@ -10,8 +10,6 @@ import SwiftUI
 // MARK: - View Extension for Error Alert
 
 public extension View {
-    /// Показывает системный алерт с ошибкой. Вызывать на любом экране: `.errorAlert(message: $viewModel.errorMessage)`
-    /// - Parameter message: Binding к опциональному сообщению об ошибке. При nil алерт не показывается. При закрытии алерта сбрасывается в nil.
     func errorAlert(message: Binding<String?>) -> some View {
         alert(
             LocalizedString.error,

@@ -7,21 +7,16 @@
 
 import UIKit
 
-/// One film, dragged left (pass) or right (like). A plain tap with no drag opens the
-/// film's detail screen instead.
 final class SwipeCardView: UIView {
 
     let media: Media
     var onSwiped: ((SwipeDirection) -> Void)?
     var onTapped: ((Media) -> Void)?
 
-    /// Larger = a gentler tilt for the same horizontal drag.
     private static let rotationDivisor: CGFloat = 320
     private static let maxRotation: CGFloat = .pi / 8
-    /// Fraction of the card's own width the drag has to cross to commit the swipe.
     private static let commitDistanceFraction: CGFloat = 0.32
     private static let commitVelocity: CGFloat = 700
-    /// Below this much total movement, `.ended` is treated as a tap, not an aborted drag.
     private static let tapMovementTolerance: CGFloat = 6
 
     private let imageView: UIImageView = {
@@ -59,8 +54,6 @@ final class SwipeCardView: UIView {
         return label
     }()
 
-    /// Covers the poster as the card is dragged, so the poster reads as dissolving
-    /// into whichever destination the drag is heading toward.
     private let likeDestinationView = SwipeCardView.makeDestinationOverlay(
         systemImage: "bookmark.fill", caption: "Watchlist", tint: .accent
     )
@@ -77,17 +70,11 @@ final class SwipeCardView: UIView {
         setupUI()
         configure()
         addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:))))
-        // A still tap never moves far enough to start the pan, so the pan never reaches
-        // `.ended` and its tap branch below never runs. That branch still covers a drag
-        // that returns to where it started; this covers an actual tap.
         addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleTap)))
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    /// The artwork alone, handed to the details transition to fly out of. The radius is
-    /// read off the layer so the flight can't drift out of step with the card's own
-    /// rounding if that changes.
     var posterAnchor: PosterTransitionAnchor {
         PosterTransitionAnchor(view: imageView, cornerRadius: imageView.layer.cornerRadius)
     }
@@ -96,9 +83,6 @@ final class SwipeCardView: UIView {
         backgroundColor = .surface
         layer.cornerRadius = 20
         layer.cornerCurve = .continuous
-        // Not clipped at this level — imageView and the destination overlays each
-        // round and clip themselves instead, so the shadow below isn't masked away
-        // along with everything else `clipsToBounds` would have cut off.
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = 0.35
         layer.shadowRadius = 14
@@ -108,7 +92,6 @@ final class SwipeCardView: UIView {
         imageView.layer.addSublayer(gradientLayer)
         imageView.addSubview(titleLabel)
         imageView.addSubview(metaLabel)
-        // On top of the poster and its text, so the crossfade covers everything.
         addSubview(likeDestinationView)
         addSubview(passDestinationView)
 
@@ -183,8 +166,6 @@ final class SwipeCardView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         gradientLayer.frame = imageView.bounds
-        // Matches the rounded shape exactly, rather than shadowing a square that
-        // happens to have rounded content sitting on top of it.
         layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 20).cgPath
     }
 
@@ -233,8 +214,6 @@ final class SwipeCardView: UIView {
         }
     }
 
-    /// Drives the card off-screen without a drag — the on-screen like/pass buttons use
-    /// this directly.
     func performSwipe(direction: SwipeDirection) {
         commitSwipe(direction: direction, exitVelocity: .zero)
     }
@@ -248,8 +227,6 @@ final class SwipeCardView: UIView {
         let destinationX = center.x + (direction == .like ? travel : -travel)
         let rotation = direction == .like ? Self.maxRotation : -Self.maxRotation
 
-        // Not fading the whole card here — the destination view snapping to full
-        // opacity is what should read clearly as the card exits.
         UIView.animate(withDuration: 0.35, delay: 0, options: [.curveEaseIn], animations: {
             self.center = CGPoint(x: destinationX, y: self.center.y + exitVelocity.y * 0.15)
             self.transform = CGAffineTransform(rotationAngle: rotation)
@@ -276,8 +253,6 @@ final class SwipeCardView: UIView {
         )
     }
 
-    /// A full-card panel that dissolves in over the poster as the drag progresses —
-    /// an icon and caption for wherever this direction sends the film.
     private static func makeDestinationOverlay(systemImage: String, caption: String, tint: UIColor) -> UIView {
         let container = UIView()
         container.backgroundColor = .canvas

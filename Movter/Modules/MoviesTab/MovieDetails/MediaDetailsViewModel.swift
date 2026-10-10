@@ -13,32 +13,23 @@ final class MediaDetailsViewModel {
     private let watchedStore: WatchlistStoring
     private let watchlistStore: WatchlistStoring
     var onVideoUpdate: ((String?) -> Void)?
-    /// The trailer the header button opens; nil until one is found, and after it if
-    /// TMDB has none.
+    
     private(set) var videoKey: String?
     var onCreditsUpdate: (() -> Void)?
     var actors: [Actor] = []
-    /// Not shown on this screen — the carousel is cast only — but carried here so the
-    /// cast and crew list opens on what has already been fetched.
+
     private(set) var crew: [CrewMember] = []
-    /// Distinguishes "still loading" from "loaded and genuinely empty", so the
-    /// placeholder can't flash before the request comes back.
     private(set) var hasLoadedActors = false
     private(set) var didFailToLoadActors = false
 
-    /// The header only leads somewhere once there is a list behind it.
     var hasCredits: Bool { !actors.isEmpty || !crew.isEmpty }
 
     // MARK: - More like this
 
-    /// What the row shows. TMDB pages are twenty long; the rest is never scrolled to.
     static let similarLimit = 8
 
     private(set) var similar: [Media] = []
     var onSimilarUpdate: (() -> Void)?
-
-    /// The row is hidden rather than placeheld: a recommendation shelf with nothing in
-    /// it is better left out than explained.
     var hasSimilar: Bool { !similar.isEmpty }
     var title: String { media.displayName }
     var overview: String { media.overview }
@@ -77,8 +68,6 @@ final class MediaDetailsViewModel {
             remove(media.id, from: watchlistStore)
             return
         }
-        // The whole film, for the same reason the watched list stores it: the list has
-        // to render posters and titles without going back to TMDB for every row.
         watchlistStore.save(WatchlistItem(from: media)) { _ in }
     }
 
@@ -106,28 +95,18 @@ final class MediaDetailsViewModel {
             remove(self.media.id, from: watchedStore)
             return
         }
-        // The whole film, not just its id: the watched list has to render posters and
-        // titles without going back to TMDB for every row.
         watchedStore.save(WatchlistItem(from: media)) { _ in }
 
-        // A film you have seen is no longer one you are waiting to see. Unmarking does
-        // not put it back: the watchlist is a list you curate, not a mirror of this flag.
         remove(media.id, from: watchlistStore)
-        // The watchlist button shares the header with this one, so it can't be left
-        // offering to remove a film that has just been taken off the list.
         isInWatchlist = false
         onWatchlistChange?()
     }
 
-    /// Scoring a film is a claim to have seen it, so a rating carries the flag with it.
-    /// Unmarking stays manual — this only ever moves the state one way.
     func markWatchedIfNeeded() {
         guard !isWatched else { return }
         toggleWatched()
     }
 
-    /// Both lists are keyed by their own row id, so removing a film means finding its
-    /// entry first.
     private func remove(_ tmdbID: Int, from store: WatchlistStoring) {
         store.fetchAll { result in
             guard case let .success(items) = result,
@@ -138,14 +117,12 @@ final class MediaDetailsViewModel {
 
     // MARK: - The user's own review
 
-    /// Nil until `loadReview` answers, and nil after it if there's no review.
     private(set) var existingReview: Review?
     var onReviewUpdate: (() -> Void)?
 
     func loadReview() {
         reviewStore.fetchReview(forTMDBID: media.id) { [weak self] result in
             guard let self = self else { return }
-            // A read failure just leaves the card empty; not worth an alert here.
             self.existingReview = (try? result.get()) ?? nil
             self.onReviewUpdate?()
         }
@@ -153,8 +130,6 @@ final class MediaDetailsViewModel {
 
     func saveReview(score: Int, text: String, completion: @escaping (Result<Void, Error>) -> Void) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // Same id and createdAt, so this updates the existing record in place.
         let review: Review
         if let existing = existingReview {
             review = Review(
@@ -193,7 +168,6 @@ final class MediaDetailsViewModel {
             : "TMDB doesn't list a cast for this title yet"
     }
 
-    /// Retries whichever pieces came back empty once a connection returns.
     func connectivityDidChange() {
         guard monitor.isOnline else { return }
         if actors.isEmpty { fetchCredits() }
@@ -247,7 +221,6 @@ final class MediaDetailsViewModel {
         }
     }
 
-    /// Nil when there is nothing to play, which is also when the button is hidden.
     var trailerRequest: URLRequest? {
         guard let key = videoKey else { return nil }
         return youtubeRequest(for: key)
@@ -256,8 +229,6 @@ final class MediaDetailsViewModel {
     func fetchCredits() {
         service.fetchCredits(for: media.id, type: mediaType) { [weak self] credits in
             guard let self = self else { return }
-            // A nil result means the request or decode failed. Bailing out here (as this
-            // used to) left the screen with no way to know the fetch was ever attempted.
             self.didFailToLoadActors = (credits == nil)
             self.actors = credits?.cast ?? []
             self.crew = credits?.crew ?? []
@@ -277,8 +248,6 @@ final class MediaDetailsViewModel {
         }
     }
 
-    /// The full list, built from what this screen already holds so it opens without a
-    /// second round trip.
     func makeCastCrewViewModel() -> CastCrewViewModel {
         CastCrewViewModel(mediaTitle: title, cast: actors, crew: crew)
     }

@@ -7,12 +7,6 @@
 
 import Foundation
 
-/// The catalogue endpoints the app actually calls.
-///
-/// Exists so view models can be handed a stub instead of reaching for
-/// `TMDBService.shared` — the same seam `ReviewStoring` and `WatchlistStoring`
-/// already provide for storage. Deliberately narrower than `TMDBService`: it lists
-/// what callers use, not everything the service can do.
 protocol MediaFetching: AnyObject {
 
     // MARK: - Modern Async APIs
@@ -170,11 +164,8 @@ extension MediaFetching {
     }
 }
 
-/// `TMDBService` declares both modern async and completion APIs.
 extension TMDBService: MediaFetching {}
 
-/// Genre-name lookup, kept separate from `MediaFetching` because `GenreProvider` adds
-/// caching and request coalescing on top of the raw endpoint.
 protocol GenreProviding: AnyObject {
     func primaryGenreName(
         for ids: [Int]?, type: MediaType,

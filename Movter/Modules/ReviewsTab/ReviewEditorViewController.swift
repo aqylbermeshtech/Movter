@@ -7,7 +7,6 @@
 
 import UIKit
 
-/// Add a film, score it 1–10, write about it, save.
 final class ReviewEditorViewController: UIViewController {
 
     var onSave: (() -> Void)?
@@ -103,7 +102,6 @@ final class ReviewEditorViewController: UIViewController {
         return textView
     }()
 
-    /// `UITextView` has no placeholder, so one rides on top.
     private let reviewPlaceholderLabel: UILabel = {
         let label = UILabel()
         label.text = "What did you make of it?"
@@ -265,7 +263,6 @@ final class ReviewEditorViewController: UIViewController {
         }
     }
 
-    /// Disabled stays readable rather than fading out, matching Edit Profile.
     private func updateSaveButtonState() {
         let isEnabled = viewModel.canSave
         saveButton.isEnabled = isEnabled
@@ -307,8 +304,6 @@ final class ReviewEditorViewController: UIViewController {
             self.setSaving(false)
             switch result {
             case .success:
-                // After dismissal, not before: a caller showing a confirmation would
-                // otherwise put it up behind this sheet.
                 let onSave = self.onSave
                 self.dismiss(animated: true) { onSave?() }
             case let .failure(error):

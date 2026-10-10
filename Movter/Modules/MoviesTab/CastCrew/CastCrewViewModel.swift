@@ -7,13 +7,9 @@
 
 import Foundation
 
-/// One person as a table row: whoever they are on this title, and where their headshot
-/// lives. Flattened here so the cell never has to know whether it came from the cast
-/// half of the credits or the crew half.
 struct CreditRow {
     let personID: Int
     let name: String
-    /// The character for cast, the job (or jobs) for crew. Empty when TMDB lists neither.
     let role: String
     let profileURL: URL?
 }
@@ -23,15 +19,9 @@ struct CreditSection {
     let rows: [CreditRow]
 }
 
-/// Sections the cast and crew screen renders, built once from credits the details screen
-/// has already fetched.
 final class CastCrewViewModel {
-
     let mediaTitle: String
     private(set) var sections: [CreditSection] = []
-
-    /// Departments in the order an audience looks for them, rather than the order TMDB
-    /// happens to return. Anything not listed keeps its first-seen order below these.
     private static let departmentOrder = [
         "Directing", "Writing", "Production", "Camera", "Editing",
         "Sound", "Art", "Costume & Make-Up", "Visual Effects", "Lighting"
@@ -61,7 +51,6 @@ final class CastCrewViewModel {
     private static func makeSections(cast: [Actor], crew: [CrewMember]) -> [CreditSection] {
         var sections: [CreditSection] = []
 
-        // TMDB returns the cast in billing order, which is the order to keep.
         if !cast.isEmpty {
             let rows = cast.map {
                 CreditRow(
@@ -78,13 +67,9 @@ final class CastCrewViewModel {
         return sections
     }
 
-    /// One section per department, with a person's jobs inside a department merged onto
-    /// a single row — TMDB lists someone once per job, so a writer-director would
-    /// otherwise appear twice under Writing.
     private static func crewSections(from crew: [CrewMember]) -> [CreditSection] {
         var departments: [String] = []
         var rowsByDepartment: [String: [CreditRow]] = [:]
-        // Department and person, so the same name in two departments stays two rows.
         var indexOfPerson: [String: [Int: Int]] = [:]
 
         for member in crew {
@@ -130,8 +115,6 @@ final class CastCrewViewModel {
             }
     }
 
-    /// Listed departments first in their own order; the rest keep the order TMDB gave
-    /// them, offset past the list so they can't interleave.
     private static func rank(of department: String, in order: [String]) -> Int {
         if let index = departmentOrder.firstIndex(of: department) { return index }
         return departmentOrder.count + (order.firstIndex(of: department) ?? 0)

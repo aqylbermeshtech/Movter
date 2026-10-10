@@ -7,23 +7,19 @@
 
 import Foundation
 
-/// A catalogue title, or a name typed by hand.
 enum FilmSelection {
     case catalogue(Media)
     case manual(title: String)
 }
 
-/// Debounced catalogue search for the film being reviewed.
 final class FilmPickerViewModel {
 
     var onChange: (() -> Void)?
 
     private(set) var results: [Media] = []
     private(set) var isSearching = false
-    /// Whitespace-trimmed, and the only copy of the query the screen should read.
     private(set) var query = ""
 
-    /// Below this, a search would match most of the catalogue and isn't worth a request.
     private static let minimumQueryLength = 2
     private static let debounceInterval: TimeInterval = 0.35
 
@@ -38,7 +34,6 @@ final class FilmPickerViewModel {
         self.monitor = monitor
     }
 
-    /// Re-runs the query that connectivity prevented.
     func connectivityDidChange() {
         guard monitor.isOnline, !query.isEmpty else {
             onChange?()
@@ -48,7 +43,6 @@ final class FilmPickerViewModel {
     }
 
     private var pendingSearch: DispatchWorkItem?
-    /// Bumped per keystroke so a slow response can't overwrite a newer one.
     private var currentSearchToken = 0
 
     // MARK: - Searching
@@ -58,8 +52,6 @@ final class FilmPickerViewModel {
         pendingSearch?.cancel()
 
         guard query.count >= Self.minimumQueryLength else {
-            // Bumping the token here too, so a request already in flight can't land and
-            // repopulate a list the user has just cleared.
             currentSearchToken += 1
             results = []
             isSearching = false
@@ -74,7 +66,6 @@ final class FilmPickerViewModel {
             return
         }
 
-        // Debounced: one request per keystroke would burn the API budget.
         let pending = query
         let work = DispatchWorkItem { [weak self] in self?.search(pending) }
         pendingSearch = work
@@ -97,8 +88,6 @@ final class FilmPickerViewModel {
 
     // MARK: - Presentation
 
-    /// Nil while a search is running or results are on screen — the list speaks for
-    /// itself in both cases.
     var statusText: String? {
         if isSearching { return nil }
         if !monitor.isOnline { return "You're offline. Searching the catalogue needs a connection." }
@@ -108,14 +97,12 @@ final class FilmPickerViewModel {
         return nil
     }
 
-    /// The hand-typed fallback appears as soon as there's a name to add.
     var showsManualRow: Bool { !query.isEmpty }
 
     var manualRowTitle: String { "Add “\(query)” manually" }
 
     var manualSelection: FilmSelection { .manual(title: query) }
 
-    /// Takes an index rather than an `IndexPath` so this stays free of UIKit.
     func result(at index: Int) -> Media? {
         results[safe: index]
     }

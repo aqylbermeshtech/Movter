@@ -7,15 +7,7 @@
 
 import UIKit
 
-/// Hosts the app's tabs behind a custom Liquid Glass bar.
-///
-/// A plain container rather than a `UITabBarController` subclass: even with its system
-/// bar hidden, `UITabBarController` keeps reserving bottom safe-area space for it, so a
-/// custom bar pinned to the safe area ends up floating well above the screen's edge.
-/// Managing the children here sidesteps that entirely.
 final class MainTabBarController: UIViewController {
-
-    /// One tab: the nav stack it shows, plus the root screen supplying its action.
     struct Tab {
         let title: String
         let symbol: String
@@ -23,16 +15,9 @@ final class MainTabBarController: UIViewController {
         let root: TabActionProviding
     }
 
-    /// The gap between the bar and the bottom safe area.
     static let barBottomInset: CGFloat = 8
-    /// What a screen must clear to sit above the floating bar.
     static var contentClearance: CGFloat { CustomTabBarView.preferredHeight + barBottomInset }
 
-    /// The children are all installed at once and swapped by hiding, which UIKit cannot
-    /// read as appearing or disappearing. So the forwarding is done by hand below —
-    /// without it every tab believes it appeared once at launch and never again, and any
-    /// screen that refreshes in `viewWillAppear` serves stale data for the rest of the
-    /// session.
     override var shouldAutomaticallyForwardAppearanceMethods: Bool { false }
 
     private var tabs: [Tab] = []
@@ -80,10 +65,6 @@ final class MainTabBarController: UIViewController {
         }
     }
 
-    /// Full screen, edge to edge. Clearance for the floating bar is applied as
-    /// `additionalSafeAreaInsets` on each root screen instead (see `MainTabBarFactory`)
-    /// — a nav controller hosted in a frame that stops short of the screen bottom
-    /// mispositions its own bars.
     private func setupContentContainer() {
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
         guard let customBar = customBar else { return }
@@ -142,8 +123,6 @@ final class MainTabBarController: UIViewController {
         let outgoing = tabs[selectedIndex].navigationController
         let incoming = tabs[index].navigationController
 
-        // Both sides are told before and after the swap, so the tab being shown gets a
-        // real `viewWillAppear` and can refresh whatever changed while it was away.
         outgoing.beginAppearanceTransition(false, animated: false)
         incoming.beginAppearanceTransition(true, animated: false)
 
@@ -155,9 +134,6 @@ final class MainTabBarController: UIViewController {
 
         selectedIndex = index
     }
-
-    /// The action always belongs to the tab's root screen, even when the user has
-    /// navigated deeper — it's the tab's primary action, not the top screen's.
     private func performCurrentTabAction() {
         guard presentedViewController == nil else { return }
         tabs[safe: selectedIndex]?.root.performTabAction()

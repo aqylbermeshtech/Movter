@@ -9,13 +9,10 @@ import UIKit
 
 final class WatchlistListViewModel {
 
-    /// The words around the rows. The watchlist and the watched list are the same
-    /// screen over the same shape of data; only these differ.
     struct Presentation {
         let title: String
         let emptyTitle: String
         let emptyBody: String
-        /// Prefixes each row's date — "Added 2 days ago" / "Watched 2 days ago".
         let datePrefix: String
         let removeTitle: String
 
@@ -73,7 +70,6 @@ final class WatchlistListViewModel {
             completion(false)
             return
         }
-        // Optimistic: a failed write reloads from disk and puts the row back.
         items.remove(at: indexPath.row)
 
         store.delete(item.id) { [weak self] result in

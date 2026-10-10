@@ -25,8 +25,6 @@ final class MediaListViewController: UIViewController {
         return scrollView
     }()
 
-    /// The user's saved titles, by TMDB id, so the hero's bookmark knows which way round
-    /// it is and the toggle knows which stored item to delete.
     private var watchlistItemIDs: [Int: UUID] = [:]
 
     init(watchlistStore: WatchlistStoring) {
@@ -45,10 +43,8 @@ final class MediaListViewController: UIViewController {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    /// Only the first handful feed the banner; the row below still shows the full list.
     private static let heroItemCount = 5
 
-    /// Explains why "Surprise me" did nothing, on the occasions it can't run.
     private lazy var actionUnavailableView: ActionUnavailablePlaceholderView = {
         let view = ActionUnavailablePlaceholderView(
             symbolName: tabActionSymbol,
@@ -81,9 +77,7 @@ final class MediaListViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // The header stands in for the bar here; the rest of the tab still uses it.
         navigationController?.setNavigationBarHidden(true, animated: animated)
-        // The watchlist also changes from the swipe deck and the watchlist screen.
         loadWatchlist()
     }
 
@@ -92,8 +86,6 @@ final class MediaListViewController: UIViewController {
         navigationController?.setNavigationBarHidden(false, animated: animated)
     }
 
-    /// Home draws its own header, but the appearance is the whole tab's — the screens
-    /// pushed from here inherit it.
     private func setupNavigationBar() {
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
@@ -123,10 +115,6 @@ final class MediaListViewController: UIViewController {
         heroView.translatesAutoresizingMaskIntoConstraints = false
         trendingView.translatesAutoresizingMaskIntoConstraints = false
 
-        // Only the title bar stays put. The chips scroll away with the feed they filter
-        // — pinned, they clipped the hero card against the scroll view's top edge the
-        // moment anything moved, which read as the artwork being cut off rather than
-        // scrolled.
         NSLayoutConstraint.activate([
             headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -165,8 +153,6 @@ final class MediaListViewController: UIViewController {
             offlineView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        // Same footprint as the offline placeholder: the scrolling area below the title
-        // bar, which the chips now live inside.
         NSLayoutConstraint.activate([
             actionUnavailableView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
             actionUnavailableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -223,8 +209,6 @@ final class MediaListViewController: UIViewController {
         navigationController?.pushViewController(detailVC, animated: true)
     }
 
-    /// The whole feed for the current chip, as a grid. The row is a sample of it, so
-    /// this opens the same query rather than a related one.
     private func showSeeAll() {
         let genre = viewModel.selectedGenre
         let gridVC = MovieGridViewController(
@@ -272,8 +256,6 @@ final class MediaListViewController: UIViewController {
     }
 
     private func showToast(_ message: String) {
-        // No `bottomInset`: the screen already carries the floating bar's clearance as
-        // an additional safe-area inset, which is what the pill anchors itself to.
         ToastView.show(message, in: view)
     }
 
@@ -305,14 +287,11 @@ final class MediaListViewController: UIViewController {
         }
     }
 
-    /// The explanation is only true while the feed is empty; once it fills, it goes.
     private func dismissActionUnavailableIfResolved() {
         guard !viewModel.mediaContent.isEmpty else { return }
         setActionUnavailableVisible(false)
     }
 
-    /// Fades rather than snaps. It appears in response to a tap, and swapping the whole
-    /// content area instantly reads as the screen having navigated somewhere.
     private func setActionUnavailableVisible(_ visible: Bool) {
         let isShown = !actionUnavailableView.isHidden
         guard isShown != visible else { return }
@@ -340,13 +319,8 @@ extension MediaListViewController: TabActionProviding {
     var tabActionSymbol: String { "shuffle" }
     var tabActionLabel: String { "Surprise me" }
 
-    /// Opens a random title from whatever's currently trending — a way into the
-    /// catalogue for someone browsing without anything particular in mind.
     func performTabAction() {
         guard openRandomTitle() else {
-            // Nothing to pick from. Say so, rather than letting the button appear broken
-            // — except when the offline placeholder is already up, since it explains the
-            // same emptiness and carries a retry this one can't offer.
             if !viewModel.showsOfflinePlaceholder {
                 setActionUnavailableVisible(true)
             }
@@ -354,12 +328,9 @@ extension MediaListViewController: TabActionProviding {
         }
     }
 
-    /// - Returns: false when the feed is still empty, so the caller can queue the tap.
     @discardableResult
     private func openRandomTitle() -> Bool {
         guard let media = viewModel.mediaContent.randomElement() else { return false }
-        // Plain push: the title is picked at random, so there's no tapped poster for it
-        // to grow out of.
         showDetails(for: media)
         return true
     }
@@ -369,9 +340,6 @@ extension MediaListViewController: TabActionProviding {
 // MARK: - Poster transition
 
 extension MediaListViewController: PosterTransitionSource {
-
-    /// Only the trending row flies its artwork into the details screen; the hero banner
-    /// pushes plainly, so there is only one carousel to search.
     func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
         trendingView.transitionPoster(forMediaID: id)
     }

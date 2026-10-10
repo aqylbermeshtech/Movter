@@ -7,8 +7,6 @@
 
 import UIKit
 
-/// Search TMDB for the film being reviewed, with a hand-typed fallback for titles the
-/// catalogue doesn't carry.
 final class FilmPickerViewController: UIViewController {
 
     var onPick: ((FilmSelection) -> Void)?
@@ -96,8 +94,6 @@ final class FilmPickerViewController: UIViewController {
         searchController.searchBar.becomeFirstResponder()
     }
 
-    /// The screen is a pure function of the view model; every update lands here
-    /// rather than each callback poking at views directly.
     private func render() {
         if viewModel.isSearching {
             spinner.startAnimating()
@@ -122,9 +118,6 @@ final class FilmPickerViewController: UIViewController {
         close()
     }
 
-    /// Dismisses from the presenter, not `self`: while the search bar is active the
-    /// search controller is presented on top of this screen, so `self.dismiss` would
-    /// only tear that down and leave the picker up.
     private func close() {
         searchController.searchBar.resignFirstResponder()
         let presenter = presentingViewController ?? self
@@ -144,7 +137,6 @@ extension FilmPickerViewController: UISearchResultsUpdating {
 
 extension FilmPickerViewController: UITableViewDataSource, UITableViewDelegate {
 
-    /// Section 1 is the hand-typed fallback, shown as soon as there's a name to add.
     func numberOfSections(in tableView: UITableView) -> Int { 2 }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -187,7 +179,6 @@ extension FilmPickerViewController: UITableViewDataSource, UITableViewDelegate {
     }
 }
 
-/// A search hit: poster, title, year and TMDB score, to tell same-named films apart.
 final class FilmResultCell: UITableViewCell {
 
     static let identifier = "FilmResultCell"
@@ -217,7 +208,6 @@ final class FilmResultCell: UITableViewCell {
         return label
     }()
 
-    /// Guards against a slow poster landing in a reused cell.
     private var posterURL: URL?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
