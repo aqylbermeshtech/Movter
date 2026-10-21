@@ -49,9 +49,7 @@ final class TrailerViewController: UIViewController {
         spinner.translatesAutoresizingMaskIntoConstraints = false
         return spinner
     }()
-
-    /// Shown in place of the player when the embed can't be reached — a blank frame
-    /// would read as a broken app rather than a missing connection.
+    
     private let failureLabel: UILabel = {
         let label = UILabel()
         label.font = .secondaryBody
@@ -102,7 +100,6 @@ final class TrailerViewController: UIViewController {
 // MARK: - Loading
 
 extension TrailerViewController: WKNavigationDelegate {
-
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         spinner.stopAnimating()
         playerView.isHidden = false
