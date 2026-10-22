@@ -2,28 +2,49 @@
 //  ProfileViewFactory.swift
 //  Movter
 //
-//  Created by Nurtore on 21.10.2026.
-//
 
 import UIKit
 
 enum ProfileViewFactory {
 
     @MainActor
-    static func make() -> UIViewController {
-        // 1. Data Source (Firebase)
-        let dataSource = FirebaseAuthProfileDataSource()
+    static func make(
+        watchlistStore: WatchlistStoring = WatchlistStoreFactory.makeStore(),
+        watchedStore: WatchlistStoring = WatchedFilmsStoreFactory.makeStore(),
+        reviewStore: ReviewStoring = ReviewStoreFactory.makeStore()
+    ) -> UIViewController {
+        let authDataSource = FirebaseAuthProfileDataSource()
+        let profileRepository = DefaultProfileRepository(dataSource: authDataSource)
+        let getProfileUseCase = DefaultGetProfileUseCase(repository: profileRepository)
+        let signOutUseCase = DefaultSignOutUseCase(repository: profileRepository)
+        let changeThemeUseCase = DefaultChangeThemeUseCase()
 
-        // 2. Repository (Converts DTO to Domain UserProfile)
-        let repository = DefaultProfileRepository(dataSource: dataSource)
+        let statsRepository = DefaultProfileStatsRepository(
+            watchlistStore: watchlistStore,
+            watchedStore: watchedStore,
+            reviewStore: reviewStore
+        )
+        let getProfileStatsUseCase = DefaultGetProfileStatsUseCase(repository: statsRepository)
 
-        // 3. Use Case
-        let useCase = DefaultGetProfileUseCase(repository: repository)
+        let viewModel = ProfileViewModel(
+            getProfileUseCase: getProfileUseCase,
+            getProfileStatsUseCase: getProfileStatsUseCase,
+            signOutUseCase: signOutUseCase,
+            changeThemeUseCase: changeThemeUseCase
+        )
 
-        // 4. Presentation
-        let viewModel = ProfileViewModel2(getProfileUseCase: useCase)
+        let coordinator = DefaultProfileCoordinator(
+            watchlistStore: watchlistStore,
+            watchedStore: watchedStore,
+            reviewStore: reviewStore
+        )
 
-        return ProfileViewController2(viewModel: viewModel)
+        let viewController = ProfileViewController(
+            viewModel: viewModel,
+            coordinator: coordinator
+        )
+        coordinator.viewController = viewController
+
+        return viewController
     }
 }
-
