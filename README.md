@@ -1,4 +1,4 @@
-# Movter
+# Movter (not final product, under construction)
 
 **Keep the ticket.** An iOS film app: browse what's trending, keep a watchlist, and score
 what you've seen — and every review you save becomes a ticket stub worth keeping.
