@@ -9,4 +9,6 @@ import Foundation
 
 protocol ProfileRepository {
     func fetchProfile() async throws -> UserProfile
+    func updateProfile(name: String, avatarURL: URL?) async throws
+    func signOut() throws
 }
