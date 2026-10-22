@@ -35,7 +35,6 @@ final class ProfileStatsView: UIView {
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
 
-        // The columns share the width; the two hairlines take only what they need.
         watchedColumn.widthAnchor.constraint(equalTo: reviewsColumn.widthAnchor).isActive = true
         reviewsColumn.widthAnchor.constraint(equalTo: watchlistColumn.widthAnchor).isActive = true
 

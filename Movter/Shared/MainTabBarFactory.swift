@@ -6,6 +6,7 @@
 import UIKit
 import FirebaseAuth
 
+@MainActor
 enum MainTabBarFactory {
 
     static func makeTabBar() -> UIViewController {
