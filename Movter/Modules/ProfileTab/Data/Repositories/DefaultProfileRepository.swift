@@ -19,5 +19,13 @@ final class DefaultProfileRepository: ProfileRepository {
         let dto = try await dataSource.fetchCurrentUser()
         return dto.toDomain()
     }
+    
+    func updateProfile(name: String, avatarURL: URL?) async throws {
+        try await dataSource.updateProfile(displayName: name, photoURL: avatarURL)
+    }
+    
+    func signOut() throws {
+        try dataSource.signOut()
+    }
 }
 
