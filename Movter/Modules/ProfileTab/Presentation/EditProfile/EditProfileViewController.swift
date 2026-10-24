@@ -4,15 +4,17 @@
 //
 //  Created by Nurtore on 18.08.2026.
 //
-
 import UIKit
-import FirebaseAuth
 
+@MainActor
 final class EditProfileViewController: UIViewController {
 
     var onSave: (() -> Void)?
 
-    private static let maxNameLength = 50
+    private let viewModel: EditProfileViewModel
+    private var task: Task<Void, Never>?
+
+    // MARK: - UI Components
 
     private let avatarImageView: UIImageView = {
         let iv = UIImageView()
@@ -55,7 +57,6 @@ final class EditProfileViewController: UIViewController {
             string: "Your name",
             attributes: [.foregroundColor: UIColor.textSecondary]
         )
-        // UITextField has no built-in content inset.
         field.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 1))
         field.leftViewMode = .always
         field.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 8, height: 1))
@@ -105,23 +106,49 @@ final class EditProfileViewController: UIViewController {
         return button
     }()
 
+    // MARK: - Initialization
+
+    init(viewModel: EditProfileViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    convenience init(onSave: (() -> Void)? = nil) {
+        let authDataSource = FirebaseAuthProfileDataSource()
+        let repository = DefaultProfileRepository(dataSource: authDataSource)
+        let getUseCase = DefaultGetProfileUseCase(repository: repository)
+        let updateUseCase = DefaultUpdateProfileUseCase(repository: repository)
+        let viewModel = EditProfileViewModel(
+            getProfileUseCase: getUseCase,
+            updateProfileUseCase: updateUseCase
+        )
+        self.init(viewModel: viewModel)
+        self.onSave = onSave
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    deinit {
+        task?.cancel()
+    }
+
+    // MARK: - Lifecycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .canvas
         title = "Edit Profile"
 
-        let user = Auth.auth().currentUser
-        nameTextField.text = user?.displayName
-        emailValueLabel.text = user?.email ?? "—"
-
         setupUI()
-        refreshAvatar()
-        updateSaveButtonState()
+        bindViewModel()
+        loadData()
 
         view.addGestureRecognizer(
             UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         )
     }
+
+    // MARK: - Setup UI
 
     private func setupUI() {
         let nameStack = UIStackView(arrangedSubviews: [nameFieldLabel, nameTextField])
@@ -162,34 +189,52 @@ final class EditProfileViewController: UIViewController {
         ])
     }
 
+    // MARK: - Bindings
+
+    private func bindViewModel() {
+        viewModel.onStateChange = { [weak self] in
+            self?.render()
+        }
+    }
+
+    private func loadData() {
+        task?.cancel()
+        task = Task { [weak self, viewModel] in
+            await viewModel.loadProfile()
+            guard let self else { return }
+            self.nameTextField.text = viewModel.currentName
+            self.emailValueLabel.text = viewModel.email.isEmpty ? "—" : viewModel.email
+            self.render()
+        }
+    }
+
+    private func render() {
+        refreshAvatar()
+        updateSaveButtonState()
+    }
+
     private func refreshAvatar() {
         avatarImageView.image = InitialsAvatar.image(
-            name: trimmedName,
-            email: Auth.auth().currentUser?.email,
+            name: viewModel.trimmedName,
+            email: viewModel.email,
             size: 200
         )
     }
 
-    private var trimmedName: String {
-        nameTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    }
-
-    private var hasUnsavedChanges: Bool {
-        trimmedName != (Auth.auth().currentUser?.displayName ?? "")
-    }
-
     private func updateSaveButtonState() {
-        let isValid = !trimmedName.isEmpty && trimmedName.count <= Self.maxNameLength
-        let isEnabled = isValid && hasUnsavedChanges
+        let isEnabled = viewModel.canSave
         saveButton.isEnabled = isEnabled
-        // Disabled stays readable; a faded-out button reads as a rendering bug.
+        saveButton.configuration?.showsActivityIndicator = viewModel.isSaving
+        saveButton.configuration?.title = viewModel.isSaving ? nil : "Save Changes"
         saveButton.configuration?.baseBackgroundColor = isEnabled ? .accent : .surface
         saveButton.configuration?.baseForegroundColor = isEnabled ? .onAccent : .textSecondary
+        nameTextField.isEnabled = !viewModel.isSaving
     }
 
+    // MARK: - Actions
+
     @objc private func nameChanged() {
-        refreshAvatar()
-        updateSaveButtonState()
+        viewModel.updateCurrentName(nameTextField.text ?? "")
     }
 
     @objc private func dismissKeyboard() {
@@ -197,34 +242,17 @@ final class EditProfileViewController: UIViewController {
     }
 
     @objc private func saveTapped() {
-        guard let user = Auth.auth().currentUser else {
-            presentAlert(title: "Not signed in", message: "Sign in again to edit your profile.")
-            return
-        }
-        let newName = trimmedName
-        guard !newName.isEmpty else { return }
-
-        setSaving(true)
-        let request = user.createProfileChangeRequest()
-        request.displayName = newName
-        request.commitChanges { [weak self] error in
-            guard let self = self else { return }
-            self.setSaving(false)
-
-            if let error = error {
-                self.presentAlert(title: "Couldn't save", message: error.localizedDescription)
-                return
+        view.endEditing(true)
+        task?.cancel()
+        task = Task { [weak self, viewModel] in
+            do {
+                try await viewModel.save()
+                self?.onSave?()
+                self?.navigationController?.popViewController(animated: true)
+            } catch {
+                self?.presentAlert(title: "Couldn't save", message: error.localizedDescription)
             }
-            self.onSave?()
-            self.navigationController?.popViewController(animated: true)
         }
-    }
-
-    private func setSaving(_ isSaving: Bool) {
-        saveButton.configuration?.showsActivityIndicator = isSaving
-        saveButton.configuration?.title = isSaving ? nil : "Save Changes"
-        saveButton.isEnabled = !isSaving
-        nameTextField.isEnabled = !isSaving
     }
 
     private func presentAlert(title: String, message: String) {
@@ -233,6 +261,8 @@ final class EditProfileViewController: UIViewController {
         present(alert, animated: true)
     }
 }
+
+// MARK: - UITextFieldDelegate
 
 extension EditProfileViewController: UITextFieldDelegate {
 
@@ -243,7 +273,7 @@ extension EditProfileViewController: UITextFieldDelegate {
     ) -> Bool {
         let current = textField.text ?? ""
         guard let range = Range(range, in: current) else { return true }
-        return current.replacingCharacters(in: range, with: string).count <= Self.maxNameLength
+        return current.replacingCharacters(in: range, with: string).count <= EditProfileViewModel.maxNameLength
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
