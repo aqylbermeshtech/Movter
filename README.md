@@ -3,6 +3,8 @@
 **Keep the ticket.** An iOS film app: browse what's trending, keep a watchlist, and score
 what you've seen — and every review you save becomes a ticket stub worth keeping.
 
+(Temporarily works with Firebase, since writing custom backend with GO is at testing stage)
+
 ## 📱 App Preview
 
 <table>
