@@ -10,11 +10,24 @@ import UIKit
 final class FilmPickerViewController: UIViewController {
 
     var onPick: ((FilmSelection) -> Void)?
+    var onSelect: ((FilmSelection) -> Void)? {
+        get { onPick }
+        set { onPick = newValue }
+    }
 
     private let searchController = UISearchController(searchResultsController: nil)
     private let tableView = UITableView(frame: .zero, style: .plain)
 
-    private let viewModel = FilmPickerViewModel()
+    private let viewModel: FilmPickerViewModel
+    private weak var coordinator: ReviewsCoordinator?
+
+    init(viewModel: FilmPickerViewModel = FilmPickerViewModel(), coordinator: ReviewsCoordinator? = nil) {
+        self.viewModel = viewModel
+        self.coordinator = coordinator
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     private let statusLabel: UILabel = {
         let label = UILabel()
@@ -120,8 +133,12 @@ final class FilmPickerViewController: UIViewController {
 
     private func close() {
         searchController.searchBar.resignFirstResponder()
-        let presenter = presentingViewController ?? self
-        presenter.dismiss(animated: true)
+        if let coordinator = coordinator {
+            coordinator.dismiss()
+        } else {
+            let presenter = presentingViewController ?? self
+            presenter.dismiss(animated: true)
+        }
     }
 }
 

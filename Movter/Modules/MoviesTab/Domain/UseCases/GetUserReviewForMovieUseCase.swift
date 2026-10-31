@@ -14,7 +14,7 @@ protocol GetUserReviewForMovieUseCase {
 final class DefaultGetUserReviewForMovieUseCase: GetUserReviewForMovieUseCase {
     private let repository: ReviewsRepository
     
-    init(repository: ReviewsRepository) {
+    init(repository: ReviewsRepository = DefaultReviewsRepository()) {
         self.repository = repository
     }
     

@@ -16,7 +16,7 @@ final class ReviewEditorViewModel {
 
     static let maxReviewLength = 2000
 
-    private let store: ReviewStoring
+    private let saveReviewUseCase: SaveReviewUseCase
     private let mode: Mode
 
     // MARK: - Draft
@@ -30,8 +30,11 @@ final class ReviewEditorViewModel {
     var score: Int = 0
     var reviewText: String = ""
 
-    init(store: ReviewStoring, mode: Mode) {
-        self.store = store
+    init(
+        saveReviewUseCase: SaveReviewUseCase = DefaultSaveReviewUseCase(repository: DefaultReviewsRepository()),
+        mode: Mode
+    ) {
+        self.saveReviewUseCase = saveReviewUseCase
         self.mode = mode
 
         if case let .edit(review) = mode {
@@ -43,6 +46,13 @@ final class ReviewEditorViewModel {
             score = review.score
             reviewText = review.reviewText
         }
+    }
+
+    convenience init(store: ReviewStoring, mode: Mode) {
+        self.init(
+            saveReviewUseCase: DefaultSaveReviewUseCase(repository: DefaultReviewsRepository()),
+            mode: mode
+        )
     }
 
     // MARK: - Presentation
@@ -102,8 +112,8 @@ final class ReviewEditorViewModel {
         }
     }
 
-    func save(completion: @escaping (Result<Void, Error>) -> Void) {
-        guard canSave else { return }
+    func save() async throws {
+        guard canSave else { throw ReviewError.emptyFilmTitle }
 
         let review: Review
         switch mode {
@@ -131,6 +141,17 @@ final class ReviewEditorViewModel {
             )
         }
 
-        store.save(review, completion: completion)
+        try await saveReviewUseCase.execute(review)
+    }
+
+    func save(completion: @escaping (Result<Void, Error>) -> Void) {
+        Task {
+            do {
+                try await save()
+                DispatchQueue.main.async { completion(.success(())) }
+            } catch {
+                DispatchQueue.main.async { completion(.failure(error)) }
+            }
+        }
     }
 }
