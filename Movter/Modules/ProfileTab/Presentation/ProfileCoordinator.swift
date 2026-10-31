@@ -44,9 +44,7 @@ final class DefaultProfileCoordinator: ProfileCoordinator {
     }
 
     func showReviews() {
-        let reviewsVC = ReviewsListViewController(
-            viewModel: ReviewsListViewModel(store: reviewStore)
-        )
+        let reviewsVC = ReviewsViewFactory.makeReviewsList(navigationController: activeNavigationController)
         activeNavigationController?.pushViewController(reviewsVC, animated: true)
     }
 

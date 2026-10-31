@@ -12,9 +12,11 @@ final class ReviewEditorViewController: UIViewController {
     var onSave: (() -> Void)?
 
     private let viewModel: ReviewEditorViewModel
+    private weak var coordinator: ReviewsCoordinator?
 
-    init(viewModel: ReviewEditorViewModel) {
+    init(viewModel: ReviewEditorViewModel, coordinator: ReviewsCoordinator? = nil) {
         self.viewModel = viewModel
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -275,13 +277,21 @@ final class ReviewEditorViewController: UIViewController {
 
     @objc private func chooseFilmTapped() {
         view.endEditing(true)
-        let picker = FilmPickerViewController()
-        picker.onPick = { [weak self] selection in
-            guard let self = self else { return }
-            self.viewModel.apply(selection)
-            self.refresh()
+        if let coordinator = coordinator {
+            coordinator.showFilmPicker { [weak self] selection in
+                guard let self = self else { return }
+                self.viewModel.apply(selection)
+                self.refresh()
+            }
+        } else {
+            let picker = FilmPickerViewController()
+            picker.onPick = { [weak self] selection in
+                guard let self = self else { return }
+                self.viewModel.apply(selection)
+                self.refresh()
+            }
+            present(UINavigationController(rootViewController: picker), animated: true)
         }
-        present(UINavigationController(rootViewController: picker), animated: true)
     }
 
     @objc private func scoreChanged() {
@@ -291,7 +301,11 @@ final class ReviewEditorViewController: UIViewController {
 
     @objc private func cancelTapped() {
         view.endEditing(true)
-        dismiss(animated: true)
+        if let coordinator = coordinator {
+            coordinator.dismiss()
+        } else {
+            dismiss(animated: true)
+        }
     }
 
     @objc private func saveTapped() {
@@ -305,7 +319,12 @@ final class ReviewEditorViewController: UIViewController {
             switch result {
             case .success:
                 let onSave = self.onSave
-                self.dismiss(animated: true) { onSave?() }
+                if let coordinator = self.coordinator {
+                    coordinator.dismiss()
+                    onSave?()
+                } else {
+                    self.dismiss(animated: true) { onSave?() }
+                }
             case let .failure(error):
                 let alert = UIAlertController(
                     title: "Couldn't save",

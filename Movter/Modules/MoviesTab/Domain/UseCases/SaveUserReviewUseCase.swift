@@ -14,7 +14,7 @@ protocol SaveUserReviewUseCase {
 final class DefaultSaveUserReviewUseCase: SaveUserReviewUseCase {
     private let repository: ReviewsRepository
     
-    init(repository: ReviewsRepository) {
+    init(repository: ReviewsRepository = DefaultReviewsRepository()) {
         self.repository = repository
     }
     

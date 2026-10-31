@@ -7,11 +7,6 @@
 
 import Foundation
 
-enum FilmSelection {
-    case catalogue(Media)
-    case manual(title: String)
-}
-
 final class FilmPickerViewModel {
 
     var onChange: (() -> Void)?
@@ -23,14 +18,14 @@ final class FilmPickerViewModel {
     private static let minimumQueryLength = 2
     private static let debounceInterval: TimeInterval = 0.35
 
-    private let service: MediaFetching
+    private let searchFilmsUseCase: SearchFilmsForReviewUseCase
     private let monitor: NetworkMonitoring
 
     init(
-        service: MediaFetching = TMDBService.shared,
+        searchFilmsUseCase: SearchFilmsForReviewUseCase = DefaultSearchFilmsForReviewUseCase(repository: DefaultFilmSearchRepository()),
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
-        self.service = service
+        self.searchFilmsUseCase = searchFilmsUseCase
         self.monitor = monitor
     }
 
@@ -78,11 +73,24 @@ final class FilmPickerViewModel {
         isSearching = true
         onChange?()
 
-        service.searchMovies(query: query, page: 1) { [weak self] page in
-            guard let self = self, token == self.currentSearchToken else { return }
-            self.isSearching = false
-            self.results = page?.items ?? []
-            self.onChange?()
+        Task { [weak self] in
+            guard let self = self else { return }
+            do {
+                let items = try await self.searchFilmsUseCase.execute(query: query, page: 1)
+                await MainActor.run {
+                    guard token == self.currentSearchToken else { return }
+                    self.isSearching = false
+                    self.results = items
+                    self.onChange?()
+                }
+            } catch {
+                await MainActor.run {
+                    guard token == self.currentSearchToken else { return }
+                    self.isSearching = false
+                    self.results = []
+                    self.onChange?()
+                }
+            }
         }
     }
 

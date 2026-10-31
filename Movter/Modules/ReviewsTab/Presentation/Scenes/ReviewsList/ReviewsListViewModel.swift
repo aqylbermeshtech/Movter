@@ -9,34 +9,55 @@ import Foundation
 import UIKit
 
 final class ReviewsListViewModel {
+
     // MARK: - State & Output
     private(set) var state: ViewState<[Review]> = .idle {
         didSet {
             onStateChange?(state)
         }
     }
-    
+
     var onStateChange: ((ViewState<[Review]>) -> Void)?
-    private let store: ReviewStoring
+
+    private let fetchReviewsUseCase: FetchReviewsUseCase
+    private let deleteReviewUseCase: DeleteReviewUseCase
+    private let calculateStatsUseCase: CalculateReviewStatsUseCase
+
     private(set) var reviews: [Review] = []
-    init(store: ReviewStoring = ReviewStoreFactory.makeStore()) {
-        self.store = store
+
+    init(
+        fetchReviewsUseCase: FetchReviewsUseCase = DefaultFetchReviewsUseCase(repository: DefaultReviewsRepository()),
+        deleteReviewUseCase: DeleteReviewUseCase = DefaultDeleteReviewUseCase(repository: DefaultReviewsRepository()),
+        calculateStatsUseCase: CalculateReviewStatsUseCase = DefaultCalculateReviewStatsUseCase()
+    ) {
+        self.fetchReviewsUseCase = fetchReviewsUseCase
+        self.deleteReviewUseCase = deleteReviewUseCase
+        self.calculateStatsUseCase = calculateStatsUseCase
     }
-    
+
+    convenience init(store: ReviewStoring) {
+        let repo = DefaultReviewsRepository()
+        self.init(
+            fetchReviewsUseCase: DefaultFetchReviewsUseCase(repository: repo),
+            deleteReviewUseCase: DefaultDeleteReviewUseCase(repository: repo),
+            calculateStatsUseCase: DefaultCalculateReviewStatsUseCase()
+        )
+    }
+
     var summaryText: String? {
         guard !reviews.isEmpty else { return nil }
-        let average = Double(reviews.reduce(0) { $0 + $1.score }) / Double(reviews.count)
-        let filmCount = "\(reviews.count) film\(reviews.count == 1 ? "" : "s")"
-        return String(format: "%@  ·  %.1f average", filmCount, average)
+        let summary = calculateStatsUseCase.execute(reviews: reviews)
+        return summary.displayText
     }
-    
+
     // MARK: - Actions
+
     func load() {
         state = .loading
         Task { [weak self] in
             guard let self = self else { return }
             do {
-                let fetched = try await self.store.fetchAll()
+                let fetched = try await self.fetchReviewsUseCase.execute()
                 await MainActor.run {
                     self.reviews = fetched
                     if fetched.isEmpty {
@@ -52,11 +73,11 @@ final class ReviewsListViewModel {
             }
         }
     }
-    
+
     func review(at indexPath: IndexPath) -> Review? {
         reviews[safe: indexPath.row]
     }
-    
+
     func delete(at indexPath: IndexPath) {
         guard let review = review(at: indexPath) else { return }
         let originalReviews = reviews
@@ -65,7 +86,7 @@ final class ReviewsListViewModel {
         Task { [weak self] in
             guard let self = self else { return }
             do {
-                try await self.store.delete(review.id)
+                try await self.deleteReviewUseCase.execute(id: review.id)
             } catch {
                 await MainActor.run {
                     self.reviews = originalReviews
@@ -73,12 +94,5 @@ final class ReviewsListViewModel {
                 }
             }
         }
-    }
-    
-    func makeEditorViewModel(for review: Review?) -> ReviewEditorViewModel {
-        ReviewEditorViewModel(
-            store: store,
-            mode: review.map { .edit($0) } ?? .create
-        )
     }
 }

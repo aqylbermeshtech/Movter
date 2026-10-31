@@ -10,6 +10,7 @@ import UIKit
 final class ReviewsListViewController: UIViewController {
 
     private let viewModel: ReviewsListViewModel
+    private weak var coordinator: ReviewsCoordinator?
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let skeletonView = SkeletonGridView(style: .reviewList(rows: 6))
 
@@ -21,8 +22,9 @@ final class ReviewsListViewController: UIViewController {
         return label
     }()
 
-    init(viewModel: ReviewsListViewModel) {
+    init(viewModel: ReviewsListViewModel, coordinator: ReviewsCoordinator? = nil) {
         self.viewModel = viewModel
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -162,15 +164,25 @@ final class ReviewsListViewController: UIViewController {
     }
 
     private func showTicket(for review: Review) {
-        let ticketVC = TicketViewController(review: review)
-        present(UINavigationController(rootViewController: ticketVC), animated: true)
+        if let coordinator = coordinator {
+            coordinator.showTicket(for: review)
+        } else {
+            let ticketVC = TicketViewController(review: review)
+            present(UINavigationController(rootViewController: ticketVC), animated: true)
+        }
     }
 
     private func presentEditor(for review: Review?) {
-        let editorViewModel = viewModel.makeEditorViewModel(for: review)
-        let editor = ReviewEditorViewController(viewModel: editorViewModel)
-        editor.onSave = { [weak self] in self?.viewModel.load() }
-        present(UINavigationController(rootViewController: editor), animated: true)
+        if let coordinator = coordinator {
+            coordinator.showReviewEditor(for: review) { [weak self] in
+                self?.viewModel.load()
+            }
+        } else {
+            let editor = ReviewsViewFactory.makeReviewEditor(review: review, coordinator: coordinator) { [weak self] in
+                self?.viewModel.load()
+            }
+            present(UINavigationController(rootViewController: editor), animated: true)
+        }
     }
 
     private func presentError(_ message: String) {
