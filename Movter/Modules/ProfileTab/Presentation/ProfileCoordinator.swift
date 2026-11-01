@@ -77,7 +77,10 @@ final class DefaultProfileCoordinator: ProfileCoordinator {
 
     func showLogin() {
         guard let window = (activeNavigationController ?? viewController)?.view.window else { return }
-        let loginNav = UINavigationController(rootViewController: LoginViewController())
+        let coordinator = DefaultAuthCoordinator(window: window)
+        let loginVC = AuthViewFactory.makeLogin(coordinator: coordinator)
+        let loginNav = UINavigationController(rootViewController: loginVC)
+        coordinator.navigationController = loginNav
         window.rootViewController = loginNav
         UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: nil)
     }
