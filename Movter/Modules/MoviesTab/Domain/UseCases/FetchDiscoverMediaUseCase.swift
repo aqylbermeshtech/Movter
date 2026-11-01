@@ -14,7 +14,7 @@ protocol FetchDiscoverMediaUseCase {
 final class DefaultFetchDiscoverMediaUseCase: FetchDiscoverMediaUseCase {
     private let repository: MoviesRepository
     
-    init(repository: MoviesRepository) {
+    init(repository: MoviesRepository = DefaultMoviesRepository()) {
         self.repository = repository
     }
     

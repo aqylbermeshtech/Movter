@@ -7,21 +7,10 @@
 
 import UIKit
 
-final class CastCrewViewController: UIViewController {
+@MainActor
+final class CastCrewViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
 
     private let viewModel: CastCrewViewModel
-    private let tableView = UITableView(frame: .zero, style: .plain)
-
-    private let emptyLabel: UILabel = {
-        let label = UILabel()
-        label.font = .secondaryBody
-        label.textColor = .textSecondary
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        label.isHidden = true
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
 
     init(viewModel: CastCrewViewModel) {
         self.viewModel = viewModel
@@ -30,48 +19,65 @@ final class CastCrewViewController: UIViewController {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    private lazy var tableView: UITableView = {
+        let table = UITableView(frame: .zero, style: .grouped)
+        table.backgroundColor = .clear
+        table.separatorColor = .hairline
+        table.separatorInset = UIEdgeInsets(top: 0, left: 80, bottom: 0, right: 16)
+        table.dataSource = self
+        table.delegate = self
+        table.register(CreditCell.self, forCellReuseIdentifier: CreditCell.identifier)
+        table.rowHeight = CreditCell.rowHeight
+        table.translatesAutoresizingMaskIntoConstraints = false
+        return table
+    }()
+
+    private lazy var emptyView: UIView = {
+        let label = UILabel()
+        label.text = "No cast or crew details are available for this title."
+        label.font = .secondaryBody
+        label.textColor = .textSecondary
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        let view = UIView()
+        view.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
+            label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32)
+        ])
+        return view
+    }()
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .canvas
         title = "Cast & Crew"
         navigationItem.largeTitleDisplayMode = .never
-        emptyLabel.text = "TMDB doesn't list a cast or crew for \(viewModel.mediaTitle) yet"
 
-        tableView.dataSource = self
-        tableView.delegate = self
-        tableView.backgroundColor = .clear
-        tableView.separatorColor = .hairline
-        tableView.separatorInset = UIEdgeInsets(top: 0, left: 80, bottom: 0, right: 0)
-        tableView.rowHeight = CreditCell.rowHeight
-        tableView.sectionHeaderTopPadding = 0
-        tableView.register(CreditCell.self, forCellReuseIdentifier: CreditCell.identifier)
-        tableView.contentInset.bottom = MainTabBarController.contentClearance
-        tableView.verticalScrollIndicatorInsets.bottom = MainTabBarController.contentClearance
-        tableView.translatesAutoresizingMaskIntoConstraints = false
+        setupLayout()
+    }
+
+    private func setupLayout() {
+        if viewModel.isEmpty {
+            view.addSubview(emptyView)
+            emptyView.frame = view.bounds
+            emptyView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            return
+        }
 
         view.addSubview(tableView)
-        view.addSubview(emptyLabel)
-
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            emptyLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            emptyLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32)
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
-
-        emptyLabel.isHidden = !viewModel.isEmpty
-        tableView.isHidden = viewModel.isEmpty
     }
-}
 
-// MARK: - Table
-
-extension CastCrewViewController: UITableViewDataSource, UITableViewDelegate {
+    // MARK: - Table view
 
     func numberOfSections(in tableView: UITableView) -> Int {
         viewModel.sections.count
@@ -82,9 +88,8 @@ extension CastCrewViewController: UITableViewDataSource, UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(
-            withIdentifier: CreditCell.identifier, for: indexPath
-        ) as? CreditCell, let row = viewModel.row(inSection: indexPath.section, at: indexPath.row) else {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: CreditCell.identifier, for: indexPath) as? CreditCell,
+              let row = viewModel.row(inSection: indexPath.section, at: indexPath.row) else {
             return UITableViewCell()
         }
         cell.configure(with: row)
@@ -119,7 +124,7 @@ extension CastCrewViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         guard let row = viewModel.row(inSection: indexPath.section, at: indexPath.row) else { return }
-        let actorVM = ActorViewModel(actorId: row.personID, name: row.name)
-        navigationController?.pushViewController(ActorViewController(viewModel: actorVM), animated: true)
+        viewModel.showActorDetails(actorId: row.personID, name: row.name)
     }
 }
+

@@ -15,7 +15,11 @@ enum MainTabBarFactory {
         let reviewStore = ReviewStoreFactory.makeStore()
         let watchedStore = WatchedFilmsStoreFactory.makeStore()
 
-        let mediaListVC = MediaListViewController(watchlistStore: watchlistStore)
+        let moviesNav = UINavigationController()
+        let moviesCoordinator = DefaultMoviesCoordinator(navigationController: moviesNav)
+        let mediaListVC = MoviesViewFactory.makeMovieList(coordinator: moviesCoordinator)
+        moviesNav.viewControllers = [mediaListVC]
+
         let searchMoviesVC = SearchMoviesViewController()
         let swipeDeckVC = SwipeDeckViewController(watchlistStore: watchlistStore, seenFilmsStore: seenFilmsStore)
         let profileVC = ProfileViewController(
@@ -33,7 +37,7 @@ enum MainTabBarFactory {
         tabBar.setTabs([
             .init(
                 title: "Movies", symbol: "film",
-                navigationController: UINavigationController(rootViewController: mediaListVC),
+                navigationController: moviesNav,
                 root: mediaListVC
             ),
             .init(

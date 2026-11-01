@@ -7,15 +7,15 @@
 
 import UIKit
 
+@MainActor
 final class MediaListViewController: UIViewController {
-    private let viewModel = MediaListViewModel()
+    private let viewModel: MediaListViewModel
     private let watchlistStore: WatchlistStoring
 
     private let headerView = HomeHeaderView()
     private let chipsView = GenreChipsView()
     private let heroView = HeroCarouselView()
     private let trendingView = TrendingMediaGridView()
-    private let posterTransition = PosterTransitionController()
 
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -27,9 +27,18 @@ final class MediaListViewController: UIViewController {
 
     private var watchlistItemIDs: [Int: UUID] = [:]
 
-    init(watchlistStore: WatchlistStoring) {
+    init(
+        viewModel: MediaListViewModel,
+        watchlistStore: WatchlistStoring = WatchlistStoreFactory.makeStore(),
+        coordinator: MoviesCoordinator? = nil
+    ) {
+        self.viewModel = viewModel
         self.watchlistStore = watchlistStore
         super.init(nibName: nil, bundle: nil)
+    }
+
+    convenience init(watchlistStore: WatchlistStoring = WatchlistStoreFactory.makeStore()) {
+        self.init(viewModel: MediaListViewModel(), watchlistStore: watchlistStore, coordinator: nil)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -173,9 +182,7 @@ final class MediaListViewController: UIViewController {
             self?.toggleWatchlist(for: media)
         }
         trendingView.onMovieSelected = { [weak self] media in
-            guard let self = self else { return }
-            let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
-            self.posterTransition.push(detailVC, for: media, from: self)
+            self?.showDetails(for: media)
         }
         trendingView.onSeeAllSelected = { [weak self] in
             self?.showSeeAll()
@@ -202,20 +209,12 @@ final class MediaListViewController: UIViewController {
     // MARK: - Navigation
 
     private func showDetails(for media: Media, revealingTrailer: Bool = false) {
-        let detailVC = MediaDetailsViewController(
-            viewModel: MediaDetailsViewModel(media: media),
-            revealsTrailer: revealingTrailer
-        )
-        navigationController?.pushViewController(detailVC, animated: true)
+        viewModel.showMovieDetails(media: media, from: self)
     }
 
     private func showSeeAll() {
         let genre = viewModel.selectedGenre
-        let gridVC = MovieGridViewController(
-            source: .discover(genre.query),
-            title: genre.sectionTitle
-        )
-        navigationController?.pushViewController(gridVC, animated: true)
+        viewModel.showMovieGrid(genre: genre)
     }
 
     // MARK: - Watchlist

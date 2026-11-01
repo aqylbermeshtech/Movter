@@ -14,7 +14,7 @@ protocol GetTrailerUseCase {
 final class DefaultGetTrailerUseCase: GetTrailerUseCase {
     private let repository: MovieDetailsRepository
     
-    init(repository: MovieDetailsRepository) {
+    init(repository: MovieDetailsRepository = DefaultMovieDetailsRepository()) {
         self.repository = repository
     }
     

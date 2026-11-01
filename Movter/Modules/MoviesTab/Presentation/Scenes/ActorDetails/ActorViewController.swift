@@ -7,13 +7,14 @@
 
 import UIKit
 
+@MainActor
 final class ActorViewController: UIViewController {
 
     private let viewModel: ActorViewModel
 
     private static let collapsedBiographyLines = 6
 
-    init(viewModel: ActorViewModel) {
+    init(viewModel: ActorViewModel, coordinator: MoviesCoordinator? = nil) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
@@ -23,7 +24,6 @@ final class ActorViewController: UIViewController {
     // MARK: - Views
 
     private let scrollView = UIScrollView()
-    private let posterTransition = PosterTransitionController()
 
     private let profileImageView: UIImageView = {
         let iv = UIImageView()
@@ -319,9 +319,7 @@ extension ActorViewController: UICollectionViewDataSource, UICollectionViewDeleg
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let credit = viewModel.credit(at: indexPath.item) else { return }
-        let media = credit.asMedia
-        let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
-        posterTransition.push(detailVC, for: media, from: self)
+        viewModel.showMovieDetails(media: credit.asMedia, from: self)
     }
 }
 
@@ -335,3 +333,4 @@ extension ActorViewController: PosterTransitionSource {
         }
     }
 }
+

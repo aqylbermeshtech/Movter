@@ -19,16 +19,24 @@ struct CreditSection {
     let rows: [CreditRow]
 }
 
+@MainActor
 final class CastCrewViewModel {
     let mediaTitle: String
     private(set) var sections: [CreditSection] = []
+    private weak var coordinator: MoviesCoordinator?
     private static let departmentOrder = [
         "Directing", "Writing", "Production", "Camera", "Editing",
         "Sound", "Art", "Costume & Make-Up", "Visual Effects", "Lighting"
     ]
 
-    init(mediaTitle: String, cast: [Actor], crew: [CrewMember]) {
+    init(
+        mediaTitle: String,
+        cast: [Actor],
+        crew: [CrewMember],
+        coordinator: MoviesCoordinator? = nil
+    ) {
         self.mediaTitle = mediaTitle
+        self.coordinator = coordinator
         sections = Self.makeSections(cast: cast, crew: crew)
     }
 
@@ -44,6 +52,10 @@ final class CastCrewViewModel {
 
     func title(forSection section: Int) -> String? {
         sections[safe: section]?.title
+    }
+
+    func showActorDetails(actorId: Int, name: String) {
+        coordinator?.showActorDetails(actorId: actorId, name: name)
     }
 
     // MARK: - Building
@@ -91,7 +103,6 @@ final class CastCrewViewModel {
                     personID: row.personID,
                     name: row.name,
                     role: merged,
-                    // A later record may carry the headshot the first one lacked.
                     profileURL: row.profileURL ?? member.profileURL
                 )
             } else {
@@ -120,3 +131,4 @@ final class CastCrewViewModel {
         return departmentOrder.count + (order.firstIndex(of: department) ?? 0)
     }
 }
+

@@ -14,7 +14,7 @@ protocol GetPersonDetailsUseCase {
 final class DefaultGetPersonDetailsUseCase: GetPersonDetailsUseCase {
     private let repository: PersonRepository
     
-    init(repository: PersonRepository) {
+    init(repository: PersonRepository = DefaultPersonRepository()) {
         self.repository = repository
     }
     

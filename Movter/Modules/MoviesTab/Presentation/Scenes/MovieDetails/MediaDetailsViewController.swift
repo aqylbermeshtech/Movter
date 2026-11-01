@@ -7,6 +7,7 @@
 
 import UIKit
 
+@MainActor
 final class MediaDetailsViewController: UIViewController {
 
     private let viewModel: MediaDetailsViewModel
@@ -18,7 +19,7 @@ final class MediaDetailsViewController: UIViewController {
     private let revealsTrailer: Bool
     private var didRevealTrailer = false
 
-    init(viewModel: MediaDetailsViewModel, revealsTrailer: Bool = false) {
+    init(viewModel: MediaDetailsViewModel, revealsTrailer: Bool = false, coordinator: MoviesCoordinator? = nil) {
         self.viewModel = viewModel
         self.revealsTrailer = revealsTrailer
         super.init(nibName: nil, bundle: nil)
@@ -335,8 +336,7 @@ final class MediaDetailsViewController: UIViewController {
 
         similarCarouselView.onSelect = { [weak self] media in
             guard let self = self else { return }
-            let detailsVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
-            self.posterTransition.push(detailsVC, for: media, from: self)
+            self.viewModel.showMovieDetails(media: media, from: self)
         }
 
         descriptionView.onToggle = { [weak self] in
@@ -432,8 +432,7 @@ final class MediaDetailsViewController: UIViewController {
 
     @objc private func showCastAndCrew() {
         guard viewModel.hasCredits else { return }
-        let castCrewVC = CastCrewViewController(viewModel: viewModel.makeCastCrewViewModel())
-        navigationController?.pushViewController(castCrewVC, animated: true)
+        viewModel.showCastCrew()
     }
     
     private func renderSimilar() {
@@ -458,9 +457,7 @@ final class MediaDetailsViewController: UIViewController {
     }
 
     @objc private func trailerTapped() {
-        guard let request = viewModel.trailerRequest else { return }
-        let trailerVC = TrailerViewController(filmTitle: viewModel.title, request: request)
-        navigationController?.pushViewController(trailerVC, animated: true)
+        viewModel.showTrailer()
     }
 
     private func openTrailerIfRequested() {
@@ -656,9 +653,7 @@ extension MediaDetailsViewController: UICollectionViewDelegate, UICollectionView
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard viewModel.actors.indices.contains(indexPath.item) else { return }
         let actor = viewModel.actors[indexPath.item]
-        let actorVM = ActorViewModel(actorId: actor.id, name: actor.name)
-        let actorVC = ActorViewController(viewModel: actorVM)
-        navigationController?.pushViewController(actorVC, animated: true)
+        viewModel.showActorDetails(actorId: actor.id, name: actor.name)
     }
 }
 
