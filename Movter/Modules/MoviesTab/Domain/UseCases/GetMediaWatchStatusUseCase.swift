@@ -14,7 +14,7 @@ protocol GetMediaWatchStatusUseCase {
 final class DefaultGetMediaWatchStatusUseCase: GetMediaWatchStatusUseCase {
     private let repository: WatchlistRepository
 
-    init(repository: WatchlistRepository) {
+    init(repository: WatchlistRepository = DefaultWatchlistRepository()) {
         self.repository = repository
     }
 

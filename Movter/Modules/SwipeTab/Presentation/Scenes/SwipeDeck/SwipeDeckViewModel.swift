@@ -7,17 +7,15 @@
 
 import Foundation
 
-enum SwipeDirection {
-    case like
-    case pass
-}
-
 final class SwipeDeckViewModel {
     private static let prefetchThreshold = 3
     static let sessionCardLimit = 10
 
-    private let watchlistStore: WatchlistStoring
-    private let seenFilmsStore: SeenFilmsStoring
+    private let fetchDeckUseCase: FetchPopularSwipeDeckUseCase
+    private let swipeCardUseCase: SwipeCardUseCase
+    private let getSeenIDsUseCase: GetSeenFilmIDsUseCase
+    private let monitor: NetworkMonitoring
+
     private var queue: [Media] = []
     private var page = 1
     private var isFetching = false
@@ -30,20 +28,32 @@ final class SwipeDeckViewModel {
     var onQueueChange: (() -> Void)?
     var onError: ((String) -> Void)?
 
-    private let service: MediaFetching
-    private let monitor: NetworkMonitoring
-
     init(
+        fetchDeckUseCase: FetchPopularSwipeDeckUseCase = DefaultFetchPopularSwipeDeckUseCase(),
+        swipeCardUseCase: SwipeCardUseCase = DefaultSwipeCardUseCase(),
+        getSeenIDsUseCase: GetSeenFilmIDsUseCase = DefaultGetSeenFilmIDsUseCase(),
+        monitor: NetworkMonitoring = NetworkMonitor.shared
+    ) {
+        self.fetchDeckUseCase = fetchDeckUseCase
+        self.swipeCardUseCase = swipeCardUseCase
+        self.getSeenIDsUseCase = getSeenIDsUseCase
+        self.monitor = monitor
+    }
+
+    convenience init(
         watchlistStore: WatchlistStoring,
         seenFilmsStore: SeenFilmsStoring,
         service: MediaFetching = TMDBService.shared,
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
-        self.watchlistStore = watchlistStore
-        self.seenFilmsStore = seenFilmsStore
-        self.service = service
-        self.monitor = monitor
+        self.init(
+            fetchDeckUseCase: DefaultFetchPopularSwipeDeckUseCase(),
+            swipeCardUseCase: DefaultSwipeCardUseCase(),
+            getSeenIDsUseCase: DefaultGetSeenFilmIDsUseCase(),
+            monitor: monitor
+        )
     }
+
     var isOffline: Bool { !monitor.isOnline }
 
     func connectivityDidChange() {
@@ -55,6 +65,7 @@ final class SwipeDeckViewModel {
     }
 
     var isExhausted: Bool { queue.isEmpty && isLastPage && !isFetching }
+
     func peek(_ count: Int) -> [Media] {
         guard !isSessionComplete else { return [] }
         let remaining = Self.sessionCardLimit - sessionSwipeCount
@@ -63,11 +74,8 @@ final class SwipeDeckViewModel {
 
     func start() {
         guard queue.isEmpty else { return }
-        seenFilmsStore.fetchIDs { [weak self] ids in
-            guard let self = self else { return }
-            self.excludedIDs.formUnion(ids)
-            self.fetchNextPage()
-        }
+        excludedIDs.formUnion(getSeenIDsUseCase.execute())
+        fetchNextPage()
     }
 
     func consumeFrontCard(direction: SwipeDirection) {
@@ -75,10 +83,11 @@ final class SwipeDeckViewModel {
         let media = queue.removeFirst()
         sessionSwipeCount += 1
         excludedIDs.insert(media.id)
-        seenFilmsStore.markSeen(media.id)
-        if direction == .like {
-            watchlistStore.save(WatchlistItem(from: media)) { _ in            }
+
+        Task { [weak self] in
+            try? await self?.swipeCardUseCase.execute(media: media, direction: direction)
         }
+
         if !isSessionComplete && queue.count <= Self.prefetchThreshold {
             fetchNextPage()
         }
@@ -92,20 +101,26 @@ final class SwipeDeckViewModel {
             return
         }
         isFetching = true
-        service.fetchPopularMovies(page: page) { [weak self] result in
+
+        Task { [weak self] in
             guard let self = self else { return }
-            self.isFetching = false
-            guard let result = result else {
-                self.onError?("Couldn't load more films. Check your connection and try again.")
-                return
-            }
-            let fresh = result.items.filter { !self.excludedIDs.contains($0.id) }
-            self.queue.append(contentsOf: fresh)
-            self.isLastPage = result.isLastPage
-            self.page += 1
-            self.onQueueChange?()
-            if self.queue.isEmpty && !self.isLastPage {
-                self.fetchNextPage()
+            do {
+                let result = try await self.fetchDeckUseCase.execute(page: self.page, excludingIDs: self.excludedIDs)
+                await MainActor.run {
+                    self.isFetching = false
+                    self.queue.append(contentsOf: result.items)
+                    self.isLastPage = result.isLastPage
+                    self.page += 1
+                    self.onQueueChange?()
+                    if self.queue.isEmpty && !self.isLastPage {
+                        self.fetchNextPage()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.isFetching = false
+                    self.onError?("Couldn't load more films. Check your connection and try again.")
+                }
             }
         }
     }

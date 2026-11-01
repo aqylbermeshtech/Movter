@@ -10,11 +10,13 @@ import UIKit
 final class WatchlistListViewController: UIViewController {
 
     private let viewModel: WatchlistListViewModel
+    private weak var coordinator: SwipeCoordinator?
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let skeletonView = SkeletonGridView(style: .watchlist(rows: 6))
 
-    init(viewModel: WatchlistListViewModel) {
+    init(viewModel: WatchlistListViewModel, coordinator: SwipeCoordinator? = nil) {
         self.viewModel = viewModel
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
 
