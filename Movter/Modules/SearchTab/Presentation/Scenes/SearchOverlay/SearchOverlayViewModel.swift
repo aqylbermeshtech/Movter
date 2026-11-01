@@ -7,69 +7,63 @@
 
 import Foundation
 
-/// Recents, trending titles, and the rules deciding which sections the search overlay
-/// shows for a given query.
 final class SearchOverlayViewModel {
 
     enum Section: Hashable {
-        /// The single "Search for …" row shown while typing.
         case query
-        /// Recents as wrapping chips — the idle state.
         case chips
-        /// Recents as plain rows — filtered to the current query while typing.
         case recentRows
         case trending
-        /// Placeholder rows while the trending request is in flight.
         case skeleton
     }
 
     enum Item: Hashable {
         case query(String)
-        /// A recent term. Which section it lands in — `chips` or `recentRows` — decides
-        /// how it's drawn; the two never coexist in one snapshot.
         case term(String)
         case trending(rank: Int, title: String)
         case skeleton(Int)
     }
 
-    /// One section and its contents. The view controller turns a list of these into a
-    /// snapshot; deciding what's in the list is this type's job.
     struct SectionPlan {
         let section: Section
         let items: [Item]
     }
 
-    /// A typed query needs at least this many characters before it'll run — mirrors the
-    /// guard the results screen applies.
     private static let minQueryLength = 2
     private static let trendingLimit = 10
     private static let skeletonRowCount = 6
 
     var onChange: (() -> Void)?
 
-    private let store: RecentSearchesStoring
-    private let service: MediaFetching
+    private let getRecentSearchesUseCase: GetRecentSearchesUseCase
+    private let addRecentSearchUseCase: AddRecentSearchUseCase
+    private let removeRecentSearchUseCase: RemoveRecentSearchUseCase
+    private let clearRecentSearchesUseCase: ClearRecentSearchesUseCase
+    private let fetchTrendingTitlesUseCase: FetchTrendingTitlesUseCase
     private let monitor: NetworkMonitoring
 
-    /// Whitespace-trimmed, and the only copy of the query the screen should read.
     private(set) var query = ""
     private(set) var recents: [String]
     private(set) var trending: [String] = []
     private(set) var isLoadingTrending = true
 
     init(
-        store: RecentSearchesStoring = RecentSearchesStoreFactory.makeStore(),
-        service: MediaFetching = TMDBService.shared,
+        getRecentSearchesUseCase: GetRecentSearchesUseCase = DefaultGetRecentSearchesUseCase(),
+        addRecentSearchUseCase: AddRecentSearchUseCase = DefaultAddRecentSearchUseCase(),
+        removeRecentSearchUseCase: RemoveRecentSearchUseCase = DefaultRemoveRecentSearchUseCase(),
+        clearRecentSearchesUseCase: ClearRecentSearchesUseCase = DefaultClearRecentSearchesUseCase(),
+        fetchTrendingTitlesUseCase: FetchTrendingTitlesUseCase = DefaultFetchTrendingTitlesUseCase(),
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
-        self.store = store
-        self.service = service
+        self.getRecentSearchesUseCase = getRecentSearchesUseCase
+        self.addRecentSearchUseCase = addRecentSearchUseCase
+        self.removeRecentSearchUseCase = removeRecentSearchUseCase
+        self.clearRecentSearchesUseCase = clearRecentSearchesUseCase
+        self.fetchTrendingTitlesUseCase = fetchTrendingTitlesUseCase
         self.monitor = monitor
-        self.recents = store.all()
+        self.recents = getRecentSearchesUseCase.execute()
     }
 
-    /// Recents come from `UserDefaults`, so the screen stays useful offline — only the
-    /// trending section needs the network, and only it goes away.
     var emptyPlaceholderText: String {
         monitor.isOnline
             ? "Search for films by title"
@@ -87,8 +81,6 @@ final class SearchOverlayViewModel {
 
     // MARK: - Composition
 
-    /// What the list should contain right now. Pure: no UIKit, no network, no storage —
-    /// just the four pieces of state above turned into sections.
     var plan: [SectionPlan] {
         guard !query.isEmpty else { return idlePlan }
         return typingPlan
@@ -99,8 +91,6 @@ final class SearchOverlayViewModel {
         if !recents.isEmpty {
             plan.append(SectionPlan(section: .chips, items: recents.map { .term($0) }))
         }
-        // Skip the trending section entirely when offline rather than leaving skeleton
-        // rows shimmering over a request that will never land.
         if !monitor.isOnline {
             return plan
         }
@@ -132,8 +122,6 @@ final class SearchOverlayViewModel {
         return plan
     }
 
-    /// The placeholder shows only when there is genuinely nothing to draw — not while
-    /// the trending request is still filling the skeleton rows.
     var showsEmptyPlaceholder: Bool {
         plan.isEmpty && !isLoadingTrending
     }
@@ -145,23 +133,21 @@ final class SearchOverlayViewModel {
         onChange?()
     }
 
-    /// Accepts a term and records it, or returns nil when it's too short to run.
-    /// Deliberately doesn't refresh `recents` — the screen is dismissing.
     func submit(_ term: String) -> String? {
         let trimmed = term.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= Self.minQueryLength else { return nil }
-        store.add(trimmed)
+        addRecentSearchUseCase.execute(trimmed)
         return trimmed
     }
 
     func removeRecent(_ term: String) {
-        store.remove(term)
-        recents = store.all()
+        removeRecentSearchUseCase.execute(term)
+        recents = getRecentSearchesUseCase.execute()
         onChange?()
     }
 
     func clearRecents() {
-        store.clear()
+        clearRecentSearchesUseCase.execute()
         recents = []
         onChange?()
     }
@@ -174,21 +160,21 @@ final class SearchOverlayViewModel {
             onChange?()
             return
         }
-        service.fetchDiscover(query: .trendingToday, page: 1) { [weak self] page in
+        Task { [weak self] in
             guard let self = self else { return }
-            self.isLoadingTrending = false
-            guard let items = page?.items else {
-                self.onChange?()
-                return
-            }
-            // Titles only — this list feeds queries, not a poster grid. De-duped because
-            // a franchise can chart several times on the same day.
-            self.trending = items
-                .compactMap { $0.title ?? $0.name }
-                .reduce(into: [String]()) { unique, title in
-                    if !unique.contains(title) { unique.append(title) }
+            do {
+                let titles = try await self.fetchTrendingTitlesUseCase.execute(limit: Self.trendingLimit)
+                await MainActor.run {
+                    self.isLoadingTrending = false
+                    self.trending = titles
+                    self.onChange?()
                 }
-            self.onChange?()
+            } catch {
+                await MainActor.run {
+                    self.isLoadingTrending = false
+                    self.onChange?()
+                }
+            }
         }
     }
 }

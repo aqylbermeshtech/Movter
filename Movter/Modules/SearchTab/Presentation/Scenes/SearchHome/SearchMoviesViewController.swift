@@ -8,7 +8,8 @@
 import UIKit
 
 final class SearchMoviesViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
-    private let viewModel = SearchMoviesViewModel()
+    private let viewModel: SearchMoviesViewModel
+    private weak var coordinator: SearchCoordinator?
 
     private let chevronImage = UIImage(systemName: "chevron.right")
     private let tableView: UITableView = {
@@ -21,6 +22,21 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
         tv.rowHeight = UITableView.automaticDimension
         return tv
     }()
+
+    init(
+        viewModel: SearchMoviesViewModel = SearchMoviesViewModel(),
+        coordinator: SearchCoordinator? = nil
+    ) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+        let actualCoordinator = coordinator ?? DefaultSearchCoordinator(viewController: self)
+        self.coordinator = actualCoordinator
+        if let defaultCoord = actualCoordinator as? DefaultSearchCoordinator, defaultCoord.viewController == nil {
+            defaultCoord.viewController = self
+        }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -107,20 +123,28 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
         tableView.deselectRow(at: indexPath, animated: true)
 
         guard let subcategory = viewModel.subcategory(at: indexPath) else { return }
-        let subCategoryVC = SubcategoryViewController(
-            title: subcategory.title, items: subcategory.items
-        )
-        navigationController?.pushViewController(subCategoryVC, animated: true)
+        if let coordinator = coordinator {
+            coordinator.showSubcategory(title: subcategory.title, items: subcategory.items)
+        } else {
+            let subCategoryVC = SubcategoryViewController(
+                title: subcategory.title, items: subcategory.items
+            )
+            navigationController?.pushViewController(subCategoryVC, animated: true)
+        }
     }
 
     /// Straight to the results, skipping the value list the browse rows go through —
     /// the chip already names exactly one thing to show. The same screen home's
     /// "See all" opens, under the same title.
     private func showGenre(_ genre: MovieGenre) {
-        let gridVC = MovieGridViewController(
-            source: .discover(genre.query), title: genre.sectionTitle
-        )
-        navigationController?.pushViewController(gridVC, animated: true)
+        if let coordinator = coordinator {
+            coordinator.showMovieGrid(source: .discover(genre.query), title: genre.sectionTitle)
+        } else {
+            let gridVC = MovieGridViewController(
+                source: .discover(genre.query), title: genre.sectionTitle
+            )
+            navigationController?.pushViewController(gridVC, animated: true)
+        }
     }
 }
 
