@@ -10,6 +10,7 @@ import UIKit
 final class MovieGridViewController: UIViewController {
 
     private let viewModel: MovieGridViewModel
+    private weak var coordinator: SearchCoordinator?
 
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -50,16 +51,30 @@ final class MovieGridViewController: UIViewController {
         return label
     }()
 
-    init(source: MediaQuerySource, title: String) {
-        self.viewModel = MovieGridViewModel(source: source)
+    init(
+        viewModel: MovieGridViewModel,
+        title: String,
+        coordinator: SearchCoordinator? = nil
+    ) {
+        self.viewModel = viewModel
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
         self.title = title
     }
 
+    convenience init(
+        source: MediaQuerySource,
+        title: String,
+        coordinator: SearchCoordinator? = nil
+    ) {
+        let viewModel = MovieGridViewModel(source: source)
+        self.init(viewModel: viewModel, title: title, coordinator: coordinator)
+    }
+
     /// Browse entry point: resolves the category/value pair into a real query.
-    convenience init(category: String, value: String) {
+    convenience init(category: String, value: String, coordinator: SearchCoordinator? = nil) {
         let query = DiscoverQuery.make(category: category, value: value)
-        self.init(source: query.map(MediaQuerySource.discover) ?? .unsupported, title: value)
+        self.init(source: query.map(MediaQuerySource.discover) ?? .unsupported, title: value, coordinator: coordinator)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -170,8 +185,12 @@ extension MovieGridViewController: UICollectionViewDataSource, UICollectionViewD
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let media = viewModel.item(at: indexPath.item) else { return }
-        let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
-        posterTransition.push(detailVC, for: media, from: self)
+        if let coordinator = coordinator {
+            coordinator.showMovieDetails(media: media, from: self)
+        } else {
+            let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
+            posterTransition.push(detailVC, for: media, from: self)
+        }
     }
 }
 

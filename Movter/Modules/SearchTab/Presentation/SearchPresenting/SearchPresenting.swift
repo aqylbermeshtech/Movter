@@ -19,8 +19,7 @@ extension SearchPresenting {
     /// Full-screen, over the floating tab bar. The chosen term comes back through
     /// `onSubmit`.
     func presentSearch() {
-        let overlay = SearchOverlayViewController()
-        overlay.onSubmit = { [weak self] term in
+        let overlay = SearchViewFactory.makeSearchOverlay { [weak self] term in
             self?.showSearchResults(for: term)
         }
         overlay.modalPresentationStyle = .fullScreen
@@ -37,7 +36,7 @@ extension SearchPresenting {
             nav.popToViewController(self, animated: false)
         }
 
-        let resultsVC = MovieGridViewController(source: .search(trimmed), title: "“\(trimmed)”")
+        let resultsVC = SearchViewFactory.makeMovieGrid(source: .search(trimmed), title: "“\(trimmed)”")
         navigationController?.pushViewController(resultsVC, animated: true)
     }
 }

@@ -97,8 +97,20 @@ final class SearchOverlayViewController: UIViewController {
 
     // MARK: - State
 
-    private let viewModel = SearchOverlayViewModel()
+    private let viewModel: SearchOverlayViewModel
+    private weak var coordinator: SearchCoordinator?
     private var didAnimateIn = false
+
+    init(
+        viewModel: SearchOverlayViewModel = SearchOverlayViewModel(),
+        coordinator: SearchCoordinator? = nil
+    ) {
+        self.viewModel = viewModel
+        self.coordinator = coordinator
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     // MARK: - Lifecycle
 
@@ -186,7 +198,11 @@ final class SearchOverlayViewController: UIViewController {
 
     @objc private func cancelTapped() {
         searchField.resignFirstResponder()
-        dismiss(animated: true)
+        if let coordinator = coordinator {
+            coordinator.dismiss()
+        } else {
+            dismiss(animated: true)
+        }
     }
 
     @objc private func keyboardWillChangeFrame(_ note: Notification) {
@@ -203,7 +219,12 @@ final class SearchOverlayViewController: UIViewController {
         guard let accepted = viewModel.submit(term) else { return }
         let handler = onSubmit
         searchField.resignFirstResponder()
-        dismiss(animated: true) { handler?(accepted) }
+        if let coordinator = coordinator {
+            coordinator.dismiss()
+            handler?(accepted)
+        } else {
+            dismiss(animated: true) { handler?(accepted) }
+        }
     }
 
     // MARK: - Snapshot

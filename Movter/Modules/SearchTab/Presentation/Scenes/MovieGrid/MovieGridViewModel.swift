@@ -7,27 +7,12 @@
 
 import Foundation
 
-/// Where a grid of results comes from — a browse selection or a typed query.
-enum MediaQuerySource {
-    case discover(DiscoverQuery)
-    case search(String)
-    /// A browse row with no TMDB filter behind it, so the screen can say so plainly
-    /// instead of listing the entire catalogue as if it were a curated result.
-    case unsupported
-}
-
-/// Paging and result state for a grid of films, from either browse or search.
 final class MovieGridViewModel {
 
-    /// What the grid should be showing. `.message` covers "nothing matched", "the
-    /// request failed", and "this browse row has no query behind it" — three causes the
-    /// screen draws identically, with the copy carrying the difference.
     enum State: Equatable {
         case loading
         case results
         case message(String)
-        /// Nothing to show *and* no network path. Separate from `.message` so the screen
-        /// can offer a retry and refresh itself when the connection comes back.
         case offline
     }
 
@@ -37,29 +22,29 @@ final class MovieGridViewModel {
     private let monitor: NetworkMonitoring
     private(set) var items: [Media] = []
     private(set) var state: State = .loading
-    /// Separates a failed request from a genuinely empty one. The grid renders both the
-    /// same way; this is here for anything that needs to tell them apart, like a retry.
     private(set) var didFail = false
 
     private var currentPage = 1
     private var isFetching = false
     private var hasMorePages = true
 
-    private let service: MediaFetching
+    private let searchMoviesUseCase: SearchMoviesUseCase
+    private let fetchDiscoverUseCase: FetchDiscoverQueryUseCase
 
     init(
         source: MediaQuerySource,
-        service: MediaFetching = TMDBService.shared,
+        searchMoviesUseCase: SearchMoviesUseCase = DefaultSearchMoviesUseCase(),
+        fetchDiscoverUseCase: FetchDiscoverQueryUseCase = DefaultFetchDiscoverQueryUseCase(),
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.source = source
-        self.service = service
+        self.searchMoviesUseCase = searchMoviesUseCase
+        self.fetchDiscoverUseCase = fetchDiscoverUseCase
         self.monitor = monitor
     }
 
     // MARK: - Loading
 
-    /// First load. Resolves straight to a message when there is no query to run.
     func start() {
         if case .unsupported = source {
             state = .message("This list isn’t available yet.\nIt needs curated data the app doesn’t have.")
@@ -76,8 +61,6 @@ final class MovieGridViewModel {
         loadNextPage()
     }
 
-    /// Re-runs the request that connectivity prevented. Safe to call when online and
-    /// idle; a no-op otherwise.
     func retry() {
         guard state == .offline || didFail else { return }
         didFail = false
@@ -85,20 +68,14 @@ final class MovieGridViewModel {
         start()
     }
 
-    /// The screen calls this when connectivity flips, so a deck sitting on the offline
-    /// placeholder fills itself in rather than waiting to be prodded.
     func connectivityDidChange() {
         guard monitor.isOnline, state == .offline else { return }
         retry()
     }
 
-    /// Safe to call from every scroll event: it no-ops while a page is in flight, and
-    /// once TMDB has run out of pages.
     func loadNextPage() {
         guard !isFetching, hasMorePages else { return }
         guard monitor.isOnline else {
-            // Only take the screen over when there's nothing on it: a page that can't
-            // load shouldn't wipe out the ones already scrolled through.
             if items.isEmpty {
                 state = .offline
                 onChange?()
@@ -108,27 +85,39 @@ final class MovieGridViewModel {
         isFetching = true
         let page = currentPage
 
-        let handler: (MediaPage?) -> Void = { [weak self] result in
+        Task { [weak self] in
             guard let self = self else { return }
-            self.isFetching = false
-            self.apply(result)
-            self.onChange?()
-        }
+            do {
+                let mediaPage: MediaPage
+                switch self.source {
+                case let .discover(query):
+                    mediaPage = try await self.fetchDiscoverUseCase.execute(query: query, page: page)
+                case let .search(text):
+                    mediaPage = try await self.searchMoviesUseCase.execute(query: text, page: page)
+                case .unsupported:
+                    await MainActor.run {
+                        self.isFetching = false
+                    }
+                    return
+                }
 
-        switch source {
-        case let .discover(query):
-            service.fetchDiscover(query: query, page: page, completion: handler)
-        case let .search(text):
-            service.searchMovies(query: text, page: page, completion: handler)
-        case .unsupported:
-            isFetching = false
+                await MainActor.run {
+                    self.isFetching = false
+                    self.apply(mediaPage)
+                    self.onChange?()
+                }
+            } catch {
+                await MainActor.run {
+                    self.isFetching = false
+                    self.apply(nil)
+                    self.onChange?()
+                }
+            }
         }
     }
 
     private func apply(_ result: MediaPage?) {
         guard let result = result else {
-            // Only surface a failure if there's nothing on screen already; a failed
-            // page 3 shouldn't wipe out the two pages the user is looking at.
             hasMorePages = false
             guard items.isEmpty else { return }
             didFail = true
@@ -146,8 +135,6 @@ final class MovieGridViewModel {
 
     // MARK: - Presentation
 
-    /// Takes an index rather than an `IndexPath` so this stays free of UIKit — the
-    /// view controller is the layer that knows what an index path is.
     func item(at index: Int) -> Media? {
         items[safe: index]
     }
