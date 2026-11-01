@@ -18,8 +18,8 @@ final class SwipeDeckViewController: UIViewController {
     private static let cardTopInset: CGFloat = 28
     private static let cardBottomInset: CGFloat = 96
 
-    private let watchlistStore: WatchlistStoring
     private let viewModel: SwipeDeckViewModel
+    private weak var coordinator: SwipeCoordinator?
 
     private var cardViews: [SwipeCardView] = []
     private let posterTransition = PosterTransitionController()
@@ -52,10 +52,22 @@ final class SwipeDeckViewController: UIViewController {
         body: "Come back later for another round of films to swipe through."
     )
 
-    init(watchlistStore: WatchlistStoring, seenFilmsStore: SeenFilmsStoring) {
-        self.watchlistStore = watchlistStore
-        self.viewModel = SwipeDeckViewModel(watchlistStore: watchlistStore, seenFilmsStore: seenFilmsStore)
+    init(
+        viewModel: SwipeDeckViewModel,
+        coordinator: SwipeCoordinator? = nil
+    ) {
+        self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
+        let actualCoordinator = coordinator ?? DefaultSwipeCoordinator(viewController: self)
+        self.coordinator = actualCoordinator
+        if let defaultCoord = actualCoordinator as? DefaultSwipeCoordinator, defaultCoord.viewController == nil {
+            defaultCoord.viewController = self
+        }
+    }
+
+    convenience init(watchlistStore: WatchlistStoring, seenFilmsStore: SeenFilmsStoring) {
+        let viewModel = SwipeDeckViewModel(watchlistStore: watchlistStore, seenFilmsStore: seenFilmsStore)
+        self.init(viewModel: viewModel)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -229,15 +241,21 @@ final class SwipeDeckViewController: UIViewController {
     }
 
     private func showWatchlist() {
-        let watchlistVC = WatchlistListViewController(
-            viewModel: WatchlistListViewModel(store: watchlistStore)
-        )
-        navigationController?.pushViewController(watchlistVC, animated: true)
+        if let coordinator = coordinator {
+            coordinator.showWatchlist()
+        } else {
+            let watchlistVC = SwipeViewFactory.makeWatchlist(presentation: .watchlist, coordinator: coordinator)
+            navigationController?.pushViewController(watchlistVC, animated: true)
+        }
     }
 
     private func showDetails(for media: Media) {
-        let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
-        posterTransition.push(detailVC, for: media, from: self)
+        if let coordinator = coordinator {
+            coordinator.showMovieDetails(media: media, from: self)
+        } else {
+            let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
+            posterTransition.push(detailVC, for: media, from: self)
+        }
     }
 
     private func presentError(_ message: String) {

@@ -49,16 +49,12 @@ final class DefaultProfileCoordinator: ProfileCoordinator {
     }
 
     func showWatched() {
-        let watchedVC = WatchlistListViewController(
-            viewModel: WatchlistListViewModel(store: watchedStore, presentation: .watched)
-        )
+        let watchedVC = SwipeViewFactory.makeWatchlist(presentation: .watched)
         activeNavigationController?.pushViewController(watchedVC, animated: true)
     }
 
     func showWatchlist() {
-        let watchlistVC = WatchlistListViewController(
-            viewModel: WatchlistListViewModel(store: watchlistStore)
-        )
+        let watchlistVC = SwipeViewFactory.makeWatchlist(presentation: .watchlist)
         activeNavigationController?.pushViewController(watchlistVC, animated: true)
     }
 

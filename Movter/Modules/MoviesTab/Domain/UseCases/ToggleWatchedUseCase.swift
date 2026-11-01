@@ -14,7 +14,7 @@ protocol ToggleWatchedUseCase {
 final class DefaultToggleWatchedUseCase: ToggleWatchedUseCase {
     private let repository: WatchlistRepository
 
-    init(repository: WatchlistRepository) {
+    init(repository: WatchlistRepository = DefaultWatchlistRepository()) {
         self.repository = repository
     }
 
