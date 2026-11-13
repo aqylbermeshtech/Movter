@@ -4,7 +4,6 @@
 //
 
 import UIKit
-import FirebaseAuth
 
 @MainActor
 enum MainTabBarFactory {
