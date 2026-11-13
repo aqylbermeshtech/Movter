@@ -11,6 +11,13 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
     private let viewModel: SearchMoviesViewModel
     private weak var coordinator: SearchCoordinator?
 
+    private let searchController: UISearchController = {
+        let controller = UISearchController(searchResultsController: nil)
+        controller.obscuresBackgroundDuringPresentation = false
+        controller.searchBar.placeholder = "Find shows and movies"
+        return controller
+    }()
+
     private let chevronImage = UIImage(systemName: "chevron.right")
     private let tableView: UITableView = {
         // Rounded, inset section cards — the same grouping Profile uses.
@@ -48,6 +55,10 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
     //MARK: - UI
     private func setupNavigationBar() {
         navigationItem.title = "Search"
+        navigationItem.searchController = searchController
+        navigationItem.hidesSearchBarWhenScrolling = false
+        definesPresentationContext = true
+        searchController.searchBar.delegate = self
         navigationController?.navigationBar.prefersLargeTitles = false
 
         let appearance = UINavigationBarAppearance()
@@ -150,7 +161,15 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
 
 // MARK: - Search
 
-extension SearchMoviesViewController: SearchPresenting {}
+extension SearchMoviesViewController: SearchPresenting, UISearchBarDelegate {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        let trimmed = (searchBar.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2 else { return }
+        searchController.isActive = false
+        let resultsVC = SearchViewFactory.makeMovieGrid(source: .search(trimmed), title: "“\(trimmed)”")
+        navigationController?.pushViewController(resultsVC, animated: true)
+    }
+}
 
 // MARK: - Tab action
 
