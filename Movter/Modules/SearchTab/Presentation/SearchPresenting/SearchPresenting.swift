@@ -12,6 +12,7 @@ import UIKit
 /// Results are pushed onto the searching screen's own stack rather than handed to the
 /// Search tab, so a search started from Movies lands back in Movies — the tab you
 /// searched from is the tab Back returns you to.
+@MainActor
 protocol SearchPresenting: UIViewController {}
 
 extension SearchPresenting {

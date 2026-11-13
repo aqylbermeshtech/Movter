@@ -5,12 +5,17 @@
 //  Created by Nurtore on 18.08.2026.
 //
 
-import Foundation
+import UIKit
 
+@MainActor
 final class ActorViewModel {
 
     private let actorId: Int
     private let fallbackName: String
+    private let detailsUseCase: GetPersonDetailsUseCase
+    private let creditsUseCase: GetPersonCreditsUseCase
+    private weak var coordinator: MoviesCoordinator?
+    private let monitor: NetworkMonitoring
 
     private(set) var details: PersonDetails?
     private(set) var credits: [PersonCredit] = []
@@ -20,22 +25,39 @@ final class ActorViewModel {
 
     var onUpdate: (() -> Void)?
 
-    private let service: MediaFetching
-
-    private let monitor: NetworkMonitoring
-
     init(
+        actorId: Int,
+        name: String,
+        detailsUseCase: GetPersonDetailsUseCase = DefaultGetPersonDetailsUseCase(),
+        creditsUseCase: GetPersonCreditsUseCase = DefaultGetPersonCreditsUseCase(),
+        coordinator: MoviesCoordinator? = nil,
+        monitor: NetworkMonitoring = NetworkMonitor.shared
+    ) {
+        self.actorId = actorId
+        self.fallbackName = name
+        self.detailsUseCase = detailsUseCase
+        self.creditsUseCase = creditsUseCase
+        self.coordinator = coordinator
+        self.monitor = monitor
+    }
+
+    convenience init(
         actorId: Int,
         name: String,
         service: MediaFetching = TMDBService.shared,
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
-        self.actorId = actorId
-        self.fallbackName = name
-        self.service = service
-        self.monitor = monitor
+        let repo = DefaultPersonRepository(remoteDataSource: TMDBMoviesRemoteDataSource(service: service))
+        self.init(
+            actorId: actorId,
+            name: name,
+            detailsUseCase: DefaultGetPersonDetailsUseCase(repository: repo),
+            creditsUseCase: DefaultGetPersonCreditsUseCase(repository: repo),
+            coordinator: nil,
+            monitor: monitor
+        )
     }
-    
+
     func connectivityDidChange() {
         guard monitor.isOnline, credits.isEmpty else { return }
         hasLoaded = false
@@ -123,36 +145,30 @@ final class ActorViewModel {
         guard !isLoading else { return }
         isLoading = true
 
-        let group = DispatchGroup()
-
-        group.enter()
-        service.fetchPersonDetails(for: actorId) { [weak self] details in
-            self?.details = details
-            self?.didFailToLoadDetails = (details == nil)
-            group.leave()
+        Task { [weak self] in
+            guard let self = self else { return }
+            do {
+                async let details = self.detailsUseCase.execute(for: self.actorId)
+                async let credits = self.creditsUseCase.execute(for: self.actorId)
+                let (fetchedDetails, fetchedCredits) = try await (details, credits)
+                self.details = fetchedDetails
+                self.credits = fetchedCredits
+                self.didFailToLoadDetails = false
+            } catch {
+                self.didFailToLoadDetails = true
+            }
+            self.isLoading = false
+            self.hasLoaded = true
+            self.onUpdate?()
         }
-
-        group.enter()
-        service.fetchPersonCredits(for: actorId) { [weak self] credits in
-            self?.credits = Self.sortedUniqueCredits(from: credits)
-            group.leave()
-        }
-
-        group.notify(queue: .main) { [weak self] in
-            self?.isLoading = false
-            self?.hasLoaded = true
-            self?.onUpdate?()
-        }
-    }
-
-    private static func sortedUniqueCredits(from credits: [PersonCredit]) -> [PersonCredit] {
-        var seen = Set<Int>()
-        return credits
-            .sorted { $0.sortDate > $1.sortDate }
-            .filter { seen.insert($0.id).inserted }
     }
 
     func credit(at index: Int) -> PersonCredit? {
         credits.indices.contains(index) ? credits[index] : nil
     }
+
+    func showMovieDetails(media: Media, from source: UIViewController & PosterTransitionSource) {
+        coordinator?.showMovieDetails(media: media, from: source)
+    }
 }
+

@@ -7,6 +7,6 @@
 
 import Foundation
 
-protocol MoviesRepository {
+protocol MoviesRepository: Sendable {
     func fetchDiscover(genre: MovieGenre, page: Int) async throws -> [Media]
 }

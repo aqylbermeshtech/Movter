@@ -29,6 +29,11 @@ final class SubcategoryViewController: UIViewController, UITableViewDelegate, UI
         setupTableView()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        enableInteractivePopGesture()
+    }
+
     private func setupTableView() {
         view.addSubview(tableView)
         tableView.backgroundColor = .clear

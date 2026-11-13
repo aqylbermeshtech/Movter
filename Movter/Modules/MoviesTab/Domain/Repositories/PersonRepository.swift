@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol PersonRepository {
+protocol PersonRepository: Sendable {
     func fetchPersonDetails(for personId: Int) async throws -> PersonDetails
     func fetchPersonCredits(for personId: Int) async throws -> [PersonCredit]
 }

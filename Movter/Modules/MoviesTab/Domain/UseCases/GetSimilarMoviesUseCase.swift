@@ -14,7 +14,7 @@ protocol GetSimilarMoviesUseCase {
 final class DefaultGetSimilarMoviesUseCase: GetSimilarMoviesUseCase {
     private let repository: MovieDetailsRepository
     
-    init(repository: MovieDetailsRepository) {
+    init(repository: MovieDetailsRepository = DefaultMovieDetailsRepository()) {
         self.repository = repository
     }
     

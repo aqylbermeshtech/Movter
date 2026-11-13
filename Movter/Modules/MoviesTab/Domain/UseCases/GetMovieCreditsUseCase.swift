@@ -14,7 +14,7 @@ protocol GetMovieCreditsUseCase {
 final class DefaultGetMovieCreditsUseCase: GetMovieCreditsUseCase {
     private let repository: MovieDetailsRepository
     
-    init(repository: MovieDetailsRepository) {
+    init(repository: MovieDetailsRepository = DefaultMovieDetailsRepository()) {
         self.repository = repository
     }
     

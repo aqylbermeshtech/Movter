@@ -91,6 +91,11 @@ final class MovieGridViewController: UIViewController {
         viewModel.start()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        enableInteractivePopGesture()
+    }
+
     private func setupUI() {
         view.addSubview(collectionView)
         view.addSubview(skeletonView)

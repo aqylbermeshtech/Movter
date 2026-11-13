@@ -95,6 +95,18 @@ final class TrailerViewController: UIViewController {
         spinner.startAnimating()
         playerView.load(request)
     }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        enableInteractivePopGesture()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if let pop = navigationController?.interactivePopGestureRecognizer {
+            playerView.scrollView.panGestureRecognizer.require(toFail: pop)
+        }
+    }
 }
 
 // MARK: - Loading
