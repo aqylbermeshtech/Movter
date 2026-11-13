@@ -11,6 +11,7 @@ import UIKit
 enum SwipeViewFactory {
 
     static func makeSwipeDeck(
+        engine: SwipeDeckEngineProtocol? = nil,
         coordinator: SwipeCoordinator? = nil,
         watchlistRepository: WatchlistRepository = DefaultWatchlistRepository(),
         seenFilmsRepository: SeenFilmsRepository = DefaultSeenFilmsRepository(),
@@ -21,6 +22,7 @@ enum SwipeViewFactory {
         let getSeenIDsUseCase = DefaultGetSeenFilmIDsUseCase(repository: seenFilmsRepository)
 
         let viewModel = SwipeDeckViewModel(
+            engine: engine,
             fetchDeckUseCase: fetchDeckUseCase,
             swipeCardUseCase: swipeCardUseCase,
             getSeenIDsUseCase: getSeenIDsUseCase

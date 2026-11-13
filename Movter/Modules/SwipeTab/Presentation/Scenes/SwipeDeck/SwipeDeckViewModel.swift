@@ -11,15 +11,14 @@ final class SwipeDeckViewModel {
     private static let prefetchThreshold = 3
     static let sessionCardLimit = 10
 
+    private let engine: SwipeDeckEngineProtocol
     private let fetchDeckUseCase: FetchPopularSwipeDeckUseCase
     private let swipeCardUseCase: SwipeCardUseCase
     private let getSeenIDsUseCase: GetSeenFilmIDsUseCase
     private let monitor: NetworkMonitoring
 
     private var queue: [Media] = []
-    private var page = 1
     private var isFetching = false
-    private var isLastPage = false
     private var excludedIDs: Set<Int> = []
 
     private(set) var sessionSwipeCount = 0
@@ -29,6 +28,7 @@ final class SwipeDeckViewModel {
     var onError: ((String) -> Void)?
 
     init(
+        engine: SwipeDeckEngineProtocol? = nil,
         fetchDeckUseCase: FetchPopularSwipeDeckUseCase = DefaultFetchPopularSwipeDeckUseCase(),
         swipeCardUseCase: SwipeCardUseCase = DefaultSwipeCardUseCase(),
         getSeenIDsUseCase: GetSeenFilmIDsUseCase = DefaultGetSeenFilmIDsUseCase(),
@@ -38,6 +38,7 @@ final class SwipeDeckViewModel {
         self.swipeCardUseCase = swipeCardUseCase
         self.getSeenIDsUseCase = getSeenIDsUseCase
         self.monitor = monitor
+        self.engine = engine ?? PFedRecDeckEngine(fetchDeckUseCase: fetchDeckUseCase)
     }
 
     convenience init(
@@ -47,6 +48,7 @@ final class SwipeDeckViewModel {
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.init(
+            engine: nil,
             fetchDeckUseCase: DefaultFetchPopularSwipeDeckUseCase(),
             swipeCardUseCase: DefaultSwipeCardUseCase(),
             getSeenIDsUseCase: DefaultGetSeenFilmIDsUseCase(),
@@ -61,10 +63,18 @@ final class SwipeDeckViewModel {
             onQueueChange?()
             return
         }
-        fetchNextPage()
+        Task { [weak self] in
+            guard let self = self else { return }
+            await self.engine.retryFetchIfNeeded()
+            let updated = await self.engine.peek(count: 10)
+            await MainActor.run {
+                self.queue = updated
+                self.onQueueChange?()
+            }
+        }
     }
 
-    var isExhausted: Bool { queue.isEmpty && isLastPage && !isFetching }
+    var isExhausted: Bool { queue.isEmpty && !isFetching }
 
     func peek(_ count: Int) -> [Media] {
         guard !isSessionComplete else { return [] }
@@ -75,52 +85,44 @@ final class SwipeDeckViewModel {
     func start() {
         guard queue.isEmpty else { return }
         excludedIDs.formUnion(getSeenIDsUseCase.execute())
-        fetchNextPage()
-    }
-
-    func consumeFrontCard(direction: SwipeDirection) {
-        guard !queue.isEmpty, !isSessionComplete else { return }
-        let media = queue.removeFirst()
-        sessionSwipeCount += 1
-        excludedIDs.insert(media.id)
-
-        Task { [weak self] in
-            try? await self?.swipeCardUseCase.execute(media: media, direction: direction)
-        }
-
-        if !isSessionComplete && queue.count <= Self.prefetchThreshold {
-            fetchNextPage()
-        }
-        onQueueChange?()
-    }
-
-    private func fetchNextPage() {
-        guard !isFetching, !isLastPage, !isSessionComplete else { return }
-        guard monitor.isOnline else {
-            onQueueChange?()
-            return
-        }
         isFetching = true
 
         Task { [weak self] in
             guard let self = self else { return }
             do {
-                let result = try await self.fetchDeckUseCase.execute(page: self.page, excludingIDs: self.excludedIDs)
+                try await self.engine.start(excludingIDs: self.excludedIDs)
+                let initial = await self.engine.peek(count: 10)
                 await MainActor.run {
                     self.isFetching = false
-                    self.queue.append(contentsOf: result.items)
-                    self.isLastPage = result.isLastPage
-                    self.page += 1
+                    self.queue = initial
                     self.onQueueChange?()
-                    if self.queue.isEmpty && !self.isLastPage {
-                        self.fetchNextPage()
-                    }
                 }
             } catch {
                 await MainActor.run {
                     self.isFetching = false
                     self.onError?("Couldn't load more films. Check your connection and try again.")
                 }
+            }
+        }
+    }
+
+    func consumeFrontCard(direction: SwipeDirection, dwellDuration: TimeInterval = 1.5) {
+        guard !queue.isEmpty, !isSessionComplete else { return }
+        let media = queue.removeFirst()
+        sessionSwipeCount += 1
+        excludedIDs.insert(media.id)
+
+        onQueueChange?()
+
+        Task { [weak self] in
+            guard let self = self else { return }
+            try? await self.swipeCardUseCase.execute(media: media, direction: direction)
+            await self.engine.consumeFrontCard(direction: direction, dwellDuration: dwellDuration)
+            let updatedPeek = await self.engine.peek(count: 10)
+
+            await MainActor.run {
+                self.queue = updatedPeek
+                self.onQueueChange?()
             }
         }
     }

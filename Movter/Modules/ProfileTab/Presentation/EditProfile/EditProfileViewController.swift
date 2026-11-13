@@ -138,6 +138,7 @@ final class EditProfileViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .canvas
         title = "Edit Profile"
+        navigationItem.largeTitleDisplayMode = .never
 
         setupUI()
         bindViewModel()

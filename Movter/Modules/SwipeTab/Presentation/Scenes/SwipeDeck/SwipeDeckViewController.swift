@@ -22,6 +22,7 @@ final class SwipeDeckViewController: UIViewController {
     private weak var coordinator: SwipeCoordinator?
 
     private var cardViews: [SwipeCardView] = []
+    private var topCardPresentedAt: Date = Date()
     private let posterTransition = PosterTransitionController()
 
     private let cardContainer = UIView()
@@ -208,9 +209,13 @@ final class SwipeDeckViewController: UIViewController {
 
     private func frontCardDidSwipe(direction: SwipeDirection) {
         guard !cardViews.isEmpty else { return }
+        let now = Date()
+        let dwellDuration = now.timeIntervalSince(topCardPresentedAt)
+        topCardPresentedAt = now
+
         let swiped = cardViews.removeFirst()
         swiped.removeFromSuperview()
-        viewModel.consumeFrontCard(direction: direction)
+        viewModel.consumeFrontCard(direction: direction, dwellDuration: dwellDuration)
     }
 
     private func updateEmptyState() {

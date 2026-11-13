@@ -54,6 +54,7 @@ final class NotificationSettingsViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .canvas
         title = "Notifications"
+        navigationItem.largeTitleDisplayMode = .never
 
         setupTableView()
         bindViewModel()
