@@ -9,8 +9,6 @@ import UIKit
 
 final class HomeHeaderView: UIView {
 
-    var onSearch: (() -> Void)?
-
     static let preferredHeight: CGFloat = 44
 
     private let titleLabel: UILabel = {
@@ -22,38 +20,14 @@ final class HomeHeaderView: UIView {
         return label
     }()
 
-    private lazy var searchButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.backgroundColor = .surface
-        button.tintColor = .textPrimary
-        button.layer.cornerRadius = Self.preferredHeight / 2
-        button.setImage(
-            UIImage(
-                systemName: "magnifyingglass",
-                withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold)
-            ),
-            for: .normal
-        )
-        button.accessibilityLabel = "Search"
-        button.addAction(UIAction { [weak self] _ in self?.onSearch?() }, for: .touchUpInside)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-
     override init(frame: CGRect) {
         super.init(frame: frame)
         addSubview(titleLabel)
-        addSubview(searchButton)
 
         NSLayoutConstraint.activate([
             titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-
-            searchButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            searchButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            searchButton.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 12),
-            searchButton.widthAnchor.constraint(equalToConstant: Self.preferredHeight),
-            searchButton.heightAnchor.constraint(equalToConstant: Self.preferredHeight)
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -16),
+            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
     }
 
