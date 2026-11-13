@@ -17,13 +17,13 @@ final class SearchMoviesViewModel {
 
     private let getBrowseCategoriesUseCase: GetBrowseCategoriesUseCase
 
-    private var sections: [Section] {
+    private lazy var sections: [Section] = {
         let categoryItems = getBrowseCategoriesUseCase.execute().map { $0.title }
         return [
             .browse(title: "Browse by", items: categoryItems),
             .genres(title: "Popular Genres")
         ]
-    }
+    }()
 
     init(getBrowseCategoriesUseCase: GetBrowseCategoriesUseCase = DefaultGetBrowseCategoriesUseCase()) {
         self.getBrowseCategoriesUseCase = getBrowseCategoriesUseCase

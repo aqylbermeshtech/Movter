@@ -150,10 +150,14 @@ struct DiscoverQuery {
         "disney+": "337", "amazon prime": "9"
     ]
 
-    private static func isoDay(_ date: Date) -> String {
+    private static let isoDayFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter.string(from: date)
+        return formatter
+    }()
+
+    private static func isoDay(_ date: Date) -> String {
+        isoDayFormatter.string(from: date)
     }
 }

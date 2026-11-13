@@ -12,22 +12,7 @@ final class MainTabBarController: UITabBarController {
         let title: String
         let symbol: String
         let navigationController: UINavigationController
-        let root: UIViewController?
-
-        init(
-            title: String,
-            symbol: String,
-            navigationController: UINavigationController,
-            root: UIViewController? = nil
-        ) {
-            self.title = title
-            self.symbol = symbol
-            self.navigationController = navigationController
-            self.root = root
-        }
     }
-
-    static let contentClearance: CGFloat = 0
 
     func setTabs(_ tabs: [Tab], searchNavigationController: UINavigationController? = nil) {
         var nativeTabs: [UITab] = tabs.enumerated().map { index, tab in

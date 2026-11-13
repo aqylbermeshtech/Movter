@@ -19,7 +19,7 @@ final class SwipeDeckViewController: UIViewController {
     private static let cardBottomInset: CGFloat = 96
 
     private let viewModel: SwipeDeckViewModel
-    private weak var coordinator: SwipeCoordinator?
+    private var coordinator: SwipeCoordinator?
 
     private var cardViews: [SwipeCardView] = []
     private let posterTransition = PosterTransitionController()
@@ -317,19 +317,6 @@ final class SwipeDeckViewController: UIViewController {
         return UIButton(configuration: config)
     }
 }
-
-// MARK: - Tab action
-
-extension SwipeDeckViewController: TabActionProviding {
-
-    var tabActionSymbol: String { "bookmark" }
-    var tabActionLabel: String { "Watchlist" }
-
-    func performTabAction() {
-        showWatchlist()
-    }
-}
-
 
 // MARK: - Poster transition
 

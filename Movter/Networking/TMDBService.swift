@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import MovterNetwork
 
 // MARK: - Structs
 struct MovieResponse: Codable {
@@ -44,14 +43,18 @@ final class TMDBService {
 
     // MARK: - Core Request Execution
 
+    private static let snakeCaseDecoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return decoder
+    }()
+
     func performRequest<T: Decodable>(url: URL) async throws -> T {
         let request = URLRequest(url: url)
         let (data, _) = try await networkService.plainRequest(request)
 
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
         do {
-            return try decoder.decode(T.self, from: data)
+            return try Self.snakeCaseDecoder.decode(T.self, from: data)
         } catch {
             throw NetworkError.decodingFailed(error)
         }

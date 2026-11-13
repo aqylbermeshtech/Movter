@@ -308,6 +308,11 @@ final class TicketStubView: UIView {
     }
 
     private var isShowingArtwork = false
+    private let stubMaskLayer: CAShapeLayer = {
+        let mask = CAShapeLayer()
+        mask.fillRule = .evenOdd
+        return mask
+    }()
 
     private func applyMask(tearY: CGFloat) {
         let path = UIBezierPath(roundedRect: bounds, cornerRadius: Self.cornerRadius)
@@ -317,10 +322,10 @@ final class TicketStubView: UIView {
                 x: centerX - radius, y: tearY - radius, width: radius * 2, height: radius * 2
             )))
         }
-        let mask = CAShapeLayer()
-        mask.path = path.cgPath
-        mask.fillRule = .evenOdd
-        layer.mask = mask
+        stubMaskLayer.path = path.cgPath
+        if layer.mask !== stubMaskLayer {
+            layer.mask = stubMaskLayer
+        }
     }
 
     private func drawPerforation(at tearY: CGFloat) {

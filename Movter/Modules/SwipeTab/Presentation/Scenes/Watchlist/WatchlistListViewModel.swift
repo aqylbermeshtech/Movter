@@ -30,17 +30,6 @@ final class WatchlistListViewModel {
         self.deleteWatchlistItemUseCase = deleteWatchlistItemUseCase
     }
 
-    convenience init(
-        store: WatchlistStoring,
-        presentation: WatchlistPresentationType = .watchlist
-    ) {
-        self.init(
-            presentation: presentation,
-            fetchWatchlistUseCase: DefaultFetchWatchlistUseCase(),
-            deleteWatchlistItemUseCase: DefaultDeleteWatchlistItemUseCase()
-        )
-    }
-
     var isEmpty: Bool { items.isEmpty }
 
     func load() {

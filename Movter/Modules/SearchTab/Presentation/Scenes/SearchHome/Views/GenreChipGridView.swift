@@ -92,15 +92,6 @@ final class GenreChipGridView: UIView {
         chip.addAction(UIAction { [weak self] _ in self?.onSelect?(genre) }, for: .touchUpInside)
         return chip
     }
-
-    /// The chips are filled with `.surface` and titled in `.textPrimary`, both of which
-    /// move with the appearance, so they are reapplied rather than left to resolve.
-    func updateTheme() {
-        for chip in chips {
-            chip.backgroundColor = .surface
-            chip.setTitleColor(.textPrimary, for: .normal)
-        }
-    }
 }
 
 /// The whole grid as one table row — the chips wrap, so they are a single cell rather

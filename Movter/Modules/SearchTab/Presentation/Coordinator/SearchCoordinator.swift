@@ -12,7 +12,6 @@ protocol SearchCoordinator: AnyObject {
     func showSubcategory(title: String, items: [String])
     func showMovieGrid(source: MediaQuerySource, title: String)
     func showMovieDetails(media: Media, from sourceVC: UIViewController & PosterTransitionSource)
-    func presentSearchOverlay(onSubmit: @escaping (String) -> Void)
     func dismiss()
 }
 
@@ -23,6 +22,7 @@ final class DefaultSearchCoordinator: SearchCoordinator {
     weak var viewController: UIViewController?
 
     private let posterTransition = PosterTransitionController()
+    private var moviesCoordinator: DefaultMoviesCoordinator?
 
     private var activeNavController: UINavigationController? {
         navigationController ?? viewController?.navigationController
@@ -51,14 +51,10 @@ final class DefaultSearchCoordinator: SearchCoordinator {
     }
 
     func showMovieDetails(media: Media, from sourceVC: UIViewController & PosterTransitionSource) {
-        let detailVC = MediaDetailsViewController(viewModel: MediaDetailsViewModel(media: media))
+        let coordinator = DefaultMoviesCoordinator(navigationController: activeNavController)
+        self.moviesCoordinator = coordinator
+        let detailVC = MoviesViewFactory.makeMovieDetails(media: media, coordinator: coordinator)
         posterTransition.push(detailVC, for: media, from: sourceVC)
-    }
-
-    func presentSearchOverlay(onSubmit: @escaping (String) -> Void) {
-        let overlayVC = SearchViewFactory.makeSearchOverlay(coordinator: self, onSubmit: onSubmit)
-        overlayVC.modalPresentationStyle = .fullScreen
-        activePresenter?.present(overlayVC, animated: true)
     }
 
     func dismiss() {

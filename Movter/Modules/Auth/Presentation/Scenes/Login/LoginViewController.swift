@@ -69,13 +69,6 @@ class LoginViewController: UIViewController {
         super.init(nibName: nil, bundle: nil)
     }
 
-    convenience init() {
-        let repository = DefaultAuthRepository()
-        let useCase = DefaultLoginUseCase(repository: repository)
-        let vm = LoginViewModel(loginUseCase: useCase)
-        self.init(viewModel: vm)
-    }
-
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -128,7 +121,7 @@ class LoginViewController: UIViewController {
         }
 
         viewModel.onError = { [weak self] errorMessage in
-            self?.showAlert(message: errorMessage)
+            self?.presentAlert(title: "Error", message: errorMessage)
         }
     }
 
@@ -144,12 +137,6 @@ class LoginViewController: UIViewController {
 
     @objc private func didTapGoToSignUp() {
         viewModel.showSignUp()
-    }
-
-    private func showAlert(message: String) {
-        let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
     }
 }
 

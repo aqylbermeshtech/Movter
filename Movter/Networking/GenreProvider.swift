@@ -57,7 +57,7 @@ final class GenreProvider {
 
         service.fetchGenres(type: type) { [weak self] genres in
             guard let self = self else { return }
-            let table = Dictionary(uniqueKeysWithValues: (genres ?? []).map { ($0.id, $0.name) })
+            let table = Dictionary((genres ?? []).map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
 
             var waiting: [([Int: String]) -> Void] = []
             self.queue.sync(flags: .barrier) {

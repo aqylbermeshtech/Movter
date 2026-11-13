@@ -42,7 +42,7 @@ enum MoviesViewFactory {
             saveReviewUseCase: saveReviewUseCase,
             coordinator: coordinator
         )
-        return MediaDetailsViewController(viewModel: viewModel, coordinator: coordinator)
+        return MediaDetailsViewController(viewModel: viewModel)
     }
 
     static func makeCastCrew(
@@ -80,8 +80,7 @@ enum MoviesViewFactory {
 
     static func makeTrailer(
         filmTitle: String,
-        request: URLRequest,
-        coordinator: MoviesCoordinator
+        request: URLRequest
     ) -> TrailerViewController {
         TrailerViewController(filmTitle: filmTitle, request: request)
     }

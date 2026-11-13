@@ -36,7 +36,6 @@ class ActorsCell:UICollectionViewCell {
         label.font = .fineprint
         label.textColor = .textSecondary
         label.textAlignment = .center
-        label.textColor = .textPrimary
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()

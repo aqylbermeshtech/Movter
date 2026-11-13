@@ -10,7 +10,7 @@ import UIKit
 final class ReviewsListViewController: UIViewController {
 
     private let viewModel: ReviewsListViewModel
-    private weak var coordinator: ReviewsCoordinator?
+    private let coordinator: ReviewsCoordinator?
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let skeletonView = SkeletonGridView(style: .reviewList(rows: 6))
 
@@ -124,7 +124,6 @@ final class ReviewsListViewController: UIViewController {
         ])
 
         bindViewModel()
-        viewModel.load()
     }
 
     override func viewWillAppear(_ animated: Bool) {

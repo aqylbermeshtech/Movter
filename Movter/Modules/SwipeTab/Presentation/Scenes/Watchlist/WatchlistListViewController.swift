@@ -93,9 +93,6 @@ final class WatchlistListViewController: UIViewController {
 
         viewModel.onChange = { [weak self] in self?.render() }
         viewModel.onError = { [weak self] message in self?.presentError(message) }
-
-        skeletonView.beginLoading()
-        viewModel.load()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -113,9 +110,7 @@ final class WatchlistListViewController: UIViewController {
     }
 
     private func presentError(_ message: String) {
-        let alert = UIAlertController(title: "Something went wrong", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+        presentAlert(title: "Something went wrong", message: message)
     }
 }
 

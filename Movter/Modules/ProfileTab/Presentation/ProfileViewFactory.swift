@@ -33,11 +33,7 @@ enum ProfileViewFactory {
             changeThemeUseCase: changeThemeUseCase
         )
 
-        let coordinator = DefaultProfileCoordinator(
-            watchlistStore: watchlistStore,
-            watchedStore: watchedStore,
-            reviewStore: reviewStore
-        )
+        let coordinator = DefaultProfileCoordinator()
 
         let viewController = ProfileViewController(
             viewModel: viewModel,
