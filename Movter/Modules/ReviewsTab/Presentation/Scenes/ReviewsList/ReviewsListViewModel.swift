@@ -35,15 +35,6 @@ final class ReviewsListViewModel {
         self.calculateStatsUseCase = calculateStatsUseCase
     }
 
-    convenience init(store: ReviewStoring) {
-        let repo = DefaultReviewsRepository()
-        self.init(
-            fetchReviewsUseCase: DefaultFetchReviewsUseCase(repository: repo),
-            deleteReviewUseCase: DefaultDeleteReviewUseCase(repository: repo),
-            calculateStatsUseCase: DefaultCalculateReviewStatsUseCase()
-        )
-    }
-
     var summaryText: String? {
         guard !reviews.isEmpty else { return nil }
         let summary = calculateStatsUseCase.execute(reviews: reviews)

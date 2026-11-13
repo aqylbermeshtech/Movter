@@ -23,24 +23,12 @@ final class DefaultProfileCoordinator: ProfileCoordinator {
     weak var viewController: UIViewController?
     weak var navigationController: UINavigationController?
 
-    private let watchlistStore: WatchlistStoring
-    private let watchedStore: WatchlistStoring
-    private let reviewStore: ReviewStoring
-
     private var activeNavigationController: UINavigationController? {
         navigationController ?? viewController?.navigationController
     }
 
-    init(
-        navigationController: UINavigationController? = nil,
-        watchlistStore: WatchlistStoring,
-        watchedStore: WatchlistStoring,
-        reviewStore: ReviewStoring
-    ) {
+    init(navigationController: UINavigationController? = nil) {
         self.navigationController = navigationController
-        self.watchlistStore = watchlistStore
-        self.watchedStore = watchedStore
-        self.reviewStore = reviewStore
     }
 
     func showReviews() {

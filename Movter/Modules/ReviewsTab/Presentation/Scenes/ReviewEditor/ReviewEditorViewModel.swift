@@ -48,13 +48,6 @@ final class ReviewEditorViewModel {
         }
     }
 
-    convenience init(store: ReviewStoring, mode: Mode) {
-        self.init(
-            saveReviewUseCase: DefaultSaveReviewUseCase(repository: DefaultReviewsRepository()),
-            mode: mode
-        )
-    }
-
     // MARK: - Presentation
 
     var screenTitle: String {
@@ -113,7 +106,12 @@ final class ReviewEditorViewModel {
     }
 
     func save() async throws {
-        guard canSave else { throw ReviewError.emptyFilmTitle }
+        guard !filmTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ReviewError.emptyFilmTitle
+        }
+        guard Review.scoreRange.contains(score) else {
+            throw ReviewError.invalidScore(score)
+        }
 
         let review: Review
         switch mode {

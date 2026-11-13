@@ -17,15 +17,17 @@ enum RatingStar {
     private static let cache = NSCache<NSString, UIImage>()
 
     static func image(pointSize: CGFloat, color: UIColor = .accent) -> UIImage {
-        let key = "\(pointSize)-\(color.hashValue)" as NSString
+        let traitCollection = UITraitCollection.current
+        let resolved = color.resolvedColor(with: traitCollection)
+        let key = "\(pointSize)-\(resolved.hashValue)-\(traitCollection.userInterfaceStyle.rawValue)" as NSString
         if let cached = cache.object(forKey: key) { return cached }
 
         let size = CGSize(width: pointSize, height: pointSize)
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { _ in
             let path = starPath(in: CGRect(origin: .zero, size: size))
-            color.setFill()
-            color.setStroke()
+            resolved.setFill()
+            resolved.setStroke()
             path.fill()
             // Round join softens the tips, which otherwise alias into fuzz when small.
             path.lineWidth = pointSize * 0.07

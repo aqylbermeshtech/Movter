@@ -48,20 +48,20 @@ public final class Logger: LoggerProtocol {
 //Extensions
 
 extension LoggerProtocol {
-    public func debug(_ message: String) {
-        debug(message, file: #file, function: #function, line: #line)
+    public func debug(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
+        debug(message, file: file, function: function, line: line)
     }
 
-    public func info(_ message: String) {
-        info(message, file: #file, function: #function, line: #line)
+    public func info(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
+        info(message, file: file, function: function, line: line)
     }
 
-    public func warning(_ message: String) {
-        warning(message, file: #file, function: #function, line: #line)
+    public func warning(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
+        warning(message, file: file, function: function, line: line)
     }
 
-    public func error(_ message: String) {
-        error(message, file: #file, function: #function, line: #line)
+    public func error(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
+        error(message, file: file, function: function, line: line)
     }
 }
 

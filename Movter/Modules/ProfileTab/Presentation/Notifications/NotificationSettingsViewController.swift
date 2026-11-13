@@ -154,14 +154,19 @@ extension NotificationSettingsViewController: UITableViewDelegate, UITableViewDa
             content.text = item.preference.title
             content.secondaryText = item.preference.subtitle
 
-            let toggle = UISwitch()
+            let toggle: UISwitch
+            if let existing = cell.accessoryView as? UISwitch {
+                toggle = existing
+            } else {
+                toggle = UISwitch()
+                toggle.addTarget(self, action: #selector(toggleChanged(_:)), for: .valueChanged)
+                cell.accessoryView = toggle
+            }
             toggle.tag = indexPath.row
             toggle.isOn = item.isEnabled && viewModel.isAuthorized
             toggle.isEnabled = viewModel.isAuthorized
             toggle.onTintColor = .accent
-            toggle.addTarget(self, action: #selector(toggleChanged(_:)), for: .valueChanged)
 
-            cell.accessoryView = toggle
             cell.selectionStyle = .none
             content.textProperties.color = viewModel.isAuthorized ? .textPrimary : .textSecondary
         }

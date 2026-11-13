@@ -54,18 +54,6 @@ final class MediaListViewController: UIViewController {
     }()
     private static let heroItemCount = 5
 
-    private lazy var actionUnavailableView: ActionUnavailablePlaceholderView = {
-        let view = ActionUnavailablePlaceholderView(
-            symbolName: tabActionSymbol,
-            title: "Nothing to shuffle yet",
-            message: "Surprise me opens a random title from what's trending, and that list hasn't arrived. Give it a moment and try again."
-        )
-        view.onDismiss = { [weak self] in self?.setActionUnavailableVisible(false) }
-        view.isHidden = true
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-
     override func viewDidLoad() {
         super.viewDidLoad()
         setupNavigationBar()
@@ -96,14 +84,7 @@ final class MediaListViewController: UIViewController {
     }
 
     private func setupNavigationBar() {
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = .canvas
-        appearance.titleTextAttributes = [.foregroundColor: UIColor.textPrimary]
-
-        navigationController?.navigationBar.standardAppearance = appearance
-        navigationController?.navigationBar.scrollEdgeAppearance = appearance
-        navigationController?.navigationBar.tintColor = .textPrimary
+        configureOpaqueNavigationBar()
     }
 
     @objc private func themeChanged() {
@@ -116,8 +97,6 @@ final class MediaListViewController: UIViewController {
         view.addSubview(headerView)
         view.addSubview(scrollView)
         view.addSubview(offlineView)
-        // Last, so it covers the feed it is explaining the absence of.
-        view.addSubview(actionUnavailableView)
 
         headerView.translatesAutoresizingMaskIntoConstraints = false
         chipsView.translatesAutoresizingMaskIntoConstraints = false
@@ -160,13 +139,6 @@ final class MediaListViewController: UIViewController {
             offlineView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             offlineView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             offlineView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
-
-        NSLayoutConstraint.activate([
-            actionUnavailableView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
-            actionUnavailableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            actionUnavailableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            actionUnavailableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
         headerView.onSearch = { [weak self] in
@@ -288,53 +260,12 @@ final class MediaListViewController: UIViewController {
 
     private func dismissActionUnavailableIfResolved() {
         guard !viewModel.mediaContent.isEmpty else { return }
-        setActionUnavailableVisible(false)
-    }
-
-    private func setActionUnavailableVisible(_ visible: Bool) {
-        let isShown = !actionUnavailableView.isHidden
-        guard isShown != visible else { return }
-
-        if visible {
-            actionUnavailableView.alpha = 0
-            actionUnavailableView.isHidden = false
-        }
-        UIView.animate(withDuration: 0.2) {
-            self.actionUnavailableView.alpha = visible ? 1 : 0
-        } completion: { _ in
-            self.actionUnavailableView.isHidden = !visible
-        }
     }
 }
 
 // MARK: - Search
 
 extension MediaListViewController: SearchPresenting {}
-
-// MARK: - Tab action
-
-extension MediaListViewController: TabActionProviding {
-
-    var tabActionSymbol: String { "shuffle" }
-    var tabActionLabel: String { "Surprise me" }
-
-    func performTabAction() {
-        guard openRandomTitle() else {
-            if !viewModel.showsOfflinePlaceholder {
-                setActionUnavailableVisible(true)
-            }
-            return
-        }
-    }
-
-    @discardableResult
-    private func openRandomTitle() -> Bool {
-        guard let media = viewModel.mediaContent.randomElement() else { return false }
-        showDetails(for: media)
-        return true
-    }
-}
-
 
 // MARK: - Poster transition
 

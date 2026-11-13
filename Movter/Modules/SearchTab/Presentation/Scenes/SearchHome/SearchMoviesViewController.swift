@@ -60,15 +60,7 @@ final class SearchMoviesViewController: UIViewController, UITableViewDelegate, U
         definesPresentationContext = true
         searchController.searchBar.delegate = self
         navigationController?.navigationBar.prefersLargeTitles = false
-
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = .canvas
-        appearance.titleTextAttributes = [.foregroundColor: UIColor.textPrimary]
-
-        navigationController?.navigationBar.standardAppearance = appearance
-        navigationController?.navigationBar.scrollEdgeAppearance = appearance
-        navigationController?.navigationBar.tintColor = .textPrimary
+        configureOpaqueNavigationBar()
     }
 
     private func setupUI() {
@@ -168,17 +160,5 @@ extension SearchMoviesViewController: SearchPresenting, UISearchBarDelegate {
         searchController.isActive = false
         let resultsVC = SearchViewFactory.makeMovieGrid(source: .search(trimmed), title: "“\(trimmed)”")
         navigationController?.pushViewController(resultsVC, animated: true)
-    }
-}
-
-// MARK: - Tab action
-
-extension SearchMoviesViewController: TabActionProviding {
-
-    var tabActionSymbol: String { "magnifyingglass" }
-    var tabActionLabel: String { "Search films" }
-
-    func performTabAction() {
-        presentSearch()
     }
 }

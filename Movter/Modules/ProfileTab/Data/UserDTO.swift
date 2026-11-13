@@ -7,18 +7,11 @@
 
 import Foundation
 
-struct UserDTO: Decodable {
+struct UserDTO {
     let id: String
     let name: String
     let email: String
     let avatarURL: URL?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case email
-        case avatarURL = "avatar_url"
-    }
 
     func toDomain() -> UserProfile {
         UserProfile(

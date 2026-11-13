@@ -12,16 +12,11 @@ final class MediaDetailsViewController: UIViewController {
 
     private let viewModel: MediaDetailsViewModel
     private let scrollView = UIScrollView()
-    private let posterTransition = PosterTransitionController()
     private var isBarCollapsed = false
     private var keyboardOverlap: CGFloat = 0
 
-    private let revealsTrailer: Bool
-    private var didRevealTrailer = false
-
-    init(viewModel: MediaDetailsViewModel, revealsTrailer: Bool = false, coordinator: MoviesCoordinator? = nil) {
+    init(viewModel: MediaDetailsViewModel) {
         self.viewModel = viewModel
-        self.revealsTrailer = revealsTrailer
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -313,7 +308,6 @@ final class MediaDetailsViewController: UIViewController {
         viewModel.onVideoUpdate = { [weak self] _ in
             guard let self = self else { return }
             self.trailerButton.isHidden = self.viewModel.trailerRequest == nil
-            self.openTrailerIfRequested()
         }
         viewModel.onCreditsUpdate = { [weak self] in
             DispatchQueue.main.async {
@@ -458,12 +452,6 @@ final class MediaDetailsViewController: UIViewController {
 
     @objc private func trailerTapped() {
         viewModel.showTrailer()
-    }
-
-    private func openTrailerIfRequested() {
-        guard revealsTrailer, !didRevealTrailer, viewModel.trailerRequest != nil else { return }
-        didRevealTrailer = true
-        trailerTapped()
     }
 
     private func setupUI() {

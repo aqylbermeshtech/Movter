@@ -8,9 +8,5 @@
 import Foundation
 
 enum SearchError: LocalizedError, Equatable {
-    case queryTooShort(min: Int)
-    case offline
-    case emptyResults
-    case unsupportedCategory
     case invalidPage(_ page: Int)
 }

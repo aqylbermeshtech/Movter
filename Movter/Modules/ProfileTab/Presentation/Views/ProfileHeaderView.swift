@@ -44,15 +44,19 @@ final class ProfileHeaderView: UIView {
         setupLayout()
     }
     
+    private static let memberSinceFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "LLLL yyyy"
+        return formatter
+    }()
+
     required init?(coder: NSCoder) { fatalError() }
     
     func configure(with user: UserProfile) {
         nameLabel.text = user.name
         
         if let memberSince = user.memberSinceDate {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "LLLL yyyy"
-            memberSinceLabel.text = "Member since \(formatter.string(from: memberSince))"
+            memberSinceLabel.text = "Member since \(Self.memberSinceFormatter.string(from: memberSince))"
             memberSinceLabel.isHidden = false
         } else {
             memberSinceLabel.isHidden = true

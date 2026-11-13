@@ -40,9 +40,6 @@ final class MediaDetailsViewModel {
 
     var title: String { media.displayName }
     var overview: String { media.overview }
-    var posterPath: String { media.posterPath ?? "" }
-    var releaseDate: String { media.releaseDate ?? media.firstAirDate ?? "N/A" }
-    var voteAverage: Double { media.voteAverage }
     var ratingState: RatingState { media.ratingState }
     var year: String? { media.year }
     var largeImageURL: URL? { media.largePosterURL ?? media.fullPosterURL }
@@ -318,10 +315,6 @@ final class MediaDetailsViewModel {
 
     func showMovieDetails(media: Media, from source: UIViewController & PosterTransitionSource) {
         coordinator?.showMovieDetails(media: media, from: source)
-    }
-
-    func makeCastCrewViewModel() -> CastCrewViewModel {
-        CastCrewViewModel(mediaTitle: title, cast: actors, crew: crew, coordinator: coordinator)
     }
 }
 

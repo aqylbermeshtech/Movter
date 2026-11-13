@@ -64,34 +64,6 @@ public enum NetworkError: Error, LocalizedError {
         }
     }
 
-    public var isNotFound: Bool {
-        statusCode == 404
-    }
-
-    public var isUnauthorized: Bool {
-        statusCode == 401
-    }
-
-    public var apiCode: String? {
-        guard case let .apiError(_, _, code, _, _) = self else { return nil }
-        return code
-    }
-
-    public var apiFields: [String] {
-        guard case let .apiError(_, _, _, fields, _) = self else { return [] }
-        return fields
-    }
-
-    public var apiDetails: String? {
-        guard case let .apiError(_, _, _, _, details) = self else { return nil }
-        let trimmed = details?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmed.isEmpty ? nil : trimmed
-    }
-
-    public func hasAPICode(_ code: String) -> Bool {
-        apiCode?.caseInsensitiveCompare(code) == .orderedSame
-    }
-
     private struct GenericErrorResponse: Decodable {
         let statusMessage: String?
         let message: String?
@@ -104,9 +76,11 @@ public enum NetworkError: Error, LocalizedError {
         }
     }
 
+    private static let responseDecoder = JSONDecoder()
+
     public static func fromResponseBody(_ data: Data?, statusCode: Int) -> NetworkError? {
         guard let data, !data.isEmpty else { return nil }
-        if let decoded = try? JSONDecoder().decode(GenericErrorResponse.self, from: data) {
+        if let decoded = try? responseDecoder.decode(GenericErrorResponse.self, from: data) {
             let msg = decoded.statusMessage ?? decoded.message ?? decoded.error ?? ""
             if !msg.isEmpty {
                 return .apiError(
@@ -160,8 +134,6 @@ extension NetworkError {
                         return .forbidden
                     case 404:
                         return .notFound
-                    case 500...599:
-                        return .serverError(code)
                     default:
                         return .serverError(code)
                     }
@@ -175,12 +147,14 @@ extension NetworkError {
             }
         }
 
-        if error._code == NSURLErrorTimedOut {
-            return .timeoutError
-        }
-
-        if error._code == NSURLErrorNotConnectedToInternet {
-            return .noInternetConnection
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain {
+            if nsError.code == NSURLErrorTimedOut {
+                return .timeoutError
+            }
+            if nsError.code == NSURLErrorNotConnectedToInternet {
+                return .noInternetConnection
+            }
         }
 
         return .unknown(error)

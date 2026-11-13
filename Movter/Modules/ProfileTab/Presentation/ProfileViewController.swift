@@ -45,41 +45,6 @@ final class ProfileViewController: UIViewController {
         super.init(nibName: nil, bundle: nil)
     }
 
-    convenience init(
-        watchlistStore: WatchlistStoring = WatchlistStoreFactory.makeStore(),
-        watchedStore: WatchlistStoring = WatchedFilmsStoreFactory.makeStore(),
-        reviewStore: ReviewStoring = ReviewStoreFactory.makeStore()
-    ) {
-        let authDataSource = FirebaseAuthProfileDataSource()
-        let profileRepository = DefaultProfileRepository(dataSource: authDataSource)
-        let getProfileUseCase = DefaultGetProfileUseCase(repository: profileRepository)
-        let signOutUseCase = DefaultSignOutUseCase(repository: profileRepository)
-        let changeThemeUseCase = DefaultChangeThemeUseCase()
-
-        let statsRepository = DefaultProfileStatsRepository(
-            watchlistStore: watchlistStore,
-            watchedStore: watchedStore,
-            reviewStore: reviewStore
-        )
-        let getProfileStatsUseCase = DefaultGetProfileStatsUseCase(repository: statsRepository)
-
-        let viewModel = ProfileViewModel(
-            getProfileUseCase: getProfileUseCase,
-            getProfileStatsUseCase: getProfileStatsUseCase,
-            signOutUseCase: signOutUseCase,
-            changeThemeUseCase: changeThemeUseCase
-        )
-
-        let coordinator = DefaultProfileCoordinator(
-            watchlistStore: watchlistStore,
-            watchedStore: watchedStore,
-            reviewStore: reviewStore
-        )
-
-        self.init(viewModel: viewModel, coordinator: coordinator)
-        coordinator.viewController = self
-    }
-
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     deinit {
@@ -101,6 +66,7 @@ final class ProfileViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        guard case .loaded = viewModel.state else { return }
         loadingTask?.cancel()
         loadingTask = Task { [viewModel] in
             await viewModel.reloadStatsOnly()
@@ -313,12 +279,6 @@ final class ProfileViewController: UIViewController {
         }
         present(alert, animated: true)
     }
-
-    private func presentAlert(title: String, message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
-    }
 }
 
 // MARK: - UITableViewDataSource, UITableViewDelegate
@@ -370,16 +330,5 @@ extension ProfileViewController: UITableViewDelegate, UITableViewDataSource {
         guard let header = view as? UITableViewHeaderFooterView else { return }
         header.textLabel?.textColor = .textSecondary
         header.textLabel?.font = .tableSectionHeader
-    }
-}
-
-// MARK: - Tab action
-
-extension ProfileViewController: TabActionProviding {
-
-    var tabActionSymbol: String { "pencil" }
-    var tabActionLabel: String { "Edit profile" }
-    func performTabAction() {
-        showEditProfile()
     }
 }

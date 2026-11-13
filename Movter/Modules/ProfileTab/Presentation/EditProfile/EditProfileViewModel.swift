@@ -24,7 +24,6 @@ final class EditProfileViewModel {
     private(set) var email: String = ""
     private(set) var avatarURL: URL?
 
-    private(set) var isLoading: Bool = false
     private(set) var isSaving: Bool = false
 
     var onStateChange: (() -> Void)?
@@ -58,9 +57,6 @@ final class EditProfileViewModel {
     // MARK: - Actions
 
     func loadProfile() async {
-        isLoading = true
-        onStateChange?()
-
         do {
             let profile = try await getProfileUseCase.execute()
             self.initialName = profile.name
@@ -71,7 +67,6 @@ final class EditProfileViewModel {
             // Keep existing values on failure
         }
 
-        isLoading = false
         onStateChange?()
     }
 

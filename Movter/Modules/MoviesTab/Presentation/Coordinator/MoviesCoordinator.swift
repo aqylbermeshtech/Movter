@@ -12,7 +12,6 @@ protocol MoviesCoordinator: AnyObject {
     func showCastCrew(mediaTitle: String, cast: [Actor], crew: [CrewMember])
     func showActorDetails(actorId: Int, name: String)
     func showTrailer(filmTitle: String, request: URLRequest)
-    func dismiss()
 }
 
 @MainActor
@@ -49,11 +48,7 @@ final class DefaultMoviesCoordinator: MoviesCoordinator {
     }
 
     func showTrailer(filmTitle: String, request: URLRequest) {
-        let trailerVC = MoviesViewFactory.makeTrailer(filmTitle: filmTitle, request: request, coordinator: self)
+        let trailerVC = MoviesViewFactory.makeTrailer(filmTitle: filmTitle, request: request)
         navigationController?.pushViewController(trailerVC, animated: true)
-    }
-
-    func dismiss() {
-        navigationController?.popViewController(animated: true)
     }
 }

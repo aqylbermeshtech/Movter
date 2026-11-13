@@ -25,6 +25,7 @@ final class ScorePicker: UIControl {
     }
 
     private var starViews: [UIImageView] = []
+    private let selectionFeedback = UISelectionFeedbackGenerator()
     private let stack: UIStackView = {
         let stack = UIStackView()
         stack.axis = .horizontal
@@ -127,7 +128,7 @@ final class ScorePicker: UIControl {
         guard newValue != value else { return }
 
         value = newValue
-        UISelectionFeedbackGenerator().selectionChanged()
+        selectionFeedback.selectionChanged()
         sendActions(for: .valueChanged)
     }
 
