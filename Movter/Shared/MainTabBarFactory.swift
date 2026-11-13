@@ -27,34 +27,27 @@ enum MainTabBarFactory {
             reviewStore: reviewStore
         )
 
-        let roots: [TabActionProviding] = [mediaListVC, searchMoviesVC, swipeDeckVC, profileVC]
-        for root in roots {
-            root.additionalSafeAreaInsets.bottom = MainTabBarController.contentClearance
-        }
-
         let tabBar = MainTabBarController()
-        tabBar.setTabs([
-            .init(
-                title: "Movies", symbol: "film",
-                navigationController: moviesNav,
-                root: mediaListVC
-            ),
-            .init(
-                title: "Search", symbol: "magnifyingglass",
-                navigationController: UINavigationController(rootViewController: searchMoviesVC),
-                root: searchMoviesVC
-            ),
-            .init(
-                title: "Swipe", symbol: "flame",
-                navigationController: UINavigationController(rootViewController: swipeDeckVC),
-                root: swipeDeckVC
-            ),
-            .init(
-                title: "Profile", symbol: "person",
-                navigationController: UINavigationController(rootViewController: profileVC),
-                root: profileVC
-            )
-        ])
+        tabBar.setTabs(
+            [
+                .init(
+                    title: "Movies", symbol: "film",
+                    navigationController: moviesNav,
+                    root: mediaListVC
+                ),
+                .init(
+                    title: "Swipe", symbol: "flame",
+                    navigationController: UINavigationController(rootViewController: swipeDeckVC),
+                    root: swipeDeckVC
+                ),
+                .init(
+                    title: "Profile", symbol: "person",
+                    navigationController: UINavigationController(rootViewController: profileVC),
+                    root: profileVC
+                )
+            ],
+            searchNavigationController: UINavigationController(rootViewController: searchMoviesVC)
+        )
         return tabBar
     }
 }

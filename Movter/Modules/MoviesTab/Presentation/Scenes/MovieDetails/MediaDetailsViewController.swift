@@ -552,7 +552,7 @@ final class MediaDetailsViewController: UIViewController {
     }
 
     private func updateScrollInsets() {
-        let bottom = max(view.safeAreaInsets.bottom + MainTabBarController.contentClearance, keyboardOverlap)
+        let bottom = max(view.safeAreaInsets.bottom, keyboardOverlap)
         guard scrollView.contentInset.bottom != bottom else { return }
         scrollView.contentInset.bottom = bottom
         scrollView.verticalScrollIndicatorInsets.bottom = bottom
