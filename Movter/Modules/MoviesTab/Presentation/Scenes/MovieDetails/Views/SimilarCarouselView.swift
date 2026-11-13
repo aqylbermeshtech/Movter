@@ -45,6 +45,10 @@ final class SimilarCarouselView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    var panGestureRecognizer: UIPanGestureRecognizer {
+        collectionView.panGestureRecognizer
+    }
+
     func update(with media: [Media]) {
         self.media = media
         collectionView.reloadData()

@@ -51,6 +51,7 @@ final class MainTabBarController: UITabBarController {
                 image: UIImage(systemName: tab.symbol),
                 tag: index
             )
+            tab.navigationController.enableInteractivePopGesture()
         }
         viewControllers = tabs.map(\.navigationController)
         if isViewLoaded {
@@ -63,6 +64,9 @@ final class MainTabBarController: UITabBarController {
         view.backgroundColor = .canvas
         isTabBarHidden = true
         tabBar.isHidden = true
+        for nav in tabEntries.map(\.navigationController) {
+            nav.enableInteractivePopGesture()
+        }
         setupCustomBar()
     }
 

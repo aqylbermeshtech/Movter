@@ -161,6 +161,11 @@ final class ActorViewController: UIViewController {
         )
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        enableInteractivePopGesture()
+    }
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         let height = filmographyCollectionView.collectionViewLayout.collectionViewContentSize.height

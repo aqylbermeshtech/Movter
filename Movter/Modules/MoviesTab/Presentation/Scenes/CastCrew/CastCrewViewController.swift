@@ -60,6 +60,11 @@ final class CastCrewViewController: UIViewController, UITableViewDataSource, UIT
         setupLayout()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        enableInteractivePopGesture()
+    }
+
     private func setupLayout() {
         if viewModel.isEmpty {
             view.addSubview(emptyView)

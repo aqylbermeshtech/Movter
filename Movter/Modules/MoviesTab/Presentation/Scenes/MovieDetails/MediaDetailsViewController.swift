@@ -608,10 +608,19 @@ final class MediaDetailsViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        enableInteractivePopGesture()
         applyBarAppearance(collapsed: isBarCollapsed)
         viewModel.loadReview()
         viewModel.loadWatchedState()
         viewModel.loadWatchlistState()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if let pop = navigationController?.interactivePopGestureRecognizer {
+            castCollectionView.panGestureRecognizer.require(toFail: pop)
+            similarCarouselView.panGestureRecognizer.require(toFail: pop)
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
