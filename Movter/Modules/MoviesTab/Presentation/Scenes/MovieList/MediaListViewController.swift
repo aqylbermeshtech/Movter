@@ -141,9 +141,6 @@ final class MediaListViewController: UIViewController {
             offlineView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        headerView.onSearch = { [weak self] in
-            self?.presentSearch()
-        }
         heroView.onMovieSelected = { [weak self] media in
             self?.showDetails(for: media)
         }
@@ -253,19 +250,10 @@ final class MediaListViewController: UIViewController {
                 self.heroView.update(with: Array(media.prefix(Self.heroItemCount)))
                 self.trendingView.update(with: media)
                 self.renderOfflineState()
-                self.dismissActionUnavailableIfResolved()
             }
         }
     }
-
-    private func dismissActionUnavailableIfResolved() {
-        guard !viewModel.mediaContent.isEmpty else { return }
-    }
 }
-
-// MARK: - Search
-
-extension MediaListViewController: SearchPresenting {}
 
 // MARK: - Poster transition
 

@@ -161,4 +161,8 @@ extension SearchMoviesViewController: SearchPresenting, UISearchBarDelegate {
         let resultsVC = SearchViewFactory.makeMovieGrid(source: .search(trimmed), title: "“\(trimmed)”")
         navigationController?.pushViewController(resultsVC, animated: true)
     }
+
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        (tabBarController as? MainTabBarController)?.returnToPreviousTab()
+    }
 }

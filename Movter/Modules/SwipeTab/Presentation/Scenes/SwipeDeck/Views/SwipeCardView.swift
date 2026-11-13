@@ -38,18 +38,20 @@ final class SwipeCardView: UIView {
         return layer
     }()
 
-    private let titleLabel: UILabel = {
+    private let logoImageView: UIImageView = {
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFit
+        iv.isHidden = true
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let fallbackTitleLabel: UILabel = {
         let label = UILabel()
         label.font = .cardTitle
         label.textColor = .white
         label.numberOfLines = 2
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private let metaLabel: UILabel = {
-        let label = UILabel()
-        label.numberOfLines = 1
+        label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -63,6 +65,7 @@ final class SwipeCardView: UIView {
 
     private var initialCenter: CGPoint = .zero
     private var hasCommitted = false
+    private var artworkTask: Task<Void, Never>?
 
     init(media: Media) {
         self.media = media
@@ -71,6 +74,10 @@ final class SwipeCardView: UIView {
         configure()
         addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:))))
         addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleTap)))
+    }
+
+    deinit {
+        artworkTask?.cancel()
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -90,8 +97,8 @@ final class SwipeCardView: UIView {
 
         addSubview(imageView)
         imageView.layer.addSublayer(gradientLayer)
-        imageView.addSubview(titleLabel)
-        imageView.addSubview(metaLabel)
+        imageView.addSubview(logoImageView)
+        imageView.addSubview(fallbackTitleLabel)
         addSubview(likeDestinationView)
         addSubview(passDestinationView)
 
@@ -101,12 +108,17 @@ final class SwipeCardView: UIView {
             imageView.trailingAnchor.constraint(equalTo: trailingAnchor),
             imageView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            titleLabel.leadingAnchor.constraint(equalTo: imageView.leadingAnchor, constant: 20),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -20),
-            metaLabel.leadingAnchor.constraint(equalTo: imageView.leadingAnchor, constant: 20),
-            metaLabel.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -20),
-            metaLabel.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -22),
-            titleLabel.bottomAnchor.constraint(equalTo: metaLabel.topAnchor, constant: -4),
+            logoImageView.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
+            logoImageView.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -24),
+            logoImageView.leadingAnchor.constraint(greaterThanOrEqualTo: imageView.leadingAnchor, constant: 24),
+            logoImageView.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -24),
+            logoImageView.widthAnchor.constraint(lessThanOrEqualToConstant: 240),
+            logoImageView.heightAnchor.constraint(lessThanOrEqualToConstant: 76),
+
+            fallbackTitleLabel.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
+            fallbackTitleLabel.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -24),
+            fallbackTitleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: imageView.leadingAnchor, constant: 20),
+            fallbackTitleLabel.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -20),
 
             likeDestinationView.topAnchor.constraint(equalTo: topAnchor),
             likeDestinationView.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -121,36 +133,55 @@ final class SwipeCardView: UIView {
     }
 
     private func configure() {
-        titleLabel.text = media.displayName
+        fallbackTitleLabel.text = media.displayName
+        loadPoster(from: media.largePosterURL ?? media.fullPosterURL)
 
-        let meta = NSMutableAttributedString(attributedString: RatingFormatter.attributedRating(
-            media.ratingState,
-            font: .emphasized,
-            textColor: .white
-        ))
-        if let year = media.year {
-            meta.append(NSAttributedString(
-                string: "  ·  \(year)",
-                attributes: [
-                    .font: UIFont.metadata,
-                    .foregroundColor: UIColor.white.withAlphaComponent(0.85)
-                ]
-            ))
+        artworkTask = Task { [weak self, media] in
+            let artwork = await TMDBService.shared.fetchHeroArtwork(for: media.id, type: media.mediaType)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                guard let self = self else { return }
+                if let textlessPath = artwork.textlessPosterPath,
+                   textlessPath != media.posterPath,
+                   let textlessURL = TMDBImageURL.url(path: textlessPath, width: .wide) {
+                    self.loadPoster(from: textlessURL)
+                }
+                if let logoPath = artwork.logoPath,
+                   let logoURL = TMDBImageURL.url(path: logoPath, width: .poster) {
+                    self.loadLogo(from: logoURL)
+                }
+            }
         }
-        metaLabel.attributedText = meta
+    }
 
-        guard let url = media.largePosterURL ?? media.fullPosterURL else {
+    private func loadPoster(from url: URL?) {
+        guard let url else {
             showPosterPlaceholder()
             return
         }
         ImageLoader.load(url: url) { [weak self] image in
             DispatchQueue.main.async {
-                guard let self = self, let image = image else {
-                    self?.showPosterPlaceholder()
+                guard let self = self else { return }
+                guard let image = image else {
+                    if self.imageView.image == nil {
+                        self.showPosterPlaceholder()
+                    }
                     return
                 }
                 self.imageView.contentMode = .scaleAspectFill
                 self.imageView.image = image
+            }
+        }
+    }
+
+    private func loadLogo(from url: URL) {
+        ImageLoader.load(url: url) { [weak self] image in
+            DispatchQueue.main.async {
+                guard let self = self, let image else { return }
+                self.logoImageView.image = image
+                self.logoImageView.isHidden = false
+                self.fallbackTitleLabel.isHidden = true
             }
         }
     }

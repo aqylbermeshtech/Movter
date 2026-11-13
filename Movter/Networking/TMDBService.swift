@@ -22,12 +22,30 @@ struct VideoResponse: Codable {
     let results: [Video]
 }
 
+struct ImagesResponse: Decodable {
+    struct ImageAsset: Decodable {
+        let filePath: String
+        let iso6391: String?
+        let voteAverage: Double?
+        let voteCount: Int?
+    }
+
+    let posters: [ImageAsset]
+    let logos: [ImageAsset]?
+}
+
+struct HeroArtwork {
+    let textlessPosterPath: String?
+    let logoPath: String?
+}
+
 final class TMDBService {
     static let shared = TMDBService()
 
     private let apiKey = TMDBService.infoPlistValue(for: "TMDB_API_KEY")
-
     private let networkService: NetworkServiceProtocol
+    private let heroArtworkQueue = DispatchQueue(label: "com.nurtore.movter.heroArtworkCache")
+    private var heroArtworkCache: [String: HeroArtwork] = [:]
 
     init(networkService: NetworkServiceProtocol = NetworkService.shared) {
         self.networkService = networkService
@@ -159,6 +177,51 @@ final class TMDBService {
         )
         let response: MovieResponse = try await performRequest(url: url)
         return Self.page(from: response, requested: page)
+    }
+
+    // MARK: - Textless Posters & Title PNG Logos
+
+    /// Fetches TMDB `/images` (`include_image_language=en,null`) and picks:
+    /// - A textless poster (`iso_639_1 == nil`) with no title/text baked in.
+    /// - A PNG title logo (`!filePath.hasSuffix(".svg")`, preferring `iso_639_1 == "en"`).
+    func fetchHeroArtwork(for id: Int, type: MediaType) async -> HeroArtwork {
+        let cacheKey = "\(type.path)-\(id)"
+        if let cached = heroArtworkQueue.sync(execute: { heroArtworkCache[cacheKey] }) {
+            return cached
+        }
+
+        do {
+            let url = try TMDBRequestBuilder.buildURL(
+                path: "\(type.path)/\(id)/images",
+                apiKey: apiKey,
+                queryItems: [URLQueryItem(name: "include_image_language", value: "en,null")]
+            )
+            let response: ImagesResponse = try await performRequest(url: url)
+
+            let textlessPosters = response.posters.filter { $0.iso6391 == nil }
+            let bestPoster = Self.bestRatedAsset(in: textlessPosters)
+
+            let pngLogos = (response.logos ?? []).filter { !$0.filePath.lowercased().hasSuffix(".svg") }
+            let englishLogos = pngLogos.filter { $0.iso6391 == "en" }
+            let bestLogo = Self.bestRatedAsset(in: englishLogos.isEmpty ? pngLogos : englishLogos)
+
+            let artwork = HeroArtwork(
+                textlessPosterPath: bestPoster?.filePath,
+                logoPath: bestLogo?.filePath
+            )
+            heroArtworkQueue.sync { heroArtworkCache[cacheKey] = artwork }
+            return artwork
+        } catch {
+            return HeroArtwork(textlessPosterPath: nil, logoPath: nil)
+        }
+    }
+
+    private static func bestRatedAsset(in assets: [ImagesResponse.ImageAsset]) -> ImagesResponse.ImageAsset? {
+        assets.max { lhs, rhs in
+            let lhsScore = (lhs.voteAverage ?? 0) * Double(max(lhs.voteCount ?? 0, 1))
+            let rhsScore = (rhs.voteAverage ?? 0) * Double(max(rhs.voteCount ?? 0, 1))
+            return lhsScore < rhsScore
+        }
     }
 
     // MARK: - Helpers

@@ -17,7 +17,7 @@ final class HeroCarouselView: UIView {
 
     private static let horizontalInset: CGFloat = 16
 
-    static let imageAspect: CGFloat = 1.25
+    static let imageAspect: CGFloat = 1.48
     private static let pageControlHeight: CGFloat = 16
     private static let pageControlSpacing: CGFloat = 14
 
@@ -245,6 +245,7 @@ final class HeroCarouselCell: UICollectionViewCell {
     private static let contentInset: CGFloat = 18
 
     private var mediaID: Int?
+    private var posterTask: Task<Void, Never>?
 
     private let imageView: UIImageView = {
         let iv = UIImageView()
@@ -262,69 +263,72 @@ final class HeroCarouselCell: UICollectionViewCell {
     private let scrimView = GradientView(
         colors: [
             .clear,
-            UIColor.black.withAlphaComponent(0.6),
+            UIColor.black.withAlphaComponent(0.55),
             UIColor.black.withAlphaComponent(0.92)
         ],
         locations: [0, 0.5, 1]
     )
 
-    private let featuredBadge: ChipLabel = {
-        let label = ChipLabel()
-        label.text = "FEATURED"
-        label.font = .eyebrow
-        label.textColor = .black
-        label.backgroundColor = .white
-        label.layer.cornerRadius = 6
-        label.layer.cornerCurve = .continuous
-        label.clipsToBounds = true
-        return label
+    private let logoImageView: UIImageView = {
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFit
+        iv.isHidden = true
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
     }()
 
-    private let metaBadge: ChipLabel = {
-        let label = ChipLabel()
-        label.font = .badge
-        label.textColor = .white
-        label.backgroundColor = UIColor.white.withAlphaComponent(0.18)
-        label.layer.cornerRadius = 6
-        label.layer.cornerCurve = .continuous
-        label.clipsToBounds = true
-        return label
-    }()
-
-    private let titleLabel: UILabel = {
+    private let fallbackTitleLabel: UILabel = {
         let label = UILabel()
         label.font = .screenTitle
         label.textColor = .white
         label.numberOfLines = 2
+        label.textAlignment = .center
+        return label
+    }()
+
+    private let metaLabel: UILabel = {
+        let label = UILabel()
+        label.font = .movter(size: 14, weight: .medium)
+        label.textColor = UIColor.white.withAlphaComponent(0.68)
+        label.textAlignment = .center
         return label
     }()
 
     private lazy var playButton: UIButton = {
         var config = UIButton.Configuration.filled()
         config.cornerStyle = .capsule
+        config.titleLineBreakMode = .byTruncatingTail
         config.image = UIImage(
             systemName: "play.fill",
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .bold)
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .bold)
         )
-        config.imagePadding = 8
-        config.contentInsets = NSDirectionalEdgeInsets(top: 13, leading: 22, bottom: 13, trailing: 26)
+        config.imagePadding = 6
+        config.contentInsets = NSDirectionalEdgeInsets(top: 11, leading: 16, bottom: 11, trailing: 18)
         config.baseBackgroundColor = .white
         config.baseForegroundColor = .black
         config.attributedTitle = AttributedString(
             "Play",
-            attributes: AttributeContainer([.font: UIFont.primaryButton])
+            attributes: AttributeContainer([.font: UIFont.movter(size: 14, weight: .semibold)])
         )
         let button = UIButton(configuration: config)
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
         button.addAction(UIAction { [weak self] _ in self?.onPlay?() }, for: .touchUpInside)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
-    
+
     private lazy var watchlistButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.backgroundColor = UIColor.black.withAlphaComponent(0.45)
-        button.tintColor = .white
-        button.layer.cornerRadius = 24
+        var config = UIButton.Configuration.filled()
+        config.cornerStyle = .capsule
+        config.titleLineBreakMode = .byTruncatingTail
+        config.imagePadding = 6
+        config.contentInsets = NSDirectionalEdgeInsets(top: 11, leading: 14, bottom: 11, trailing: 16)
+        config.baseBackgroundColor = UIColor.black.withAlphaComponent(0.55)
+        config.baseForegroundColor = .white
+        config.background.strokeColor = UIColor.white.withAlphaComponent(0.22)
+        config.background.strokeWidth = 1
+        let button = UIButton(configuration: config)
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
         button.addAction(UIAction { [weak self] _ in self?.onWatchlist?() }, for: .touchUpInside)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -336,21 +340,17 @@ final class HeroCarouselCell: UICollectionViewCell {
         contentView.addSubview(imageView)
         imageView.addSubview(scrimView)
 
-        let badges = UIStackView(arrangedSubviews: [featuredBadge, metaBadge, UIView()])
-        badges.axis = .horizontal
-        badges.spacing = 8
-        badges.alignment = .center
-
-        let actions = UIStackView(arrangedSubviews: [playButton, watchlistButton, UIView()])
+        let actions = UIStackView(arrangedSubviews: [watchlistButton, playButton])
         actions.axis = .horizontal
-        actions.spacing = 12
+        actions.spacing = 10
         actions.alignment = .center
 
-        let stack = UIStackView(arrangedSubviews: [badges, titleLabel, actions])
+        let stack = UIStackView(arrangedSubviews: [logoImageView, fallbackTitleLabel, metaLabel, actions])
         stack.axis = .vertical
-        stack.spacing = 14
-        stack.alignment = .fill
-        stack.setCustomSpacing(10, after: badges)
+        stack.spacing = 12
+        stack.setCustomSpacing(8, after: logoImageView)
+        stack.setCustomSpacing(8, after: fallbackTitleLabel)
+        stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
         scrimView.translatesAutoresizingMaskIntoConstraints = false
         imageView.addSubview(stack)
@@ -361,18 +361,18 @@ final class HeroCarouselCell: UICollectionViewCell {
             imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Self.sideInset),
             imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Self.sideInset),
 
-            stack.leadingAnchor.constraint(equalTo: imageView.leadingAnchor, constant: Self.contentInset),
-            stack.trailingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: -Self.contentInset),
+            logoImageView.widthAnchor.constraint(lessThanOrEqualToConstant: 240),
+            logoImageView.heightAnchor.constraint(lessThanOrEqualToConstant: 76),
+
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: imageView.leadingAnchor, constant: Self.contentInset),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -Self.contentInset),
+            stack.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
             stack.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -Self.contentInset),
 
             scrimView.leadingAnchor.constraint(equalTo: imageView.leadingAnchor),
             scrimView.trailingAnchor.constraint(equalTo: imageView.trailingAnchor),
             scrimView.bottomAnchor.constraint(equalTo: imageView.bottomAnchor),
-            // Enough of the card to cover the overlay and fade out well above it.
-            scrimView.topAnchor.constraint(equalTo: stack.topAnchor, constant: -80),
-
-            watchlistButton.widthAnchor.constraint(equalToConstant: 48),
-            watchlistButton.heightAnchor.constraint(equalToConstant: 48)
+            scrimView.topAnchor.constraint(equalTo: stack.topAnchor, constant: -72)
         ])
     }
 
@@ -380,19 +380,28 @@ final class HeroCarouselCell: UICollectionViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        posterTask?.cancel()
+        posterTask = nil
         mediaID = nil
         imageView.image = nil
         imageView.contentMode = .scaleAspectFill
-        titleLabel.text = nil
-        metaBadge.text = nil
-        metaBadge.isHidden = true
+        logoImageView.image = nil
+        logoImageView.isHidden = true
+        fallbackTitleLabel.text = nil
+        fallbackTitleLabel.isHidden = false
+        metaLabel.text = nil
+        metaLabel.isHidden = true
         onPlay = nil
         onWatchlist = nil
     }
 
     func configure(with media: Media, isWatchlisted: Bool) {
+        posterTask?.cancel()
         mediaID = media.id
-        titleLabel.text = media.displayName
+        logoImageView.image = nil
+        logoImageView.isHidden = true
+        fallbackTitleLabel.text = media.displayName
+        fallbackTitleLabel.isHidden = false
         setWatchlisted(isWatchlisted)
         setMeta(year: media.year, genre: nil)
 
@@ -401,38 +410,77 @@ final class HeroCarouselCell: UICollectionViewCell {
             self.setMeta(year: media.year, genre: genre)
         }
 
-        if let url = media.largePosterURL ?? media.fullBackdropURL {
-            ImageLoader.load(url: url) { [weak self] image in
-                DispatchQueue.main.async {
-                    guard let self = self, self.mediaID == media.id else { return }
-                    guard let image = image else {
-                        self.showArtworkPlaceholder(isUpcoming: media.ratingState.isUpcoming)
-                        return
-                    }
-                    self.imageView.contentMode = .scaleAspectFill
-                    self.imageView.image = image
+        let fallbackURL = media.largePosterURL ?? media.fullBackdropURL
+        loadPosterImage(from: fallbackURL, for: media)
+
+        posterTask = Task { [weak self] in
+            let artwork = await TMDBService.shared.fetchHeroArtwork(for: media.id, type: media.mediaType)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                guard let self = self, self.mediaID == media.id else { return }
+                if let textlessPath = artwork.textlessPosterPath,
+                   textlessPath != media.posterPath,
+                   let textlessURL = TMDBImageURL.url(path: textlessPath, width: .wide) {
+                    self.loadPosterImage(from: textlessURL, for: media)
+                }
+                if let logoPath = artwork.logoPath,
+                   let logoURL = TMDBImageURL.url(path: logoPath, width: .poster) {
+                    self.loadLogoImage(from: logoURL, for: media.id)
                 }
             }
-        } else {
+        }
+    }
+
+    private func loadLogoImage(from url: URL, for id: Int) {
+        ImageLoader.load(url: url) { [weak self] image in
+            DispatchQueue.main.async {
+                guard let self = self, self.mediaID == id, let image else { return }
+                self.logoImageView.image = image
+                self.logoImageView.isHidden = false
+                self.fallbackTitleLabel.isHidden = true
+            }
+        }
+    }
+
+    private func loadPosterImage(from url: URL?, for media: Media) {
+        guard let url else {
             showArtworkPlaceholder(isUpcoming: media.ratingState.isUpcoming)
+            return
+        }
+        ImageLoader.load(url: url) { [weak self] image in
+            DispatchQueue.main.async {
+                guard let self = self, self.mediaID == media.id else { return }
+                guard let image = image else {
+                    if self.imageView.image == nil {
+                        self.showArtworkPlaceholder(isUpcoming: media.ratingState.isUpcoming)
+                    }
+                    return
+                }
+                self.imageView.contentMode = .scaleAspectFill
+                self.imageView.image = image
+            }
         }
     }
 
     func setWatchlisted(_ isWatchlisted: Bool) {
-        watchlistButton.setImage(
-            UIImage(
-                systemName: isWatchlisted ? "bookmark.fill" : "bookmark",
-                withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
-            ),
-            for: .normal
+        var config = watchlistButton.configuration ?? .filled()
+        config.image = UIImage(
+            systemName: isWatchlisted ? "checkmark" : "plus",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
         )
+        config.attributedTitle = AttributedString(
+            isWatchlisted ? "In Watchlist" : "Add to Watchlist",
+            attributes: AttributeContainer([.font: UIFont.movter(size: 14, weight: .semibold)])
+        )
+        watchlistButton.configuration = config
         watchlistButton.accessibilityLabel = isWatchlisted ? "Remove from watchlist" : "Add to watchlist"
     }
 
     private func setMeta(year: String?, genre: String?) {
         let parts = [year, genre].compactMap { $0 }.filter { !$0.isEmpty }
-        metaBadge.text = parts.joined(separator: " · ")
-        metaBadge.isHidden = parts.isEmpty
+        metaLabel.text = parts.joined(separator: " · ")
+        metaLabel.isHidden = parts.isEmpty
     }
 
     private func showArtworkPlaceholder(isUpcoming: Bool) {
@@ -440,23 +488,6 @@ final class HeroCarouselCell: UICollectionViewCell {
         imageView.image = UIImage(
             systemName: isUpcoming ? "calendar" : "film",
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 40, weight: .regular)
-        )
-    }
-}
-
-final class ChipLabel: UILabel {
-
-    var insets = UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
-
-    override func drawText(in rect: CGRect) {
-        super.drawText(in: rect.inset(by: insets))
-    }
-
-    override var intrinsicContentSize: CGSize {
-        let size = super.intrinsicContentSize
-        return CGSize(
-            width: size.width + insets.left + insets.right,
-            height: size.height + insets.top + insets.bottom
         )
     }
 }
