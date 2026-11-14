@@ -29,8 +29,47 @@ final class MediaDetailsViewController: UIViewController {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.backgroundColor = .surface
+        iv.isUserInteractionEnabled = true
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
+    }()
+
+    private let posterScrimView: GradientView = {
+        let view = GradientView(
+            colors: [
+                .clear,
+                UIColor.black.withAlphaComponent(0.55),
+                UIColor.black.withAlphaComponent(0.92)
+            ],
+            locations: [0, 0.5, 1]
+        )
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    private let logoImageView: UIImageView = {
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFit
+        iv.isHidden = true
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let fallbackTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .screenTitle
+        label.textColor = .white
+        label.numberOfLines = 2
+        label.textAlignment = .center
+        return label
+    }()
+
+    private let posterMetaLabel: UILabel = {
+        let label = UILabel()
+        label.font = .movter(size: 14, weight: .medium)
+        label.textColor = UIColor.white.withAlphaComponent(0.68)
+        label.textAlignment = .center
+        return label
     }()
 
     private lazy var trailerButton: UIButton = {
@@ -59,8 +98,10 @@ final class MediaDetailsViewController: UIViewController {
     private lazy var watchlistButton: UIButton = {
         var config = UIButton.Configuration.filled()
         config.cornerStyle = .capsule
-        config.imagePadding = 6
-        config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 18)
+        config.baseBackgroundColor = UIColor.black.withAlphaComponent(0.55)
+        config.baseForegroundColor = .white
+        config.background.strokeColor = UIColor.white.withAlphaComponent(0.22)
+        config.background.strokeWidth = 1
         let button = UIButton(configuration: config)
         button.addTarget(self, action: #selector(watchlistTapped), for: .touchUpInside)
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -69,9 +110,10 @@ final class MediaDetailsViewController: UIViewController {
 
     private lazy var watchedButton: UIButton = {
         var config = UIButton.Configuration.filled()
-        config.cornerStyle = .medium
-        config.imagePadding = 6
-        config.contentInsets = NSDirectionalEdgeInsets(top: 11, leading: 18, bottom: 11, trailing: 18)
+        config.cornerStyle = .capsule
+        config.imagePadding = 8
+        config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20)
+        config.background.strokeWidth = 1
         let button = UIButton(configuration: config)
         button.addTarget(self, action: #selector(watchedTapped), for: .touchUpInside)
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -265,6 +307,7 @@ final class MediaDetailsViewController: UIViewController {
         viewModel.fetchCredits()
         viewModel.fetchSimilar()
         viewModel.fetchGenre()
+        viewModel.fetchHeroArtwork()
 
         NotificationCenter.default.addObserver(
             self,
@@ -287,6 +330,7 @@ final class MediaDetailsViewController: UIViewController {
     }
     
     private func configure() {
+        fallbackTitleLabel.text = viewModel.title
         descriptionView.text = viewModel.overview
         descriptionView.isHidden = viewModel.overview.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         renderMetadata()
@@ -321,6 +365,30 @@ final class MediaDetailsViewController: UIViewController {
         }
         viewModel.onGenreUpdate = { [weak self] in
             DispatchQueue.main.async { self?.renderMetadata() }
+        }
+        viewModel.onHeroArtworkUpdate = { [weak self] textlessURL, logoURL in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                if let textlessURL {
+                    ImageLoader.load(url: textlessURL) { [weak self] image in
+                        guard let image else { return }
+                        DispatchQueue.main.async {
+                            self?.imageView.image = image
+                        }
+                    }
+                }
+                if let logoURL {
+                    ImageLoader.load(url: logoURL) { [weak self] image in
+                        guard let image else { return }
+                        DispatchQueue.main.async {
+                            guard let self = self else { return }
+                            self.logoImageView.image = image
+                            self.logoImageView.isHidden = false
+                            self.fallbackTitleLabel.isHidden = true
+                        }
+                    }
+                }
+            }
         }
         viewModel.onReviewUpdate = { [weak self] in
             guard let self = self else { return }
@@ -376,34 +444,39 @@ final class MediaDetailsViewController: UIViewController {
 
     private func renderWatchlistState() {
         let isInWatchlist = viewModel.isInWatchlist
-        watchlistButton.configuration?.baseBackgroundColor = isInWatchlist ? .accent : .surface
-        watchlistButton.configuration?.baseForegroundColor = isInWatchlist ? .onAccent : .textPrimary
+        watchlistButton.configuration?.baseBackgroundColor = UIColor.black.withAlphaComponent(0.55)
+        watchlistButton.configuration?.baseForegroundColor = isInWatchlist ? .accent : .white
+        watchlistButton.configuration?.background.strokeColor = UIColor.white.withAlphaComponent(0.22)
+        watchlistButton.configuration?.background.strokeWidth = 1
         watchlistButton.configuration?.image = UIImage(
             systemName: viewModel.watchlistButtonSymbol,
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold)
         )
-        watchlistButton.configuration?.attributedTitle = AttributedString(
-            viewModel.watchlistButtonTitle,
-            attributes: AttributeContainer([.font: UIFont.capsuleButton])
-        )
+        watchlistButton.configuration?.attributedTitle = nil
         watchlistButton.accessibilityLabel = isInWatchlist
             ? "In your watchlist. Double tap to remove." : "Add to watchlist"
     }
 
     private func renderWatchedState() {
         let isWatched = viewModel.isWatched
-        watchedButton.configuration?.baseBackgroundColor = isWatched ? .surface : .accent
-        watchedButton.configuration?.baseForegroundColor = isWatched ? .textPrimary : .onAccent
+        watchedButton.configuration?.baseBackgroundColor = isWatched
+            ? .white
+            : UIColor.black.withAlphaComponent(0.55)
+        watchedButton.configuration?.baseForegroundColor = isWatched ? .black : .white
+        watchedButton.configuration?.background.strokeColor = isWatched
+            ? .clear
+            : UIColor.white.withAlphaComponent(0.22)
+        watchedButton.configuration?.background.strokeWidth = isWatched ? 0 : 1
         watchedButton.configuration?.image = UIImage(
             systemName: viewModel.watchedButtonSymbol,
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
         )
         watchedButton.configuration?.attributedTitle = AttributedString(
             viewModel.watchedButtonTitle,
-            attributes: AttributeContainer([.font: UIFont.button])
+            attributes: AttributeContainer([.font: UIFont.movter(size: 15, weight: .semibold)])
         )
         watchedButton.accessibilityLabel = isWatched
-            ? "Watched. Double tap to unmark." : "Mark as watched"
+            ? "Seen. Double tap to unmark." : "Mark as Seen"
     }
 
     @objc private func connectivityChanged() {
@@ -442,6 +515,9 @@ final class MediaDetailsViewController: UIViewController {
             genre: viewModel.genreName,
             font: metadataLabel.font
         )
+        let parts = [viewModel.year, viewModel.genreName].compactMap { $0 }.filter { !$0.isEmpty }
+        posterMetaLabel.text = parts.joined(separator: " · ")
+        posterMetaLabel.isHidden = parts.isEmpty
     }
     
     private func showTicket() {
@@ -456,30 +532,37 @@ final class MediaDetailsViewController: UIViewController {
 
     private func setupUI() {
         metadataLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-
-        let actionRow = UIStackView(arrangedSubviews: [watchlistButton, trailerButton])
-        actionRow.axis = .horizontal
-        actionRow.spacing = 10
-        actionRow.alignment = .fill
-        actionRow.distribution = .fill
-
-        let splitRatio = trailerButton.widthAnchor.constraint(
-            equalTo: watchlistButton.widthAnchor, multiplier: 3.0 / 7.0
-        )
-        splitRatio.priority = UILayoutPriority(999)
-        splitRatio.isActive = true
         trailerButton.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        let headerRow = UIStackView(arrangedSubviews: [actionRow, metadataLabel])
-        headerRow.axis = .vertical
+        let posterActionRow = UIStackView(arrangedSubviews: [watchedButton, watchlistButton])
+        posterActionRow.axis = .horizontal
+        posterActionRow.spacing = 10
+        posterActionRow.alignment = .fill
+        posterActionRow.translatesAutoresizingMaskIntoConstraints = false
+
+        let posterStack = UIStackView(arrangedSubviews: [
+            logoImageView, fallbackTitleLabel, posterMetaLabel, posterActionRow
+        ])
+        posterStack.axis = .vertical
+        posterStack.spacing = 14
+        posterStack.setCustomSpacing(8, after: logoImageView)
+        posterStack.setCustomSpacing(8, after: fallbackTitleLabel)
+        posterStack.alignment = .center
+        posterStack.translatesAutoresizingMaskIntoConstraints = false
+
+        imageView.addSubview(posterScrimView)
+        imageView.addSubview(posterStack)
+
+        let headerRow = UIStackView(arrangedSubviews: [metadataLabel, trailerButton])
+        headerRow.axis = .horizontal
         headerRow.spacing = 12
+        headerRow.alignment = .center
 
         let stack = UIStackView(arrangedSubviews: [
             headerRow,
             descriptionView,
             reviewLabel,
             miniReviewView,
-            watchedButton,
             castHeaderView,
             castCollectionView,
             castPlaceholderView,
@@ -491,7 +574,6 @@ final class MediaDetailsViewController: UIViewController {
         stack.spacing = 20
         stack.setCustomSpacing(10, after: reviewLabel)
         stack.setCustomSpacing(10, after: castHeaderView)
-        stack.setCustomSpacing(12, after: miniReviewView)
         stack.setCustomSpacing(10, after: similarLabel)
         stack.translatesAutoresizingMaskIntoConstraints = false
 
@@ -520,6 +602,24 @@ final class MediaDetailsViewController: UIViewController {
             imageView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
             // TMDB posters are 2:3, so this shows the artwork uncropped.
             imageView.heightAnchor.constraint(equalTo: imageView.widthAnchor, multiplier: 3.0 / 2.0),
+
+            logoImageView.widthAnchor.constraint(lessThanOrEqualToConstant: 240),
+            logoImageView.heightAnchor.constraint(lessThanOrEqualToConstant: 76),
+
+            watchedButton.heightAnchor.constraint(equalToConstant: 50),
+            watchlistButton.widthAnchor.constraint(equalToConstant: 50),
+            watchlistButton.heightAnchor.constraint(equalToConstant: 50),
+            posterActionRow.widthAnchor.constraint(equalTo: imageView.widthAnchor, constant: -32),
+
+            posterStack.leadingAnchor.constraint(greaterThanOrEqualTo: imageView.leadingAnchor, constant: 16),
+            posterStack.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -16),
+            posterStack.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
+            posterStack.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -18),
+
+            posterScrimView.leadingAnchor.constraint(equalTo: imageView.leadingAnchor),
+            posterScrimView.trailingAnchor.constraint(equalTo: imageView.trailingAnchor),
+            posterScrimView.bottomAnchor.constraint(equalTo: imageView.bottomAnchor),
+            posterScrimView.topAnchor.constraint(equalTo: posterStack.topAnchor, constant: -72),
 
             stack.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 20),
             stack.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: 16),
