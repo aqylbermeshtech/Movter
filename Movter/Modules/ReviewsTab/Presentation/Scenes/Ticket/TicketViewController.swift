@@ -5,8 +5,36 @@
 //  Created by Nurtore on 02.09.2026.
 //
 
+import CoreText
 import SwiftUI
 import UIKit
+
+enum TicketFonts {
+    private static let registerOnce: Void = {
+        for name in ["Adamina-Regular", "SpaceMono-Regular", "SpaceMono-Bold"] {
+            if let url = Bundle.main.url(forResource: name, withExtension: "ttf")
+                ?? Bundle.main.url(forResource: name, withExtension: "ttf", subdirectory: "Fonts")
+                ?? Bundle.main.url(forResource: name, withExtension: "ttf", subdirectory: "Resources/Fonts") {
+                CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+            }
+        }
+    }()
+
+    static func adamina(size: CGFloat) -> Font {
+        _ = registerOnce
+        return .custom("Adamina-Regular", size: size)
+    }
+
+    static func monoRegular(size: CGFloat) -> Font {
+        _ = registerOnce
+        return .custom("SpaceMono-Regular", size: size)
+    }
+
+    static func monoBold(size: CGFloat) -> Font {
+        _ = registerOnce
+        return .custom("SpaceMono-Bold", size: size)
+    }
+}
 
 final class TicketViewController: UIHostingController<TicketView> {
 
@@ -193,13 +221,13 @@ struct TicketStubView: View {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("CINEMA")
-                        .font(.system(size: 18, weight: .black))
-                        .tracking(1.0)
+                        .font(TicketFonts.adamina(size: 19))
+                        .tracking(1.2)
                         .foregroundStyle(Self.gold)
                         .lineLimit(1)
 
                     Text("TICKET")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .font(TicketFonts.monoBold(size: 9.5))
                         .tracking(2.0)
                         .foregroundStyle(Self.mutedText)
                 }
@@ -214,7 +242,7 @@ struct TicketStubView: View {
                         .frame(maxWidth: 118, maxHeight: 44, alignment: .trailing)
                 } else {
                     Text(review.filmTitle.uppercased())
-                        .font(Font(UIFont.movter(size: 13, weight: .bold)))
+                        .font(TicketFonts.adamina(size: 13))
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.trailing)
                         .lineLimit(2)
@@ -227,13 +255,13 @@ struct TicketStubView: View {
             VStack(alignment: .leading, spacing: 4) {
                 if let year = review.filmYear, !year.isEmpty {
                     Text(year)
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .font(TicketFonts.monoBold(size: 11))
                         .foregroundStyle(.white)
                 }
 
                 HStack(alignment: .center) {
                     Text("Rated \(Self.dateFormatter.string(from: review.createdAt))")
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .font(TicketFonts.monoRegular(size: 10))
                         .foregroundStyle(Self.mutedText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -241,7 +269,7 @@ struct TicketStubView: View {
                     Spacer(minLength: 8)
 
                     Text("\(review.score)/10")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .font(TicketFonts.monoBold(size: 11))
                         .foregroundStyle(Self.gold)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 3)

@@ -16,7 +16,11 @@ enum MainTabBarFactory {
 
         let searchMoviesVC = SearchMoviesViewController()
         let swipeDeckVC = SwipeViewFactory.makeSwipeDeck()
-        let stubsVC = StubsViewController()
+
+        let stubsNav = UINavigationController()
+        let stubsCoordinator = DefaultStubsCoordinator(navigationController: stubsNav)
+        let stubsVC = StubsViewFactory.makeStubsDeck(coordinator: stubsCoordinator)
+        stubsNav.viewControllers = [stubsVC]
 
         let tabBar = MainTabBarController()
         tabBar.setTabs(
@@ -31,7 +35,7 @@ enum MainTabBarFactory {
                 ),
                 .init(
                     title: "Stubs", symbol: "ticket",
-                    navigationController: UINavigationController(rootViewController: stubsVC)
+                    navigationController: stubsNav
                 )
             ],
             searchNavigationController: UINavigationController(rootViewController: searchMoviesVC)
