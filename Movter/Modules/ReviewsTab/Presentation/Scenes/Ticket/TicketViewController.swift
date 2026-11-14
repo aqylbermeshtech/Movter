@@ -181,55 +181,6 @@ struct TicketView: View {
 
 // MARK: - Horizontal Cinema Ticket Stub
 
-private struct TicketPalette {
-    let ticketBackground: Color
-    let panelBackground: Color
-    let headerColor: Color
-    let primaryText: Color
-    let mutedText: Color
-    let scoreColor: Color
-    let dividerColor: Color
-    let perforationColor: Color
-    let posterBorder: Color
-    let tapeFill: Color
-    let tapeStroke: Color
-    let logoShadowOpacity: Double
-
-    static let matinee = TicketPalette(
-        ticketBackground: Color(red: 0.95, green: 0.93, blue: 0.88),
-        panelBackground: Color(red: 0.87, green: 0.84, blue: 0.77),
-        headerColor: Color(red: 0.11, green: 0.11, blue: 0.11),
-        primaryText: Color(red: 0.11, green: 0.11, blue: 0.11),
-        mutedText: Color(red: 0.36, green: 0.35, blue: 0.33),
-        scoreColor: Color(red: 0.68, green: 0.16, blue: 0.14),
-        dividerColor: Color.black.opacity(0.28),
-        perforationColor: Color.black.opacity(0.26),
-        posterBorder: Color.black.opacity(0.18),
-        tapeFill: Color(red: 0.84, green: 0.75, blue: 0.56).opacity(0.84),
-        tapeStroke: Color.black.opacity(0.14),
-        logoShadowOpacity: 0.55
-    )
-
-    static let classicDark = TicketPalette(
-        ticketBackground: Color(red: 0.12, green: 0.12, blue: 0.12),
-        panelBackground: Color(red: 0.18, green: 0.18, blue: 0.18),
-        headerColor: Color(red: 0.88, green: 0.71, blue: 0.29),
-        primaryText: .white,
-        mutedText: Color(white: 0.62),
-        scoreColor: Color(red: 0.88, green: 0.71, blue: 0.29),
-        dividerColor: Color(red: 0.88, green: 0.71, blue: 0.29).opacity(0.6),
-        perforationColor: Color.white.opacity(0.22),
-        posterBorder: Color(white: 0.92).opacity(0.85),
-        tapeFill: Color(red: 0.93, green: 0.87, blue: 0.72).opacity(0.78),
-        tapeStroke: Color.white.opacity(0.28),
-        logoShadowOpacity: 0
-    )
-
-    static func current(for colorScheme: ColorScheme) -> TicketPalette {
-        colorScheme == .dark ? .matinee : .classicDark
-    }
-}
-
 struct TicketStubView: View {
     let review: Review
     let posterImage: UIImage?
@@ -238,10 +189,6 @@ struct TicketStubView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private static let mainFraction: CGFloat = 0.70
-
-    private var palette: TicketPalette {
-        TicketPalette.current(for: colorScheme)
-    }
 
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -255,11 +202,11 @@ struct TicketStubView: View {
             let stubWidth = geo.size.width - mainWidth
 
             ZStack(alignment: .topLeading) {
-                palette.ticketBackground
+                Color.ticketBackground
 
                 TicketOrnamentCanvas(
                     mainFraction: Self.mainFraction,
-                    perforationColor: palette.perforationColor
+                    perforationColor: .ticketPerforation
                 )
 
                 HStack(spacing: 0) {
@@ -282,13 +229,13 @@ struct TicketStubView: View {
                     Text("CINEMA")
                         .font(TicketFonts.adamina(size: 19))
                         .tracking(1.2)
-                        .foregroundStyle(palette.headerColor)
+                        .foregroundStyle(Color.ticketHeader)
                         .lineLimit(1)
 
                     Text("TICKET")
                         .font(TicketFonts.monoBold(size: 9.5))
                         .tracking(2.0)
-                        .foregroundStyle(palette.mutedText)
+                        .foregroundStyle(Color.ticketMutedText)
                 }
                 .fixedSize()
 
@@ -299,30 +246,33 @@ struct TicketStubView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(maxWidth: 118, maxHeight: 44, alignment: .trailing)
-                        .shadow(color: .black.opacity(palette.logoShadowOpacity), radius: 2, x: 0, y: 1)
+                        .shadow(
+                            color: .black.opacity(colorScheme == .dark ? 0.55 : 0),
+                            radius: 2, x: 0, y: 1
+                        )
                 } else {
                     Text(review.filmTitle.uppercased())
                         .font(TicketFonts.adamina(size: 13))
-                        .foregroundStyle(palette.primaryText)
+                        .foregroundStyle(Color.ticketPrimaryText)
                         .multilineTextAlignment(.trailing)
                         .lineLimit(2)
                         .minimumScaleFactor(0.72)
                 }
             }
 
-            DashedDivider(color: palette.dividerColor)
+            DashedDivider(color: .ticketDivider)
 
             VStack(alignment: .leading, spacing: 4) {
                 if let year = review.filmYear, !year.isEmpty {
                     Text(year)
                         .font(TicketFonts.monoBold(size: 11))
-                        .foregroundStyle(palette.primaryText)
+                        .foregroundStyle(Color.ticketPrimaryText)
                 }
 
                 HStack(alignment: .center) {
                     Text("Rated \(Self.dateFormatter.string(from: review.createdAt))")
                         .font(TicketFonts.monoRegular(size: 10))
-                        .foregroundStyle(palette.mutedText)
+                        .foregroundStyle(Color.ticketMutedText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
 
@@ -330,10 +280,10 @@ struct TicketStubView: View {
 
                     Text("\(review.score)/10")
                         .font(TicketFonts.monoBold(size: 11))
-                        .foregroundStyle(palette.scoreColor)
+                        .foregroundStyle(Color.ticketScore)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 3)
-                        .background(palette.panelBackground, in: RoundedRectangle(cornerRadius: 4))
+                        .background(Color.ticketPanel, in: RoundedRectangle(cornerRadius: 4))
                 }
             }
         }
@@ -346,12 +296,12 @@ struct TicketStubView: View {
         ZStack {
             posterCard
                 .overlay(alignment: .topLeading) {
-                    TapeStripView(fill: palette.tapeFill, stroke: palette.tapeStroke)
+                    TapeStripView()
                         .rotationEffect(.degrees(-32))
                         .offset(x: -10, y: -2)
                 }
                 .overlay(alignment: .bottomTrailing) {
-                    TapeStripView(fill: palette.tapeFill, stroke: palette.tapeStroke)
+                    TapeStripView()
                         .rotationEffect(.degrees(-30))
                         .offset(x: 10, y: 2)
                 }
@@ -366,10 +316,10 @@ struct TicketStubView: View {
                     .scaledToFill()
             } else {
                 ZStack {
-                    palette.panelBackground
+                    Color.ticketPanel
                     Image(systemName: "film")
                         .font(.system(size: 22))
-                        .foregroundStyle(palette.mutedText)
+                        .foregroundStyle(Color.ticketMutedText)
                 }
             }
         }
@@ -377,7 +327,7 @@ struct TicketStubView: View {
         .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .stroke(palette.posterBorder, lineWidth: 1.5)
+                .stroke(Color.ticketPosterBorder, lineWidth: 1.5)
         )
     }
 }
@@ -385,15 +335,12 @@ struct TicketStubView: View {
 // MARK: - 90s Tape Strip
 
 private struct TapeStripView: View {
-    let fill: Color
-    let stroke: Color
-
     var body: some View {
         RoundedRectangle(cornerRadius: 1.5)
-            .fill(fill)
+            .fill(Color.ticketTapeFill)
             .overlay(
                 RoundedRectangle(cornerRadius: 1.5)
-                    .stroke(stroke, lineWidth: 0.5)
+                    .stroke(Color.ticketTapeStroke, lineWidth: 0.5)
             )
             .frame(width: 32, height: 11)
             .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
