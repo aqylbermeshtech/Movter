@@ -125,7 +125,7 @@ extension TrendingMediaGridView: UICollectionViewDataSource, UICollectionViewDel
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MediaCell.identifier, for: indexPath) as! MediaCell
-        cell.configure(with: movies[indexPath.item], showsCaption: false, showsRatingBadge: true)
+        cell.configure(with: movies[indexPath.item], showsCaption: false, showsRatingBadge: false)
         return cell
     }
 
