@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import FirebaseAuth
 
 protocol WatchlistLocalDataSource: AnyObject {
     func loadItems(listName: String) throws -> [WatchlistItem]
@@ -17,7 +16,7 @@ final class LocalFileWatchlistDataSource: WatchlistLocalDataSource {
 
     private let store: LocalJSONFileStore
 
-    init(userIDProvider: @escaping () -> String? = { Auth.auth().currentUser?.uid }) {
+    init(userIDProvider: @escaping () -> String? = { nil }) {
         self.store = LocalJSONFileStore(
             queueLabel: "com.nurtore.movter.watchlist.localstorage",
             userIDProvider: userIDProvider

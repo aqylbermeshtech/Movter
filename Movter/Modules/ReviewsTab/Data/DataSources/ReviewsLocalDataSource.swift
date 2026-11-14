@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import FirebaseAuth
 
 protocol ReviewsLocalDataSource: AnyObject {
     func loadReviews() throws -> [Review]
@@ -17,7 +16,7 @@ final class LocalFileReviewsDataSource: ReviewsLocalDataSource {
 
     private let store: LocalJSONFileStore
 
-    init(userIDProvider: @escaping () -> String? = { Auth.auth().currentUser?.uid }) {
+    init(userIDProvider: @escaping () -> String? = { nil }) {
         self.store = LocalJSONFileStore(
             queueLabel: "com.nurtore.movter.reviews.localstorage",
             userIDProvider: userIDProvider

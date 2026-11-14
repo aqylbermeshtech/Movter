@@ -9,10 +9,6 @@ import UIKit
 enum MainTabBarFactory {
 
     static func makeTabBar() -> UIViewController {
-        let watchlistStore = WatchlistStoreFactory.makeStore()
-        let reviewStore = ReviewStoreFactory.makeStore()
-        let watchedStore = WatchedFilmsStoreFactory.makeStore()
-
         let moviesNav = UINavigationController()
         let moviesCoordinator = DefaultMoviesCoordinator(navigationController: moviesNav)
         let mediaListVC = MoviesViewFactory.makeMovieList(coordinator: moviesCoordinator)
@@ -20,11 +16,11 @@ enum MainTabBarFactory {
 
         let searchMoviesVC = SearchMoviesViewController()
         let swipeDeckVC = SwipeViewFactory.makeSwipeDeck()
-        let profileVC = ProfileViewFactory.make(
-            watchlistStore: watchlistStore,
-            watchedStore: watchedStore,
-            reviewStore: reviewStore
-        )
+
+        let stubsNav = UINavigationController()
+        let stubsCoordinator = DefaultStubsCoordinator(navigationController: stubsNav)
+        let stubsVC = StubsViewFactory.makeStubsDeck(coordinator: stubsCoordinator)
+        stubsNav.viewControllers = [stubsVC]
 
         let tabBar = MainTabBarController()
         tabBar.setTabs(
@@ -38,8 +34,8 @@ enum MainTabBarFactory {
                     navigationController: UINavigationController(rootViewController: swipeDeckVC)
                 ),
                 .init(
-                    title: "Profile", symbol: "person",
-                    navigationController: UINavigationController(rootViewController: profileVC)
+                    title: "Stubs", symbol: "ticket",
+                    navigationController: stubsNav
                 )
             ],
             searchNavigationController: UINavigationController(rootViewController: searchMoviesVC)

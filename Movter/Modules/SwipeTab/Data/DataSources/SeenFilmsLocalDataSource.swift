@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import FirebaseAuth
 
 protocol SeenFilmsLocalDataSource: AnyObject {
     func loadSeenIDs() -> Set<Int>
@@ -25,7 +24,7 @@ final class UserDefaultsSeenFilmsDataSource: SeenFilmsLocalDataSource {
 
     init(
         defaults: UserDefaults = .standard,
-        userIDProvider: @escaping () -> String? = { Auth.auth().currentUser?.uid }
+        userIDProvider: @escaping () -> String? = { nil }
     ) {
         self.defaults = defaults
         self.userIDProvider = userIDProvider
