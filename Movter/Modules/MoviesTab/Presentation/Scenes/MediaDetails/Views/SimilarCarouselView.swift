@@ -14,8 +14,7 @@ final class SimilarCarouselView: UIView {
     private var media: [Media] = []
 
     private static let itemWidth: CGFloat = 112
-    private static let captionHeight: CGFloat = 58
-    static var preferredHeight: CGFloat { itemWidth * 1.5 + captionHeight }
+    static var preferredHeight: CGFloat { itemWidth * 1.5 }
 
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -74,7 +73,7 @@ extension SimilarCarouselView: UICollectionViewDataSource, UICollectionViewDeleg
         ) as? MediaCell, let item = media[safe: indexPath.item] else {
             return UICollectionViewCell()
         }
-        cell.configure(with: item)
+        cell.configure(with: item, showsCaption: false, showsRatingBadge: false)
         return cell
     }
 
