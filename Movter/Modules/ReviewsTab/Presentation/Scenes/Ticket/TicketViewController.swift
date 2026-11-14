@@ -5,434 +5,387 @@
 //  Created by Nurtore on 02.09.2026.
 //
 
+import SwiftUI
 import UIKit
 
-final class TicketViewController: UIViewController {
-
-    private let review: Review
+final class TicketViewController: UIHostingController<TicketView> {
 
     init(review: Review) {
-        self.review = review
-        super.init(nibName: nil, bundle: nil)
+        super.init(rootView: TicketView(review: review))
         title = "Ticket"
     }
 
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    private let scrollView: UIScrollView = {
-        let scrollView = UIScrollView()
-        scrollView.alwaysBounceVertical = true
-        scrollView.showsVerticalScrollIndicator = false
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        return scrollView
-    }()
-
-    private let captionLabel: UILabel = {
-        let label = UILabel()
-        label.attributedText = NSAttributedString(
-            string: "ADDED TO YOUR COLLECTION",
-            attributes: [
-                .font: UIFont.microLabel,
-                .foregroundColor: UIColor.textSecondary,
-                .kern: 1.4
-            ]
-        )
-        label.textAlignment = .center
-        return label
-    }()
-
-    private let ticketView = TicketStubView()
-
-    private lazy var contentStack: UIStackView = {
-        let stack = UIStackView(arrangedSubviews: [captionLabel, ticketView, shareButton])
-        stack.axis = .vertical
-        stack.spacing = 24
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
-    }()
-
-    private var lastFittedSize: CGSize = .zero
-
-    private lazy var shareButton: UIButton = {
-        var config = UIButton.Configuration.filled()
-        config.cornerStyle = .medium
-        config.baseBackgroundColor = .accent
-        config.baseForegroundColor = .onAccent
-        config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 18, bottom: 14, trailing: 18)
-        config.attributedTitle = AttributedString(
-            "Share Ticket",
-            attributes: AttributeContainer([.font: UIFont.primaryButton])
-        )
-        let button = UIButton(configuration: config)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
+    @MainActor @preconcurrency required dynamic init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .canvas
         navigationItem.rightBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .done, target: self, action: #selector(doneTapped)
+            barButtonSystemItem: .done,
+            target: self,
+            action: #selector(doneTapped)
         )
-        setupUI()
-        ticketView.configure(with: review)
     }
-
-    private func setupUI() {
-        view.addSubview(scrollView)
-
-        let stack = contentStack
-        scrollView.addSubview(stack)
-
-        NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            stack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 20),
-            stack.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -16),
-            stack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -24),
-            stack.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -32)
-        ])
-    }
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        fitArtworkToScreen()
-        centreContentIfItFits()
-    }
-
-    private func centreContentIfItFits() {
-        let visible = scrollView.bounds.height - scrollView.safeAreaInsets.bottom
-        let top = max(0, (visible - scrollView.contentSize.height) / 2)
-        guard abs(scrollView.contentInset.top - top) > 0.5 else { return }
-        scrollView.contentInset.top = top
-    }
-
-    private func fitArtworkToScreen() {
-        let size = scrollView.bounds.size
-        guard size.width > 0, size.height > 0, size != lastFittedSize else { return }
-        lastFittedSize = size
-
-        let contentWidth = size.width - 32
-
-        ticketView.artworkHeight = 0
-        contentStack.setNeedsLayout()
-        contentStack.layoutIfNeeded()
-        let withoutArtwork = contentStack.systemLayoutSizeFitting(
-            CGSize(width: contentWidth, height: 0),
-            withHorizontalFittingPriority: .required,
-            verticalFittingPriority: .fittingSizeLevel
-        ).height
-
-        let visible = size.height - scrollView.safeAreaInsets.bottom
-        let spare = visible - Self.stackVerticalPadding - withoutArtwork
-        let natural = contentWidth * review.ticketArtworkAspect
-        ticketView.artworkHeight = max(0, min(spare, natural))
-    }
-    private static let stackVerticalPadding: CGFloat = 20 + 24
 
     @objc private func doneTapped() {
         dismiss(animated: true)
     }
 }
 
-// MARK: - The stub
+// MARK: - SwiftUI Screen
 
-final class TicketStubView: UIView {
+struct TicketView: View {
+    let review: Review
 
-    private static let cornerRadius: CGFloat = 20
-    private static let notchRadius: CGFloat = 11
-    private static let inset: CGFloat = 20
+    @State private var posterImage: UIImage?
+    @State private var logoImage: UIImage?
+    @State private var renderedTicket: UIImage?
 
-    private var posterURL: URL?
+    var body: some View {
+        GeometryReader { geometry in
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 28) {
+                    Text("ADDED TO YOUR COLLECTION")
+                        .font(Font(UIFont.microLabel))
+                        .tracking(1.4)
+                        .foregroundStyle(Color(uiColor: .textSecondary))
 
-    private let artworkView: UIImageView = {
-        let iv = UIImageView()
-        iv.contentMode = .scaleToFill
-        iv.clipsToBounds = true
-        iv.backgroundColor = .hairline
-        iv.tintColor = .textSecondary
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        return iv
-    }()
+                    TicketStubView(
+                        review: review,
+                        posterImage: posterImage,
+                        logoImage: logoImage
+                    )
 
-    private var artworkHeightConstraint: NSLayoutConstraint!
-
-    var artworkHeight: CGFloat {
-        get { artworkHeightConstraint.constant }
-        set { artworkHeightConstraint.constant = max(0, newValue) }
-    }
-
-    private let stubLabel: UILabel = {
-        let label = UILabel()
-        label.attributedText = NSAttributedString(
-            string: "TICKET STUB",
-            attributes: [
-                .font: UIFont.movter(size: 11, weight: .bold),
-                .foregroundColor: UIColor.textSecondary,
-                .kern: 1.2
-            ]
-        )
-        return label
-    }()
-
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.font = .cardTitle
-        label.textColor = .textPrimary
-        label.numberOfLines = 2
-        return label
-    }()
-
-    private let watchedLabel: UILabel = {
-        let label = UILabel()
-        label.font = .caption
-        label.textColor = .textSecondary
-        return label
-    }()
-
-    private let scoreLabel: UILabel = {
-        let label = UILabel()
-        label.font = .emphasized
-        label.textAlignment = .right
-        label.setContentCompressionResistancePriority(.required, for: .horizontal)
-        return label
-    }()
-
-    private let noteLabel: UILabel = {
-        let label = UILabel()
-        label.font = .secondaryBody
-        label.textColor = .textPrimary
-        label.numberOfLines = 0
-        return label
-    }()
-
-    private let ruleView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .hairline
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-
-    private let barcodeView = BarcodeView()
-
-    private let numberLabel: UILabel = {
-        let label = UILabel()
-        label.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
-        label.textColor = .textSecondary
-        label.textAlignment = .right
-        label.setContentCompressionResistancePriority(.required, for: .horizontal)
-        return label
-    }()
-
-    private let perforationLayer: CAShapeLayer = {
-        let layer = CAShapeLayer()
-        layer.lineDashPattern = [4, 4]
-        layer.lineWidth = 1
-        layer.fillColor = nil
-        return layer
-    }()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        backgroundColor = .surface
-        layer.addSublayer(perforationLayer)
-
-        let metaRow = UIStackView(arrangedSubviews: [watchedLabel, scoreLabel])
-        metaRow.axis = .horizontal
-        metaRow.alignment = .firstBaseline
-        metaRow.spacing = 12
-
-        let footerRow = UIStackView(arrangedSubviews: [barcodeView, numberLabel])
-        footerRow.axis = .horizontal
-        footerRow.alignment = .center
-        footerRow.spacing = 12
-
-        let stub = UIStackView(arrangedSubviews: [
-            stubLabel, titleLabel, metaRow, noteLabel, ruleView, footerRow
-        ])
-        stub.axis = .vertical
-        stub.spacing = 12
-        stub.setCustomSpacing(6, after: stubLabel)
-        stub.setCustomSpacing(16, after: noteLabel)
-        stub.setCustomSpacing(14, after: ruleView)
-        stub.translatesAutoresizingMaskIntoConstraints = false
-
-        addSubview(artworkView)
-        addSubview(stub)
-
-        artworkHeightConstraint = artworkView.heightAnchor.constraint(equalToConstant: 0)
-
-        NSLayoutConstraint.activate([
-            // Edge to edge: the card's own mask rounds the top corners for it.
-            artworkView.topAnchor.constraint(equalTo: topAnchor),
-            artworkView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            artworkView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            artworkHeightConstraint,
-
-            stub.topAnchor.constraint(equalTo: artworkView.bottomAnchor, constant: Self.inset),
-            stub.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Self.inset),
-            stub.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.inset),
-            stub.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Self.inset),
-
-            ruleView.heightAnchor.constraint(equalToConstant: 1),
-            barcodeView.heightAnchor.constraint(equalToConstant: 34)
-        ])
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        let tearY = artworkView.frame.maxY
-        applyMask(tearY: tearY)
-        drawPerforation(at: tearY)
-        updateArtworkCrop()
-    }
-    
-    private func updateArtworkCrop() {
-        guard let image = artworkView.image, isShowingArtwork else {
-            artworkView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
-            return
-        }
-        let size = image.size
-        let box = artworkView.bounds.size
-        guard size.width > 0, size.height > 0, box.width > 0, box.height > 0 else { return }
-
-        let scale = box.width / size.width
-        let visible = min(1, (box.height / scale) / size.height)
-        artworkView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: visible)
-    }
-
-    private var isShowingArtwork = false
-    private let stubMaskLayer: CAShapeLayer = {
-        let mask = CAShapeLayer()
-        mask.fillRule = .evenOdd
-        return mask
-    }()
-
-    private func applyMask(tearY: CGFloat) {
-        let path = UIBezierPath(roundedRect: bounds, cornerRadius: Self.cornerRadius)
-        let radius = Self.notchRadius
-        for centerX in [CGFloat(0), bounds.width] {
-            path.append(UIBezierPath(ovalIn: CGRect(
-                x: centerX - radius, y: tearY - radius, width: radius * 2, height: radius * 2
-            )))
-        }
-        stubMaskLayer.path = path.cgPath
-        if layer.mask !== stubMaskLayer {
-            layer.mask = stubMaskLayer
-        }
-    }
-
-    private func drawPerforation(at tearY: CGFloat) {
-        let path = UIBezierPath()
-        path.move(to: CGPoint(x: Self.notchRadius + 6, y: tearY))
-        path.addLine(to: CGPoint(x: bounds.width - Self.notchRadius - 6, y: tearY))
-        perforationLayer.path = path.cgPath
-        perforationLayer.strokeColor = UIColor.canvas.cgColor
-    }
-
-    override func traitCollectionDidChange(_ previous: UITraitCollection?) {
-        super.traitCollectionDidChange(previous)
-        perforationLayer.strokeColor = UIColor.canvas.cgColor
-    }
-
-    func configure(with review: Review) {
-        titleLabel.text = review.titleWithYear
-        watchedLabel.text = "Watched \(Self.watchedFormatter.string(from: review.createdAt))"
-        scoreLabel.attributedText = RatingFormatter.attributedPersonalScore(
-            review.score, font: scoreLabel.font
-        )
-        noteLabel.text = review.reviewText
-        noteLabel.isHidden = !review.hasReviewText
-
-        let seed = Self.seed(for: review)
-        numberLabel.text = String(format: "NO. %06d", seed % 1_000_000)
-        barcodeView.configure(seed: seed)
-
-        posterURL = review.ticketArtworkURL
-        guard let url = review.ticketArtworkURL else {
-            showArtworkPlaceholder()
-            return
-        }
-        ImageLoader.load(url: url) { [weak self] image in
-            guard let self = self, self.posterURL == url else { return }
-            guard let image = image else {
-                self.showArtworkPlaceholder()
-                return
+                    shareControl
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 20)
+                .frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
-            self.isShowingArtwork = true
-            self.artworkView.contentMode = .scaleToFill
-            self.artworkView.image = image
-            self.setNeedsLayout()
+        }
+        .background(Color(uiColor: .canvas).ignoresSafeArea())
+        .task(id: review.id) {
+            await loadArtwork()
         }
     }
 
-    private func showArtworkPlaceholder() {
-        isShowingArtwork = false
-        artworkView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
-        artworkView.contentMode = .center
-        artworkView.image = UIImage(
-            systemName: "film",
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 32, weight: .regular)
+    @ViewBuilder
+    private var shareControl: some View {
+        if let image = renderedTicket {
+            ShareLink(
+                item: Image(uiImage: image),
+                preview: SharePreview(review.filmTitle, image: Image(uiImage: image))
+            ) {
+                shareLabel
+            }
+        } else {
+            Button(action: renderForShare) {
+                shareLabel
+            }
+            .disabled(true)
+            .opacity(0.6)
+        }
+    }
+
+    private var shareLabel: some View {
+        Text("Share Ticket")
+            .font(Font(UIFont.primaryButton))
+            .foregroundStyle(Color(uiColor: .onAccent))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .padding(.horizontal, 18)
+            .background(Color(uiColor: .accent), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    @MainActor
+    private func loadArtwork() async {
+        async let loadedPoster = loadImage(from: review.posterURL)
+        async let loadedLogo = loadTitleLogo()
+
+        posterImage = await loadedPoster
+        logoImage = await loadedLogo
+        renderForShare()
+    }
+
+    private func loadTitleLogo() async -> UIImage? {
+        guard let tmdbID = review.tmdbID else { return nil }
+        let artwork = await TMDBService.shared.fetchHeroArtwork(for: tmdbID, type: .movie)
+        guard !Task.isCancelled,
+              let logoPath = artwork.logoPath,
+              let logoURL = TMDBImageURL.url(path: logoPath, width: .poster) else {
+            return nil
+        }
+        return await loadImage(from: logoURL)
+    }
+
+    private func loadImage(from url: URL?) async -> UIImage? {
+        guard let url else { return nil }
+        return await withCheckedContinuation { continuation in
+            ImageLoader.load(url: url) { image in
+                continuation.resume(returning: image)
+            }
+        }
+    }
+
+    @MainActor
+    private func renderForShare() {
+        let stub = TicketStubView(
+            review: review,
+            posterImage: posterImage,
+            logoImage: logoImage
         )
-    }
+        .frame(width: 390)
+        .padding(12)
+        .background(Color(uiColor: .canvas))
 
-    private static func seed(for review: Review) -> UInt32 {
-        withUnsafeBytes(of: review.id.uuid) { bytes in
-            bytes.prefix(4).reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
-        }
+        let renderer = ImageRenderer(content: stub)
+        renderer.scale = UIScreen.main.scale
+        renderedTicket = renderer.uiImage
     }
+}
 
-    private static let watchedFormatter: DateFormatter = {
+// MARK: - Horizontal Cinema Ticket Stub
+
+struct TicketStubView: View {
+    let review: Review
+    let posterImage: UIImage?
+    let logoImage: UIImage?
+
+    private static let ticketBackground = Color(red: 0.12, green: 0.12, blue: 0.12)
+    private static let panelBackground = Color(red: 0.18, green: 0.18, blue: 0.18)
+    private static let gold = Color(red: 0.88, green: 0.71, blue: 0.29)
+    private static let mutedText = Color(white: 0.62)
+    private static let mainFraction: CGFloat = 0.70
+
+    private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d, yyyy"
         return formatter
     }()
+
+    var body: some View {
+        GeometryReader { geo in
+            let mainWidth = geo.size.width * Self.mainFraction
+            let stubWidth = geo.size.width - mainWidth
+
+            ZStack(alignment: .topLeading) {
+                Self.ticketBackground
+
+                TicketOrnamentCanvas(mainFraction: Self.mainFraction)
+
+                HStack(spacing: 0) {
+                    mainSection
+                        .frame(width: mainWidth, height: geo.size.height)
+
+                    stubSection
+                        .frame(width: stubWidth, height: geo.size.height)
+                }
+            }
+            .clipShape(TicketShape(mainFraction: Self.mainFraction))
+        }
+        .aspectRatio(1.0 / 0.42, contentMode: .fit)
+    }
+
+    private var mainSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("CINEMA")
+                        .font(.system(size: 18, weight: .black))
+                        .tracking(1.0)
+                        .foregroundStyle(Self.gold)
+                        .lineLimit(1)
+
+                    Text("TICKET")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .tracking(2.0)
+                        .foregroundStyle(Self.mutedText)
+                }
+                .fixedSize()
+
+                Spacer(minLength: 4)
+
+                if let logoImage {
+                    Image(uiImage: logoImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: 118, maxHeight: 44, alignment: .trailing)
+                } else {
+                    Text(review.filmTitle.uppercased())
+                        .font(Font(UIFont.movter(size: 13, weight: .bold)))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.trailing)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.72)
+                }
+            }
+
+            DashedDivider(color: Self.gold.opacity(0.6))
+
+            VStack(alignment: .leading, spacing: 4) {
+                if let year = review.filmYear, !year.isEmpty {
+                    Text(year)
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.white)
+                }
+
+                HStack(alignment: .center) {
+                    Text("Rated \(Self.dateFormatter.string(from: review.createdAt))")
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .foregroundStyle(Self.mutedText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+
+                    Spacer(minLength: 8)
+
+                    Text("\(review.score)/10")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Self.gold)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Self.panelBackground, in: RoundedRectangle(cornerRadius: 4))
+                }
+            }
+        }
+        .padding(.leading, 16)
+        .padding(.trailing, 14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var stubSection: some View {
+        ZStack {
+            posterCard
+                .overlay(alignment: .topLeading) {
+                    TapeStripView()
+                        .rotationEffect(.degrees(-32))
+                        .offset(x: -10, y: -2)
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    TapeStripView()
+                        .rotationEffect(.degrees(-30))
+                        .offset(x: 10, y: 2)
+                }
+        }
+    }
+
+    private var posterCard: some View {
+        Group {
+            if let posterImage {
+                Image(uiImage: posterImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                ZStack {
+                    Self.panelBackground
+                    Image(systemName: "film")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Self.mutedText)
+                }
+            }
+        }
+        .frame(width: 80, height: 120)
+        .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .stroke(Color(white: 0.92).opacity(0.85), lineWidth: 1.5)
+        )
+    }
 }
 
-// MARK: - Barcode
+// MARK: - 90s Tape Strip
 
-final class BarcodeView: UIView {
-
-    private var widths: [CGFloat] = []
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        backgroundColor = .clear
-        isUserInteractionEnabled = false
-        setContentHuggingPriority(.defaultLow, for: .horizontal)
+private struct TapeStripView: View {
+    var body: some View {
+        RoundedRectangle(cornerRadius: 1.5)
+            .fill(Color(red: 0.93, green: 0.87, blue: 0.72).opacity(0.78))
+            .overlay(
+                RoundedRectangle(cornerRadius: 1.5)
+                    .stroke(Color.white.opacity(0.28), lineWidth: 0.5)
+            )
+            .frame(width: 32, height: 11)
+            .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
     }
+}
 
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+// MARK: - Ticket Shape & Ornament Canvas
 
-    func configure(seed: UInt32) {
-        var state = seed | 1
-        widths = (0..<28).map { _ in
-            state = state &* 1_664_525 &+ 1_013_904_223
-            return [CGFloat(1), 1, 2, 3][Int(state >> 16) % 4]
+private struct TicketShape: Shape {
+    let mainFraction: CGFloat
+
+    private let cornerCut: CGFloat = 11
+    private let tearNotchRadius: CGFloat = 8
+    private let edgeScallopRadius: CGFloat = 3.2
+    private let edgeScallopPitch: CGFloat = 10
+
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width
+        let h = rect.height
+        let c = cornerCut
+        let tearX = w * mainFraction
+
+        var path = Path()
+        path.move(to: CGPoint(x: c, y: 0))
+        path.addLine(to: CGPoint(x: w - c, y: 0))
+        path.addArc(center: CGPoint(x: w, y: 0), radius: c, startAngle: .degrees(180), endAngle: .degrees(90), clockwise: true)
+        path.addLine(to: CGPoint(x: w, y: h - c))
+        path.addArc(center: CGPoint(x: w, y: h), radius: c, startAngle: .degrees(270), endAngle: .degrees(180), clockwise: true)
+        path.addLine(to: CGPoint(x: c, y: h))
+        path.addArc(center: CGPoint(x: 0, y: h), radius: c, startAngle: .degrees(0), endAngle: .degrees(270), clockwise: true)
+        path.addLine(to: CGPoint(x: 0, y: c))
+        path.addArc(center: CGPoint(x: 0, y: 0), radius: c, startAngle: .degrees(90), endAngle: .degrees(0), clockwise: true)
+        path.closeSubpath()
+
+        var cutouts = Path()
+        let r = tearNotchRadius
+        cutouts.addEllipse(in: CGRect(x: tearX - r, y: -r, width: r * 2, height: r * 2))
+        cutouts.addEllipse(in: CGRect(x: tearX - r, y: h - r, width: r * 2, height: r * 2))
+
+        let sr = edgeScallopRadius
+        let startY = c + edgeScallopPitch * 0.7
+        let endY = h - c - edgeScallopPitch * 0.7
+        var y = startY
+        while y <= endY {
+            cutouts.addEllipse(in: CGRect(x: -sr, y: y - sr, width: sr * 2, height: sr * 2))
+            cutouts.addEllipse(in: CGRect(x: w - sr, y: y - sr, width: sr * 2, height: sr * 2))
+            y += edgeScallopPitch
         }
-        setNeedsDisplay()
+
+        return path.subtracting(cutouts)
     }
+}
 
-    override func draw(_ rect: CGRect) {
-        guard let context = UIGraphicsGetCurrentContext(), !widths.isEmpty else { return }
-        context.setFillColor(UIColor.textPrimary.cgColor)
+private struct DashedDivider: View {
+    let color: Color
 
-        var x: CGFloat = 0
-        for width in widths {
-            guard x + width <= rect.width else { break }
-            context.fill(CGRect(x: x, y: 0, width: width, height: rect.height))
-            x += width + 3
+    var body: some View {
+        Canvas { context, size in
+            var path = Path()
+            path.move(to: CGPoint(x: 0, y: size.height / 2))
+            path.addLine(to: CGPoint(x: size.width, y: size.height / 2))
+            context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
         }
+        .frame(height: 1)
     }
+}
 
-    override func traitCollectionDidChange(_ previous: UITraitCollection?) {
-        super.traitCollectionDidChange(previous)
-        setNeedsDisplay()
+private struct TicketOrnamentCanvas: View {
+    let mainFraction: CGFloat
+
+    var body: some View {
+        Canvas { context, size in
+            let tearX = size.width * mainFraction
+
+            var perforation = Path()
+            perforation.move(to: CGPoint(x: tearX, y: 12))
+            perforation.addLine(to: CGPoint(x: tearX, y: size.height - 12))
+            context.stroke(
+                perforation,
+                with: .color(.white.opacity(0.22)),
+                style: StrokeStyle(lineWidth: 1, dash: [3, 3])
+            )
+        }
+        .allowsHitTesting(false)
     }
 }
