@@ -9,7 +9,6 @@ import UIKit
 
 final class TrendingMediaGridView: UIView {
     var onMovieSelected: ((Media) -> Void)?
-    var onSeeAllSelected: (() -> Void)?
 
     private var movies: [Media] = []
 
@@ -20,16 +19,6 @@ final class TrendingMediaGridView: UIView {
         label.textColor = .textPrimary
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
-    }()
-
-    private lazy var seeAllButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("See all", for: .normal)
-        button.titleLabel?.font = .linkButton
-        button.setTitleColor(.textSecondary, for: .normal)
-        button.addAction(UIAction { [weak self] _ in self?.onSeeAllSelected?() }, for: .touchUpInside)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
     }()
 
     private static let itemWidth: CGFloat = 128
@@ -73,17 +62,13 @@ final class TrendingMediaGridView: UIView {
 
     private func setupUI() {
         addSubview(titleLabel)
-        addSubview(seeAllButton)
         addSubview(collectionView)
         collectionView.delegate = self
         collectionView.dataSource = self
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: topAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Self.horizontalInset),
-
-            seeAllButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            seeAllButton.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 12),
-            seeAllButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.horizontalInset),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -Self.horizontalInset),
 
             collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
             collectionView.leadingAnchor.constraint(equalTo: leadingAnchor),

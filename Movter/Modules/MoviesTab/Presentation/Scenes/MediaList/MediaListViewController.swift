@@ -155,9 +155,6 @@ final class MediaListViewController: UIViewController {
         trendingView.onMovieSelected = { [weak self] media in
             self?.showDetails(for: media)
         }
-        trendingView.onSeeAllSelected = { [weak self] in
-            self?.showSeeAll()
-        }
         chipsView.onSelect = { [weak self] genre in
             guard let self = self else { return }
             self.trendingView.setSectionTitle(genre.sectionTitle)
