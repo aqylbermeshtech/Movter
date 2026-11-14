@@ -1,5 +1,5 @@
 //
-//  ActorsCell.swift
+//  ActorCell.swift
 //  Movter
 //
 //  Created by Nurtore on 24.03.2026.
@@ -7,8 +7,8 @@
 
 import UIKit
 
-class ActorsCell:UICollectionViewCell {
-    static let identifier = "ActorsCell"
+class ActorCell: UICollectionViewCell {
+    static let identifier = "ActorCell"
 
     private var profileURL: URL?
 

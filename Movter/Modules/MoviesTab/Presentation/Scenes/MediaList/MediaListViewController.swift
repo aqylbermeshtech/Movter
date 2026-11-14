@@ -11,6 +11,7 @@ import UIKit
 final class MediaListViewController: UIViewController {
     private let viewModel: MediaListViewModel
     private let watchlistStore: WatchlistStoring
+    private let coordinator: MoviesCoordinator?
 
     private let headerView = HomeHeaderView()
     private let chipsView = GenreChipsView()
@@ -34,6 +35,7 @@ final class MediaListViewController: UIViewController {
     ) {
         self.viewModel = viewModel
         self.watchlistStore = watchlistStore
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
 

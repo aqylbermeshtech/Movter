@@ -47,18 +47,19 @@ final class MediaDetailsViewModel {
 
     private(set) var genreName: String?
     var onGenreUpdate: (() -> Void)?
+    var onHeroArtworkUpdate: ((URL?, URL?) -> Void)?
 
     // MARK: - Watchlist
     private(set) var isInWatchlist = false
     var onWatchlistChange: (() -> Void)?
     var watchlistButtonTitle: String { isInWatchlist ? "In watchlist" : "Add to watchlist" }
-    var watchlistButtonSymbol: String { isInWatchlist ? "bookmark.fill" : "bookmark" }
+    var watchlistButtonSymbol: String { isInWatchlist ? "heart.fill" : "heart" }
 
     // MARK: - Watched
     private(set) var isWatched = false
     var onWatchedChange: (() -> Void)?
-    var watchedButtonTitle: String { isWatched ? "Watched" : "Mark as watched" }
-    var watchedButtonSymbol: String { isWatched ? "checkmark.circle.fill" : "checkmark.circle" }
+    var watchedButtonTitle: String { isWatched ? "Seen" : "Mark as Seen" }
+    var watchedButtonSymbol: String { "checkmark" }
 
     // MARK: - Review
     private(set) var existingReview: Review?
@@ -231,6 +232,22 @@ final class MediaDetailsViewModel {
                 self.genreName = name
                 self.onGenreUpdate?()
             }
+        }
+    }
+
+    func fetchHeroArtwork() {
+        let id = media.id
+        let type = mediaType
+        let currentPosterPath = media.posterPath
+        Task { [weak self] in
+            let artwork = await TMDBService.shared.fetchHeroArtwork(for: id, type: type)
+            guard !Task.isCancelled else { return }
+            let textlessURL: URL? = {
+                guard let path = artwork.textlessPosterPath, path != currentPosterPath else { return nil }
+                return TMDBImageURL.url(path: path, width: .wide)
+            }()
+            let logoURL = artwork.logoPath.flatMap { TMDBImageURL.url(path: $0, width: .poster) }
+            self?.onHeroArtworkUpdate?(textlessURL, logoURL)
         }
     }
 
