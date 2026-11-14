@@ -5,8 +5,36 @@
 //  Created by Nurtore on 02.09.2026.
 //
 
+import CoreText
 import SwiftUI
 import UIKit
+
+enum TicketFonts {
+    private static let registerOnce: Void = {
+        for name in ["Adamina-Regular", "SpaceMono-Regular", "SpaceMono-Bold"] {
+            if let url = Bundle.main.url(forResource: name, withExtension: "ttf")
+                ?? Bundle.main.url(forResource: name, withExtension: "ttf", subdirectory: "Fonts")
+                ?? Bundle.main.url(forResource: name, withExtension: "ttf", subdirectory: "Resources/Fonts") {
+                CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+            }
+        }
+    }()
+
+    static func adamina(size: CGFloat) -> Font {
+        _ = registerOnce
+        return .custom("Adamina-Regular", size: size)
+    }
+
+    static func monoRegular(size: CGFloat) -> Font {
+        _ = registerOnce
+        return .custom("SpaceMono-Regular", size: size)
+    }
+
+    static func monoBold(size: CGFloat) -> Font {
+        _ = registerOnce
+        return .custom("SpaceMono-Bold", size: size)
+    }
+}
 
 final class TicketViewController: UIHostingController<TicketView> {
 
@@ -39,6 +67,7 @@ final class TicketViewController: UIHostingController<TicketView> {
 struct TicketView: View {
     let review: Review
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var posterImage: UIImage?
     @State private var logoImage: UIImage?
     @State private var renderedTicket: UIImage?
@@ -68,6 +97,9 @@ struct TicketView: View {
         .background(Color(uiColor: .canvas).ignoresSafeArea())
         .task(id: review.id) {
             await loadArtwork()
+        }
+        .onChange(of: colorScheme) { _, _ in
+            renderForShare()
         }
     }
 
@@ -136,6 +168,7 @@ struct TicketView: View {
             posterImage: posterImage,
             logoImage: logoImage
         )
+        .environment(\.colorScheme, colorScheme)
         .frame(width: 390)
         .padding(12)
         .background(Color(uiColor: .canvas))
@@ -153,10 +186,8 @@ struct TicketStubView: View {
     let posterImage: UIImage?
     let logoImage: UIImage?
 
-    private static let ticketBackground = Color(red: 0.12, green: 0.12, blue: 0.12)
-    private static let panelBackground = Color(red: 0.18, green: 0.18, blue: 0.18)
-    private static let gold = Color(red: 0.88, green: 0.71, blue: 0.29)
-    private static let mutedText = Color(white: 0.62)
+    @Environment(\.colorScheme) private var colorScheme
+
     private static let mainFraction: CGFloat = 0.70
 
     private static let dateFormatter: DateFormatter = {
@@ -171,9 +202,12 @@ struct TicketStubView: View {
             let stubWidth = geo.size.width - mainWidth
 
             ZStack(alignment: .topLeading) {
-                Self.ticketBackground
+                Color.ticketBackground
 
-                TicketOrnamentCanvas(mainFraction: Self.mainFraction)
+                TicketOrnamentCanvas(
+                    mainFraction: Self.mainFraction,
+                    perforationColor: .ticketPerforation
+                )
 
                 HStack(spacing: 0) {
                     mainSection
@@ -193,15 +227,15 @@ struct TicketStubView: View {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("CINEMA")
-                        .font(.system(size: 18, weight: .black))
-                        .tracking(1.0)
-                        .foregroundStyle(Self.gold)
+                        .font(TicketFonts.adamina(size: 19))
+                        .tracking(1.2)
+                        .foregroundStyle(Color.ticketHeader)
                         .lineLimit(1)
 
                     Text("TICKET")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .font(TicketFonts.monoBold(size: 9.5))
                         .tracking(2.0)
-                        .foregroundStyle(Self.mutedText)
+                        .foregroundStyle(Color.ticketMutedText)
                 }
                 .fixedSize()
 
@@ -212,40 +246,44 @@ struct TicketStubView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(maxWidth: 118, maxHeight: 44, alignment: .trailing)
+                        .shadow(
+                            color: .black.opacity(colorScheme == .dark ? 0.55 : 0),
+                            radius: 2, x: 0, y: 1
+                        )
                 } else {
                     Text(review.filmTitle.uppercased())
-                        .font(Font(UIFont.movter(size: 13, weight: .bold)))
-                        .foregroundStyle(.white)
+                        .font(TicketFonts.adamina(size: 13))
+                        .foregroundStyle(Color.ticketPrimaryText)
                         .multilineTextAlignment(.trailing)
                         .lineLimit(2)
                         .minimumScaleFactor(0.72)
                 }
             }
 
-            DashedDivider(color: Self.gold.opacity(0.6))
+            DashedDivider(color: .ticketDivider)
 
             VStack(alignment: .leading, spacing: 4) {
                 if let year = review.filmYear, !year.isEmpty {
                     Text(year)
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.white)
+                        .font(TicketFonts.monoBold(size: 11))
+                        .foregroundStyle(Color.ticketPrimaryText)
                 }
 
                 HStack(alignment: .center) {
                     Text("Rated \(Self.dateFormatter.string(from: review.createdAt))")
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .foregroundStyle(Self.mutedText)
+                        .font(TicketFonts.monoRegular(size: 10))
+                        .foregroundStyle(Color.ticketMutedText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
 
                     Spacer(minLength: 8)
 
                     Text("\(review.score)/10")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundStyle(Self.gold)
+                        .font(TicketFonts.monoBold(size: 11))
+                        .foregroundStyle(Color.ticketScore)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 3)
-                        .background(Self.panelBackground, in: RoundedRectangle(cornerRadius: 4))
+                        .background(Color.ticketPanel, in: RoundedRectangle(cornerRadius: 4))
                 }
             }
         }
@@ -278,10 +316,10 @@ struct TicketStubView: View {
                     .scaledToFill()
             } else {
                 ZStack {
-                    Self.panelBackground
+                    Color.ticketPanel
                     Image(systemName: "film")
                         .font(.system(size: 22))
-                        .foregroundStyle(Self.mutedText)
+                        .foregroundStyle(Color.ticketMutedText)
                 }
             }
         }
@@ -289,7 +327,7 @@ struct TicketStubView: View {
         .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .stroke(Color(white: 0.92).opacity(0.85), lineWidth: 1.5)
+                .stroke(Color.ticketPosterBorder, lineWidth: 1.5)
         )
     }
 }
@@ -299,10 +337,10 @@ struct TicketStubView: View {
 private struct TapeStripView: View {
     var body: some View {
         RoundedRectangle(cornerRadius: 1.5)
-            .fill(Color(red: 0.93, green: 0.87, blue: 0.72).opacity(0.78))
+            .fill(Color.ticketTapeFill)
             .overlay(
                 RoundedRectangle(cornerRadius: 1.5)
-                    .stroke(Color.white.opacity(0.28), lineWidth: 0.5)
+                    .stroke(Color.ticketTapeStroke, lineWidth: 0.5)
             )
             .frame(width: 32, height: 11)
             .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
@@ -372,6 +410,7 @@ private struct DashedDivider: View {
 
 private struct TicketOrnamentCanvas: View {
     let mainFraction: CGFloat
+    let perforationColor: Color
 
     var body: some View {
         Canvas { context, size in
@@ -382,7 +421,7 @@ private struct TicketOrnamentCanvas: View {
             perforation.addLine(to: CGPoint(x: tearX, y: size.height - 12))
             context.stroke(
                 perforation,
-                with: .color(.white.opacity(0.22)),
+                with: .color(perforationColor),
                 style: StrokeStyle(lineWidth: 1, dash: [3, 3])
             )
         }

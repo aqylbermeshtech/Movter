@@ -5,6 +5,7 @@
 //  Created by Nurtore on 22.03.2026.
 //
 
+import SwiftUI
 import UIKit
 
 public extension UIColor {
@@ -45,9 +46,43 @@ public extension UIColor {
 
     static var onAccent: UIColor { .canvas }
 
-    private static func adaptive(light: String, dark: String) -> UIColor {
+    // MARK: - Ticket stub
+    static let ticketBackground  = adaptive(light: "1F1F1F", dark: "F2EDE0")
+    static let ticketPanel       = adaptive(light: "2E2E2E", dark: "DED6C4")
+    static let ticketHeader      = adaptive(light: "E0B54A", dark: "1C1C1C")
+    static let ticketPrimaryText = adaptive(light: "FFFFFF", dark: "1C1C1C")
+    static let ticketMutedText   = adaptive(light: "9E9E9E", dark: "5C5954")
+    static let ticketScore       = adaptive(light: "E0B54A", dark: "AD2924")
+    static let ticketDivider     = adaptive(light: "E0B54A", lightAlpha: 0.60, dark: "000000", darkAlpha: 0.28)
+    static let ticketPerforation = adaptive(light: "FFFFFF", lightAlpha: 0.22, dark: "000000", darkAlpha: 0.26)
+    static let ticketPosterBorder = adaptive(light: "EBEBEB", lightAlpha: 0.85, dark: "000000", darkAlpha: 0.18)
+    static let ticketTapeFill    = adaptive(light: "EDDEC7", lightAlpha: 0.78, dark: "D6BF8F", darkAlpha: 0.84)
+    static let ticketTapeStroke  = adaptive(light: "FFFFFF", lightAlpha: 0.28, dark: "000000", darkAlpha: 0.14)
+
+    private static func adaptive(
+        light: String,
+        lightAlpha: CGFloat = 1.0,
+        dark: String,
+        darkAlpha: CGFloat = 1.0
+    ) -> UIColor {
         UIColor { traits in
-            traits.userInterfaceStyle == .dark ? UIColor(hex: dark) : UIColor(hex: light)
+            traits.userInterfaceStyle == .dark
+                ? UIColor(hex: dark).withAlphaComponent(darkAlpha)
+                : UIColor(hex: light).withAlphaComponent(lightAlpha)
         }
     }
+}
+
+public extension Color {
+    static let ticketBackground   = Color(uiColor: .ticketBackground)
+    static let ticketPanel        = Color(uiColor: .ticketPanel)
+    static let ticketHeader       = Color(uiColor: .ticketHeader)
+    static let ticketPrimaryText  = Color(uiColor: .ticketPrimaryText)
+    static let ticketMutedText    = Color(uiColor: .ticketMutedText)
+    static let ticketScore        = Color(uiColor: .ticketScore)
+    static let ticketDivider      = Color(uiColor: .ticketDivider)
+    static let ticketPerforation  = Color(uiColor: .ticketPerforation)
+    static let ticketPosterBorder = Color(uiColor: .ticketPosterBorder)
+    static let ticketTapeFill     = Color(uiColor: .ticketTapeFill)
+    static let ticketTapeStroke   = Color(uiColor: .ticketTapeStroke)
 }
