@@ -30,6 +30,7 @@ final class StubsListViewController: UIHostingController<StubsListView> {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
         enableInteractivePopGesture()
         viewModel.loadStubs()
     }
