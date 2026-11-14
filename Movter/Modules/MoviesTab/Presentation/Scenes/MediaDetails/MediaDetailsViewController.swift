@@ -291,7 +291,7 @@ final class MediaDetailsViewController: UIViewController {
         view.backgroundColor = .canvas
         castCollectionView.delegate = self
         castCollectionView.dataSource = self
-        castCollectionView.register(ActorsCell.self, forCellWithReuseIdentifier: ActorsCell.identifier)
+        castCollectionView.register(ActorCell.self, forCellWithReuseIdentifier: ActorCell.identifier)
         setupUI()
         NotificationCenter.default.addObserver(
             self, selector: #selector(connectivityChanged),
@@ -739,7 +739,7 @@ extension MediaDetailsViewController: UICollectionViewDelegate, UICollectionView
         return viewModel.actors.count
     }
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ActorsCell.identifier, for: indexPath) as? ActorsCell else {
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ActorCell.identifier, for: indexPath) as? ActorCell else {
             return UICollectionViewCell()
         }
         let actor = viewModel.actors[indexPath.item]
