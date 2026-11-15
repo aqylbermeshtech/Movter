@@ -9,8 +9,15 @@ import UIKit
 enum LibraryViewFactory {
 
     static func makeLibrary(
-        coordinator: LibraryCoordinator? = nil
+        coordinator: LibraryCoordinator? = nil,
+        watchlistRepository: WatchlistRepository = DefaultWatchlistRepository(),
+        favoritesRepository: TopFavoritesRepository = DefaultTopFavoritesRepository()
     ) -> UIViewController {
-        LibraryViewController(coordinator: coordinator)
+        let viewModel = LibraryViewModel(
+            watchlistRepository: watchlistRepository,
+            favoritesRepository: favoritesRepository,
+            coordinator: coordinator
+        )
+        return LibraryViewController(viewModel: viewModel, coordinator: coordinator)
     }
 }
