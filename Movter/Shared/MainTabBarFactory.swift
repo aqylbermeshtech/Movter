@@ -22,6 +22,11 @@ enum MainTabBarFactory {
         let stubsVC = StubsViewFactory.makeStubsDeck(coordinator: stubsCoordinator)
         stubsNav.viewControllers = [stubsVC]
 
+        let libraryNav = UINavigationController()
+        let libraryCoordinator = DefaultLibraryCoordinator(navigationController: libraryNav)
+        let libraryVC = LibraryViewFactory.makeLibrary(coordinator: libraryCoordinator)
+        libraryNav.viewControllers = [libraryVC]
+
         let tabBar = MainTabBarController()
         tabBar.setTabs(
             [
@@ -36,6 +41,10 @@ enum MainTabBarFactory {
                 .init(
                     title: "Stubs", symbol: "ticket",
                     navigationController: stubsNav
+                ),
+                .init(
+                    title: "Library", symbol: "books.vertical",
+                    navigationController: libraryNav
                 )
             ],
             searchNavigationController: UINavigationController(rootViewController: searchMoviesVC)
