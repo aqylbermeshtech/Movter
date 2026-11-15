@@ -14,7 +14,6 @@ final class MediaListViewController: UIViewController {
     private let coordinator: MoviesCoordinator?
 
     private let headerView = HomeHeaderView()
-    private let chipsView = GenreChipsView()
     private let heroView = HeroCarouselView()
     private let trendingView = TrendingMediaGridView()
 
@@ -71,7 +70,7 @@ final class MediaListViewController: UIViewController {
         bindViewModel()
         heroView.beginLoading()
         trendingView.beginLoading()
-        viewModel.fetchContent(genre: chipsView.selected)
+        viewModel.fetchContent(genre: .all)
         applyTheme()
         NotificationCenter.default.addObserver(
             self,
@@ -112,7 +111,6 @@ final class MediaListViewController: UIViewController {
         view.addSubview(offlineView)
 
         headerView.translatesAutoresizingMaskIntoConstraints = false
-        chipsView.translatesAutoresizingMaskIntoConstraints = false
         heroView.translatesAutoresizingMaskIntoConstraints = false
         trendingView.translatesAutoresizingMaskIntoConstraints = false
 
@@ -128,10 +126,9 @@ final class MediaListViewController: UIViewController {
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        let content = UIStackView(arrangedSubviews: [chipsView, heroView, trendingView])
+        let content = UIStackView(arrangedSubviews: [heroView, trendingView])
         content.axis = .vertical
         content.spacing = 24
-        content.setCustomSpacing(16, after: chipsView)
         content.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(content)
 
@@ -142,7 +139,6 @@ final class MediaListViewController: UIViewController {
             content.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -16),
             content.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
 
-            chipsView.heightAnchor.constraint(equalToConstant: GenreChipsView.preferredHeight),
             heroView.heightAnchor.constraint(equalToConstant: HeroCarouselView.sectionHeight),
             trendingView.heightAnchor.constraint(equalToConstant: TrendingMediaGridView.carouselSectionHeight)
         ])
@@ -166,19 +162,10 @@ final class MediaListViewController: UIViewController {
         trendingView.onMovieSelected = { [weak self] media in
             self?.showDetails(for: media)
         }
-        chipsView.onSelect = { [weak self] genre in
-            guard let self = self else { return }
-            self.trendingView.setSectionTitle(genre.sectionTitle)
-            self.heroView.beginLoading()
-            self.trendingView.beginLoading()
-            self.scrollView.setContentOffset(.zero, animated: true)
-            self.viewModel.fetchContent(genre: genre)
-        }
     }
 
     private func applyTheme() {
         navigationController?.navigationBar.tintColor = .accent
-        chipsView.updateTheme()
     }
 
     deinit {
@@ -269,7 +256,13 @@ final class MediaListViewController: UIViewController {
 
 extension MediaListViewController: PosterTransitionSource {
     func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
-        trendingView.transitionPoster(forMediaID: id)
+        if let heroAnchor = heroView.transitionPoster(forMediaID: id) {
+            let heroFrame = view.convert(heroAnchor.view.bounds, from: heroAnchor.view)
+            if view.bounds.intersects(heroFrame) {
+                return heroAnchor
+            }
+        }
+        return trendingView.transitionPoster(forMediaID: id)
     }
 }
 
