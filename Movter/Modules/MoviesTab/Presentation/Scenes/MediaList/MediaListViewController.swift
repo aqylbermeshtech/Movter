@@ -18,6 +18,13 @@ final class MediaListViewController: UIViewController {
     private let heroView = HeroCarouselView()
     private let trendingView = TrendingMediaGridView()
 
+    private let searchController: UISearchController = {
+        let controller = UISearchController(searchResultsController: nil)
+        controller.obscuresBackgroundDuringPresentation = false
+        controller.searchBar.placeholder = "Find shows and movies"
+        return controller
+    }()
+
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.showsVerticalScrollIndicator = false
@@ -86,6 +93,10 @@ final class MediaListViewController: UIViewController {
     }
 
     private func setupNavigationBar() {
+        navigationItem.searchController = searchController
+        navigationItem.hidesSearchBarWhenScrolling = false
+        definesPresentationContext = true
+        searchController.searchBar.delegate = self
         configureOpaqueNavigationBar()
     }
 
@@ -259,5 +270,25 @@ final class MediaListViewController: UIViewController {
 extension MediaListViewController: PosterTransitionSource {
     func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
         trendingView.transitionPoster(forMediaID: id)
+    }
+}
+
+// MARK: - Search
+
+extension MediaListViewController: UISearchBarDelegate {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        let trimmed = (searchBar.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2 else { return }
+        searchController.isActive = false
+        let resultsVC = MovieGridViewController(
+            source: .search(trimmed),
+            title: "“\(trimmed)”",
+            coordinator: coordinator
+        )
+        navigationController?.pushViewController(resultsVC, animated: true)
+    }
+
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        (tabBarController as? MainTabBarController)?.returnToPreviousTab()
     }
 }

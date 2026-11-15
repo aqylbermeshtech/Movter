@@ -10,7 +10,7 @@ import UIKit
 final class MovieGridViewController: UIViewController {
 
     private let viewModel: MovieGridViewModel
-    private weak var coordinator: SearchCoordinator?
+    private weak var coordinator: MoviesCoordinator?
 
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -54,7 +54,7 @@ final class MovieGridViewController: UIViewController {
     init(
         viewModel: MovieGridViewModel,
         title: String,
-        coordinator: SearchCoordinator? = nil
+        coordinator: MoviesCoordinator? = nil
     ) {
         self.viewModel = viewModel
         self.coordinator = coordinator
@@ -65,14 +65,14 @@ final class MovieGridViewController: UIViewController {
     convenience init(
         source: MediaQuerySource,
         title: String,
-        coordinator: SearchCoordinator? = nil
+        coordinator: MoviesCoordinator? = nil
     ) {
         let viewModel = MovieGridViewModel(source: source)
         self.init(viewModel: viewModel, title: title, coordinator: coordinator)
     }
 
     /// Browse entry point: resolves the category/value pair into a real query.
-    convenience init(category: String, value: String, coordinator: SearchCoordinator? = nil) {
+    convenience init(category: String, value: String, coordinator: MoviesCoordinator? = nil) {
         let query = DiscoverQuery.make(category: category, value: value)
         self.init(source: query.map(MediaQuerySource.discover) ?? .unsupported, title: value, coordinator: coordinator)
     }

@@ -14,7 +14,6 @@ enum MainTabBarFactory {
         let mediaListVC = MoviesViewFactory.makeMovieList(coordinator: moviesCoordinator)
         moviesNav.viewControllers = [mediaListVC]
 
-        let searchMoviesVC = SearchMoviesViewController()
         let swipeDeckVC = SwipeViewFactory.makeSwipeDeck()
 
         let stubsNav = UINavigationController()
@@ -31,10 +30,6 @@ enum MainTabBarFactory {
         tabBar.setTabs(
             [
                 .init(
-                    title: "Movies", symbol: "film",
-                    navigationController: moviesNav
-                ),
-                .init(
                     title: "Swipe", symbol: "flame",
                     navigationController: UINavigationController(rootViewController: swipeDeckVC)
                 ),
@@ -47,7 +42,10 @@ enum MainTabBarFactory {
                     navigationController: libraryNav
                 )
             ],
-            searchNavigationController: UINavigationController(rootViewController: searchMoviesVC)
+            actionTab: .init(
+                title: "Home", symbol: "magnifyingglass",
+                navigationController: moviesNav
+            )
         )
         return tabBar
     }
