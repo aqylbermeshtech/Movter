@@ -58,14 +58,7 @@ struct LibraryView: View {
                     }
                 )
 
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(viewModel.selectedFolder.sectionTitle)
-                        .font(Font(UIFont.cardTitle))
-                        .foregroundStyle(Color(uiColor: .textPrimary))
-
-                    folderContentSpace
-                }
-                .padding(.top, 4)
+                folderContentSpace
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -78,11 +71,8 @@ struct LibraryView: View {
     private var folderContentSpace: some View {
         let items = viewModel.currentItems
         if items.isEmpty {
-            LibraryEmptyFolderSpace(
-                folder: viewModel.selectedFolder,
-                searchQuery: viewModel.searchText
-            )
-            .transition(.opacity.combined(with: .scale(scale: 0.98)))
+            LibraryEmptyFolderSpace()
+                .transition(.opacity)
         } else {
             LazyVGrid(columns: columns, spacing: 18) {
                 ForEach(items) { item in
@@ -150,7 +140,7 @@ private struct LibraryFolderToggleBar: View {
     let onSelect: (LibraryFolder) -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             ForEach(LibraryFolder.allCases) { folder in
                 let isSelected = folder == selectedFolder
 
@@ -159,7 +149,7 @@ private struct LibraryFolderToggleBar: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: folder.symbol)
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.system(size: 17, weight: .bold))
 
                         if isSelected {
                             Text(folder.title)
@@ -170,7 +160,7 @@ private struct LibraryFolderToggleBar: View {
                     }
                     .foregroundStyle(isSelected ? Color.white : Color(uiColor: .textSecondary))
                     .frame(maxWidth: isSelected ? .infinity : nil)
-                    .frame(width: isSelected ? nil : 50, height: 48)
+                    .frame(width: isSelected ? nil : 43, height: 48)
                     .background(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .fill(isSelected ? folder.activeColor : Color(uiColor: .surface))
@@ -195,55 +185,26 @@ private struct LibraryFolderToggleBar: View {
 // MARK: - Folder Content Space
 
 private struct LibraryEmptyFolderSpace: View {
-    let folder: LibraryFolder
-    let searchQuery: String
-
-    private var isSearching: Bool {
-        !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
     var body: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Color(uiColor: .canvas))
-                    .frame(width: 56, height: 56)
-                    .overlay(
-                        Circle()
-                            .strokeBorder(Color(uiColor: .hairline), lineWidth: 1)
-                    )
+        VStack(spacing: 8) {
+            Image(systemName: "tv")
+                .font(.system(size: 38, weight: .regular))
+                .foregroundStyle(Color(uiColor: .textSecondary))
+                .padding(.bottom, 4)
 
-                Image(systemName: isSearching ? "magnifyingglass" : folder.symbol)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(Color(uiColor: .textSecondary))
-            }
-
-            Text(isSearching ? "No Matching Shows" : folder.emptyTitle)
-                .font(Font(UIFont.placeholderTitle))
+            Text("No shows Yet")
+                .font(Font(UIFont.emptyStateTitle))
                 .foregroundStyle(Color(uiColor: .textPrimary))
                 .multilineTextAlignment(.center)
 
-            Text(
-                isSearching
-                    ? "Nothing in \(folder.title) matched \"\(searchQuery)\"."
-                    : folder.emptySubtitle
-            )
-            .font(Font(UIFont.secondaryBody))
-            .foregroundStyle(Color(uiColor: .textSecondary))
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, 24)
+            Text("Shows you add appear here. Find something to watch in Search.")
+                .font(Font(UIFont.secondaryBody))
+                .foregroundStyle(Color(uiColor: .textSecondary))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
         }
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 280)
-        .padding(.vertical, 36)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color(uiColor: .surface))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color(uiColor: .hairline), lineWidth: 1)
-        )
+        .padding(.top, 96)
     }
 }
 

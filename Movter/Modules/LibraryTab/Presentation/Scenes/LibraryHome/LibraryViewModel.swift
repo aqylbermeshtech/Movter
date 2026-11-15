@@ -26,16 +26,6 @@ enum LibraryFolder: String, CaseIterable, Identifiable {
         }
     }
 
-    var sectionTitle: String {
-        switch self {
-        case .upNext: return "Ready to Watch"
-        case .watchlist: return "Watchlist"
-        case .favorites: return "Favorites"
-        case .finished: return "Finished"
-        case .stopped: return "Stopped"
-        }
-    }
-
     var symbol: String {
         switch self {
         case .upNext: return "play.circle.fill"
@@ -58,26 +48,6 @@ enum LibraryFolder: String, CaseIterable, Identifiable {
             return Color(red: 0.18, green: 0.78, blue: 0.38)
         case .stopped:
             return Color(red: 0.45, green: 0.45, blue: 0.49)
-        }
-    }
-
-    var emptyTitle: String {
-        switch self {
-        case .upNext: return "Nothing Up Next"
-        case .watchlist: return "Watchlist is Empty"
-        case .favorites: return "No Favorites Yet"
-        case .finished: return "Nothing Finished Yet"
-        case .stopped: return "Nothing Stopped"
-        }
-    }
-
-    var emptySubtitle: String {
-        switch self {
-        case .upNext: return "Movies and shows you're currently watching or ready to start will appear here."
-        case .watchlist: return "Save movies and shows to your watchlist to keep track of what you want to see."
-        case .favorites: return "Mark your favorite movies and shows to quickly find them here."
-        case .finished: return "Films and shows you've finished watching will be listed here."
-        case .stopped: return "Movies and shows you've stopped watching will appear here."
         }
     }
 }
