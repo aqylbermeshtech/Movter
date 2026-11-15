@@ -110,6 +110,14 @@ final class HeroCarouselView: UIView {
         }
     }
 
+    func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
+        for indexPath in collectionView.indexPathsForVisibleItems where items[safe: indexPath.item]?.id == id {
+            guard let cell = collectionView.cellForItem(at: indexPath) as? HeroCarouselCell else { continue }
+            return cell.posterAnchor
+        }
+        return nil
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         if let layout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout,
@@ -246,6 +254,10 @@ final class HeroCarouselCell: UICollectionViewCell {
 
     private var mediaID: Int?
     private var posterTask: Task<Void, Never>?
+
+    var posterAnchor: PosterTransitionAnchor {
+        PosterTransitionAnchor(view: imageView, cornerRadius: imageView.layer.cornerRadius)
+    }
 
     private let imageView: UIImageView = {
         let iv = UIImageView()
