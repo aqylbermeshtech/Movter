@@ -16,7 +16,7 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
 
     private var lastNonSearchTab: UITab?
 
-    func setTabs(_ tabs: [Tab], searchNavigationController: UINavigationController? = nil) {
+    func setTabs(_ tabs: [Tab], actionTab: Tab? = nil) {
         var nativeTabs: [UITab] = tabs.enumerated().map { index, tab in
             tab.navigationController.enableInteractivePopGesture()
             return UITab(
@@ -28,17 +28,17 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
             }
         }
 
-        if let searchNav = searchNavigationController {
-            searchNav.enableInteractivePopGesture()
-            let searchTab = UISearchTab(
-                title: "Search",
-                image: UIImage(systemName: "magnifyingglass"),
-                identifier: "tab.search"
+        if let actionTab {
+            actionTab.navigationController.enableInteractivePopGesture()
+            let detachedTab = UISearchTab(
+                title: actionTab.title,
+                image: UIImage(systemName: actionTab.symbol),
+                identifier: "tab.action"
             ) { _ in
-                searchNav
+                actionTab.navigationController
             }
-            searchTab.automaticallyActivatesSearch = false
-            nativeTabs.append(searchTab)
+            detachedTab.automaticallyActivatesSearch = false
+            nativeTabs.append(detachedTab)
         }
 
         self.tabs = nativeTabs
