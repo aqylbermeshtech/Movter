@@ -72,6 +72,9 @@ struct StubsDeckView: View {
                     onAddTap: {
                         viewModel.addTopFavoriteTapped()
                     },
+                    onSelectFilm: { film in
+                        viewModel.didTapTopFavorite(film)
+                    },
                     onRemoveTap: { id in
                         viewModel.removeTopFavorite(id: id)
                     }

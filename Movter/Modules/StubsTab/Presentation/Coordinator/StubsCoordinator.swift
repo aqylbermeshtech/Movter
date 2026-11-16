@@ -10,6 +10,7 @@ protocol StubsCoordinator: AnyObject {
     func showAllStubs()
     func showTicketDetails(for review: Review)
     func showPickTopFavorite(onSelect: @escaping (FavoriteFilm) -> Void)
+    func showMovieDetails(for film: FavoriteFilm)
 }
 
 @MainActor
@@ -41,5 +42,11 @@ final class DefaultStubsCoordinator: StubsCoordinator {
         let nav = UINavigationController(rootViewController: pickerVC)
         presentedNav = nav
         navigationController?.present(nav, animated: true)
+    }
+
+    func showMovieDetails(for film: FavoriteFilm) {
+        let moviesCoordinator = DefaultMoviesCoordinator(navigationController: navigationController)
+        let detailsVC = MoviesViewFactory.makeMovieDetails(media: film.asMedia, coordinator: moviesCoordinator)
+        navigationController?.pushViewController(detailsVC, animated: true)
     }
 }

@@ -11,6 +11,7 @@ import UIKit
 struct TopFavoritesSectionView: View {
     let favorites: [FavoriteFilm]
     let onAddTap: () -> Void
+    let onSelectFilm: (FavoriteFilm) -> Void
     let onRemoveTap: (Int) -> Void
 
     private static let maxSlots = 4
@@ -46,14 +47,19 @@ struct TopFavoritesSectionView: View {
                 HStack(spacing: 12) {
                     ForEach(0..<Self.maxSlots, id: \.self) { index in
                         if let film = favorites[safe: index] {
-                            FavoritePosterCard(film: film)
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        onRemoveTap(film.id)
-                                    } label: {
-                                        Label("Remove from Top 4", systemImage: "trash")
-                                    }
+                            Button {
+                                onSelectFilm(film)
+                            } label: {
+                                FavoritePosterCard(film: film)
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    onRemoveTap(film.id)
+                                } label: {
+                                    Label("Remove from Top 4", systemImage: "trash")
                                 }
+                            }
                         } else {
                             emptySlot(showsPlus: index == favorites.count)
                         }
