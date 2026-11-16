@@ -13,7 +13,6 @@ final class MediaListViewController: UIViewController {
     private let watchlistStore: WatchlistStoring
     private let coordinator: MoviesCoordinator?
 
-    private let headerView = HomeHeaderView()
     private let heroView = HeroCarouselView()
     private let trendingView = TrendingMediaGridView()
 
@@ -106,21 +105,14 @@ final class MediaListViewController: UIViewController {
     }
 
     private func setupUI() {
-        view.addSubview(headerView)
         view.addSubview(scrollView)
         view.addSubview(offlineView)
 
-        headerView.translatesAutoresizingMaskIntoConstraints = false
         heroView.translatesAutoresizingMaskIntoConstraints = false
         trendingView.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
-            headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            headerView.heightAnchor.constraint(equalToConstant: HomeHeaderView.preferredHeight),
-
-            scrollView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -144,7 +136,7 @@ final class MediaListViewController: UIViewController {
         ])
 
         NSLayoutConstraint.activate([
-            offlineView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            offlineView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             offlineView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             offlineView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             offlineView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
