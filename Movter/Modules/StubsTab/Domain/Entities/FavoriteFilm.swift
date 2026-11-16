@@ -17,6 +17,22 @@ struct FavoriteFilm: Codable, Equatable, Identifiable {
         TMDBImageURL.url(path: posterPath, width: .poster)
     }
 
+    var asMedia: Media {
+        Media(
+            id: id,
+            title: title,
+            name: nil,
+            overview: "",
+            posterPath: posterPath,
+            backdropPath: nil,
+            releaseDate: year,
+            firstAirDate: nil,
+            voteAverage: 0,
+            voteCount: nil,
+            genreIds: nil
+        )
+    }
+
     init(id: Int, title: String, posterPath: String? = nil, year: String? = nil) {
         self.id = id
         self.title = title

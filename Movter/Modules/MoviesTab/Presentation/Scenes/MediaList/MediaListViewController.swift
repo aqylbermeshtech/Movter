@@ -13,7 +13,6 @@ final class MediaListViewController: UIViewController {
     private let watchlistStore: WatchlistStoring
     private let coordinator: MoviesCoordinator?
 
-    private let headerView = HomeHeaderView()
     private let heroView = HeroCarouselView()
     private let trendingView = TrendingMediaGridView()
 
@@ -28,6 +27,7 @@ final class MediaListViewController: UIViewController {
         let scrollView = UIScrollView()
         scrollView.showsVerticalScrollIndicator = false
         scrollView.alwaysBounceVertical = true
+        scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         return scrollView
     }()
@@ -106,21 +106,14 @@ final class MediaListViewController: UIViewController {
     }
 
     private func setupUI() {
-        view.addSubview(headerView)
         view.addSubview(scrollView)
         view.addSubview(offlineView)
 
-        headerView.translatesAutoresizingMaskIntoConstraints = false
         heroView.translatesAutoresizingMaskIntoConstraints = false
         trendingView.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
-            headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            headerView.heightAnchor.constraint(equalToConstant: HomeHeaderView.preferredHeight),
-
-            scrollView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -133,10 +126,10 @@ final class MediaListViewController: UIViewController {
         scrollView.addSubview(content)
 
         NSLayoutConstraint.activate([
-            content.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 16),
+            content.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
             content.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
             content.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
-            content.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -16),
+            content.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -100),
             content.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
 
             heroView.heightAnchor.constraint(equalToConstant: HeroCarouselView.sectionHeight),
@@ -144,7 +137,7 @@ final class MediaListViewController: UIViewController {
         ])
 
         NSLayoutConstraint.activate([
-            offlineView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            offlineView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             offlineView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             offlineView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             offlineView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -269,6 +262,23 @@ extension MediaListViewController: PosterTransitionSource {
 // MARK: - Search
 
 extension MediaListViewController: UISearchBarDelegate {
+    func searchBarShouldBeginEditing(_ searchBar: UISearchBar) -> Bool {
+        let overlay = MoviesViewFactory.makeSearchOverlay { [weak self] term in
+            guard let self = self else { return }
+            let trimmed = term.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard trimmed.count >= 2 else { return }
+            let resultsVC = MovieGridViewController(
+                source: .search(trimmed),
+                title: "“\(trimmed)”",
+                coordinator: self.coordinator
+            )
+            self.navigationController?.pushViewController(resultsVC, animated: true)
+        }
+        overlay.modalPresentationStyle = .fullScreen
+        present(overlay, animated: true)
+        return false
+    }
+
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         let trimmed = (searchBar.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 2 else { return }

@@ -62,6 +62,10 @@ final class StubsDeckViewModel: ObservableObject {
         coordinator?.showAllStubs()
     }
 
+    func didTapTopFavorite(_ film: FavoriteFilm) {
+        coordinator?.showMovieDetails(for: film)
+    }
+
     func addTopFavoriteTapped() {
         guard topFavorites.count < DefaultUpdateTopFavoritesUseCase.maxCount else { return }
         coordinator?.showPickTopFavorite { [weak self] film in

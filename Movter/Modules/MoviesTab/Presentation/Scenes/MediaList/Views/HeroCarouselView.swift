@@ -15,9 +15,9 @@ final class HeroCarouselView: UIView {
     private var items: [Media] = []
     private var watchlistedIDs: Set<Int> = []
 
-    private static let horizontalInset: CGFloat = 16
+    private static let horizontalInset: CGFloat = 0
 
-    static let imageAspect: CGFloat = 1.48
+    static let imageAspect: CGFloat = 1.45
     private static let pageControlHeight: CGFloat = 16
     private static let pageControlSpacing: CGFloat = 14
 
@@ -249,7 +249,7 @@ final class HeroCarouselCell: UICollectionViewCell {
     var onPlay: (() -> Void)?
     var onWatchlist: (() -> Void)?
 
-    private static let sideInset: CGFloat = 16
+    private static let sideInset: CGFloat = 0
     private static let contentInset: CGFloat = 18
 
     private var mediaID: Int?
@@ -263,8 +263,7 @@ final class HeroCarouselCell: UICollectionViewCell {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 20
-        iv.layer.cornerCurve = .continuous
+        iv.layer.cornerRadius = 0
         iv.backgroundColor = .surface
         iv.tintColor = .textSecondary
         iv.isUserInteractionEnabled = true

@@ -84,4 +84,12 @@ enum MoviesViewFactory {
     ) -> TrailerViewController {
         TrailerViewController(filmTitle: filmTitle, request: request)
     }
+
+    static func makeSearchOverlay(
+        onSubmit: @escaping (String) -> Void
+    ) -> UIViewController {
+        let viewController = SearchOverlayViewController()
+        viewController.onSubmit = onSubmit
+        return viewController
+    }
 }

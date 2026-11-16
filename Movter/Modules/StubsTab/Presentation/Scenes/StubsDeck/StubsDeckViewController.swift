@@ -31,6 +31,11 @@ final class StubsDeckViewController: UIHostingController<StubsDeckView> {
         navigationController?.setNavigationBarHidden(true, animated: animated)
         viewModel.loadStubs()
     }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
 }
 
 struct StubsDeckView: View {
@@ -71,6 +76,9 @@ struct StubsDeckView: View {
                     favorites: viewModel.topFavorites,
                     onAddTap: {
                         viewModel.addTopFavoriteTapped()
+                    },
+                    onSelectFilm: { film in
+                        viewModel.didTapTopFavorite(film)
                     },
                     onRemoveTap: { id in
                         viewModel.removeTopFavorite(id: id)

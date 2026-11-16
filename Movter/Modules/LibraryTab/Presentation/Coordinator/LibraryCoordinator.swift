@@ -6,7 +6,9 @@
 import UIKit
 
 @MainActor
-protocol LibraryCoordinator: AnyObject {}
+protocol LibraryCoordinator: AnyObject {
+    func showMovieDetails(for item: LibraryMediaItem)
+}
 
 @MainActor
 final class DefaultLibraryCoordinator: LibraryCoordinator {
@@ -14,5 +16,11 @@ final class DefaultLibraryCoordinator: LibraryCoordinator {
 
     init(navigationController: UINavigationController?) {
         self.navigationController = navigationController
+    }
+
+    func showMovieDetails(for item: LibraryMediaItem) {
+        let moviesCoordinator = DefaultMoviesCoordinator(navigationController: navigationController)
+        let detailsVC = MoviesViewFactory.makeMovieDetails(media: item.asMedia, coordinator: moviesCoordinator)
+        navigationController?.pushViewController(detailsVC, animated: true)
     }
 }

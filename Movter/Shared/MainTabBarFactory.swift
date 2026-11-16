@@ -30,16 +30,16 @@ enum MainTabBarFactory {
         tabBar.setTabs(
             [
                 .init(
-                    title: "Swipe", symbol: "flame",
-                    navigationController: UINavigationController(rootViewController: swipeDeckVC)
+                    title: "Library", symbol: "books.vertical",
+                    navigationController: libraryNav
                 ),
                 .init(
                     title: "Stubs", symbol: "ticket",
                     navigationController: stubsNav
                 ),
                 .init(
-                    title: "Library", symbol: "books.vertical",
-                    navigationController: libraryNav
+                    title: "Swipe", symbol: "flame",
+                    navigationController: UINavigationController(rootViewController: swipeDeckVC)
                 )
             ],
             actionTab: .init(

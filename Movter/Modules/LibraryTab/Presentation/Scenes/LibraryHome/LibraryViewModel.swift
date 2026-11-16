@@ -63,6 +63,22 @@ struct LibraryMediaItem: Identifiable, Equatable {
     var posterURL: URL? {
         TMDBImageURL.url(path: posterPath, width: .poster)
     }
+
+    var asMedia: Media {
+        Media(
+            id: tmdbID,
+            title: title,
+            name: nil,
+            overview: "",
+            posterPath: posterPath,
+            backdropPath: nil,
+            releaseDate: year,
+            firstAirDate: nil,
+            voteAverage: 0,
+            voteCount: nil,
+            genreIds: nil
+        )
+    }
 }
 
 @MainActor
@@ -86,7 +102,11 @@ final class LibraryViewModel: ObservableObject {
     }
 
     var currentItems: [LibraryMediaItem] {
-        let folderItems = itemsByFolder[selectedFolder] ?? []
+        items(for: selectedFolder)
+    }
+
+    func items(for folder: LibraryFolder) -> [LibraryMediaItem] {
+        let folderItems = itemsByFolder[folder] ?? []
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return folderItems }
         return folderItems.filter {
@@ -97,6 +117,10 @@ final class LibraryViewModel: ObservableObject {
 
     func selectFolder(_ folder: LibraryFolder) {
         selectedFolder = folder
+    }
+
+    func didSelectItem(_ item: LibraryMediaItem) {
+        coordinator?.showMovieDetails(for: item)
     }
 
     func loadLibrary() {

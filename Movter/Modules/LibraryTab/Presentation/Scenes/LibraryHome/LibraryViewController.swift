@@ -45,41 +45,56 @@ struct LibraryView: View {
     ]
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 20) {
-                LibrarySearchBar(text: $viewModel.searchText)
+        VStack(alignment: .leading, spacing: 20) {
+            LibrarySearchBar(text: $viewModel.searchText)
+                .padding(.horizontal, 16)
 
-                LibraryFolderToggleBar(
-                    selectedFolder: viewModel.selectedFolder,
-                    onSelect: { folder in
-                        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-                            viewModel.selectFolder(folder)
-                        }
+            LibraryFolderToggleBar(
+                selectedFolder: viewModel.selectedFolder,
+                onSelect: { folder in
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                        viewModel.selectFolder(folder)
                     }
-                )
-
-                folderContentSpace
-            }
+                }
+            )
             .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 32)
+
+            TabView(
+                selection: $viewModel.selectedFolder.animation(.spring(response: 0.32, dampingFraction: 0.82))
+            ) {
+                ForEach(LibraryFolder.allCases) { folder in
+                    folderPage(for: folder)
+                        .tag(folder)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
         }
+        .padding(.top, 8)
         .background(Color(uiColor: .canvas).ignoresSafeArea())
     }
 
     @ViewBuilder
-    private var folderContentSpace: some View {
-        let items = viewModel.currentItems
-        if items.isEmpty {
-            LibraryEmptyFolderSpace()
-                .transition(.opacity)
-        } else {
-            LazyVGrid(columns: columns, spacing: 18) {
-                ForEach(items) { item in
-                    LibraryPosterCard(item: item)
+    private func folderPage(for folder: LibraryFolder) -> some View {
+        let items = viewModel.items(for: folder)
+        ScrollView(showsIndicators: false) {
+            Group {
+                if items.isEmpty {
+                    LibraryEmptyFolderSpace()
+                } else {
+                    LazyVGrid(columns: columns, spacing: 18) {
+                        ForEach(items) { item in
+                            Button {
+                                viewModel.didSelectItem(item)
+                            } label: {
+                                LibraryPosterCard(item: item)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 }
             }
-            .transition(.opacity)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 32)
         }
     }
 }
