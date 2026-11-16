@@ -261,6 +261,23 @@ extension MediaListViewController: PosterTransitionSource {
 // MARK: - Search
 
 extension MediaListViewController: UISearchBarDelegate {
+    func searchBarShouldBeginEditing(_ searchBar: UISearchBar) -> Bool {
+        let overlay = MoviesViewFactory.makeSearchOverlay { [weak self] term in
+            guard let self = self else { return }
+            let trimmed = term.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard trimmed.count >= 2 else { return }
+            let resultsVC = MovieGridViewController(
+                source: .search(trimmed),
+                title: "“\(trimmed)”",
+                coordinator: self.coordinator
+            )
+            self.navigationController?.pushViewController(resultsVC, animated: true)
+        }
+        overlay.modalPresentationStyle = .fullScreen
+        present(overlay, animated: true)
+        return false
+    }
+
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         let trimmed = (searchBar.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 2 else { return }
