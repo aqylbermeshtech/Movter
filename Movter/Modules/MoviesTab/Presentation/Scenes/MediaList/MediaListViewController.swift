@@ -27,6 +27,7 @@ final class MediaListViewController: UIViewController {
         let scrollView = UIScrollView()
         scrollView.showsVerticalScrollIndicator = false
         scrollView.alwaysBounceVertical = true
+        scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         return scrollView
     }()
@@ -125,10 +126,10 @@ final class MediaListViewController: UIViewController {
         scrollView.addSubview(content)
 
         NSLayoutConstraint.activate([
-            content.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 16),
+            content.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
             content.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
             content.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
-            content.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -16),
+            content.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -100),
             content.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
 
             heroView.heightAnchor.constraint(equalToConstant: HeroCarouselView.sectionHeight),
