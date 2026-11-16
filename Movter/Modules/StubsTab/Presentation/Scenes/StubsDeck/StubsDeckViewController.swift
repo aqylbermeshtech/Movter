@@ -31,6 +31,11 @@ final class StubsDeckViewController: UIHostingController<StubsDeckView> {
         navigationController?.setNavigationBarHidden(true, animated: animated)
         viewModel.loadStubs()
     }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
 }
 
 struct StubsDeckView: View {
