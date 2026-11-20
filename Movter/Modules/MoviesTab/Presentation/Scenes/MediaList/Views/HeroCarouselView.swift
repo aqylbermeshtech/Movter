@@ -14,6 +14,7 @@ final class HeroCarouselView: UIView {
 
     private var items: [Media] = []
     private var watchlistedIDs: Set<Int> = []
+    private var watchedIDs: Set<Int> = []
 
     private static let horizontalInset: CGFloat = 0
 
@@ -110,6 +111,16 @@ final class HeroCarouselView: UIView {
         }
     }
 
+    func setWatchedIDs(_ ids: Set<Int>) {
+        guard ids != watchedIDs else { return }
+        watchedIDs = ids
+        for case let cell as HeroCarouselCell in collectionView.visibleCells {
+            guard let indexPath = collectionView.indexPath(for: cell),
+                  let media = items[safe: indexPath.item] else { continue }
+            cell.setWatched(ids.contains(media.id))
+        }
+    }
+
     func transitionPoster(forMediaID id: Int) -> PosterTransitionAnchor? {
         for indexPath in collectionView.indexPathsForVisibleItems where items[safe: indexPath.item]?.id == id {
             guard let cell = collectionView.cellForItem(at: indexPath) as? HeroCarouselCell else { continue }
@@ -136,9 +147,14 @@ extension HeroCarouselView: UICollectionViewDataSource, UICollectionViewDelegate
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HeroCarouselCell.identifier, for: indexPath) as! HeroCarouselCell
         let media = items[indexPath.item]
-        cell.configure(with: media, isWatchlisted: watchlistedIDs.contains(media.id))
+        cell.configure(
+            with: media,
+            isWatchlisted: watchlistedIDs.contains(media.id),
+            isWatched: watchedIDs.contains(media.id)
+        )
         cell.onPlay = { [weak self] in self?.onPlaySelected?(media) }
         cell.onWatchlist = { [weak self] in self?.onWatchlistToggled?(media) }
+        cell.onSeen = { [weak self] in self?.onMovieSelected?(media) }
         return cell
     }
 
@@ -248,6 +264,7 @@ final class HeroCarouselCell: UICollectionViewCell {
 
     var onPlay: (() -> Void)?
     var onWatchlist: (() -> Void)?
+    var onSeen: (() -> Void)?
 
     private static let sideInset: CGFloat = 0
     private static let contentInset: CGFloat = 18
@@ -345,13 +362,36 @@ final class HeroCarouselCell: UICollectionViewCell {
         return button
     }()
 
+    private lazy var seenButton: UIButton = {
+        var config = UIButton.Configuration.filled()
+        config.cornerStyle = .capsule
+        config.image = UIImage(
+            systemName: "checkmark",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+        )
+        config.imagePadding = 6
+        config.contentInsets = NSDirectionalEdgeInsets(top: 11, leading: 20, bottom: 11, trailing: 20)
+        config.baseBackgroundColor = UIColor(red: 0.95, green: 0.83, blue: 0.04, alpha: 1)
+        config.baseForegroundColor = .black
+        config.attributedTitle = AttributedString(
+            "Seen",
+            attributes: AttributeContainer([.font: UIFont.movter(size: 14, weight: .semibold)])
+        )
+        let button = UIButton(configuration: config)
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
+        button.addAction(UIAction { [weak self] _ in self?.onSeen?() }, for: .touchUpInside)
+        button.isHidden = true
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
     override init(frame: CGRect) {
         super.init(frame: frame)
 
         contentView.addSubview(imageView)
         imageView.addSubview(scrimView)
 
-        let actions = UIStackView(arrangedSubviews: [watchlistButton, playButton])
+        let actions = UIStackView(arrangedSubviews: [watchlistButton, playButton, seenButton])
         actions.axis = .horizontal
         actions.spacing = 10
         actions.alignment = .center
@@ -404,9 +444,10 @@ final class HeroCarouselCell: UICollectionViewCell {
         metaLabel.isHidden = true
         onPlay = nil
         onWatchlist = nil
+        onSeen = nil
     }
 
-    func configure(with media: Media, isWatchlisted: Bool) {
+    func configure(with media: Media, isWatchlisted: Bool, isWatched: Bool) {
         posterTask?.cancel()
         mediaID = media.id
         logoImageView.image = nil
@@ -414,6 +455,7 @@ final class HeroCarouselCell: UICollectionViewCell {
         fallbackTitleLabel.text = media.displayName
         fallbackTitleLabel.isHidden = false
         setWatchlisted(isWatchlisted)
+        setWatched(isWatched)
         setMeta(year: media.year, genre: nil)
 
         GenreProvider.shared.primaryGenreName(for: media.genreIds, type: media.mediaType) { [weak self] genre in
@@ -486,6 +528,12 @@ final class HeroCarouselCell: UICollectionViewCell {
         )
         watchlistButton.configuration = config
         watchlistButton.accessibilityLabel = isWatchlisted ? "Remove from watchlist" : "Add to watchlist"
+    }
+
+    func setWatched(_ isWatched: Bool) {
+        seenButton.isHidden = !isWatched
+        watchlistButton.isHidden = isWatched
+        playButton.isHidden = isWatched
     }
 
     private func setMeta(year: String?, genre: String?) {
