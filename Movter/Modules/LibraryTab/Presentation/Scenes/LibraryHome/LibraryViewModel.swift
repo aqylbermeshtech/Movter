@@ -8,45 +8,40 @@ import Foundation
 import SwiftUI
 
 enum LibraryFolder: String, CaseIterable, Identifiable {
-    case upNext
     case watchlist
+    case comingSoon
     case favorites
-    case finished
-    case stopped
+    case seen
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .upNext: return "Up Next"
         case .watchlist: return "Watchlist"
+        case .comingSoon: return "Coming Soon"
         case .favorites: return "Favorites"
-        case .finished: return "Finished"
-        case .stopped: return "Stopped"
+        case .seen: return "Seen"
         }
     }
 
     var symbol: String {
         switch self {
-        case .upNext: return "play.circle.fill"
         case .watchlist: return "bookmark.fill"
+        case .comingSoon: return "clock.fill"
         case .favorites: return "heart.fill"
-        case .finished: return "checkmark.seal.fill"
-        case .stopped: return "archivebox.fill"
+        case .seen: return "eye.fill"
         }
     }
 
     var activeColor: Color {
         switch self {
-        case .upNext:
-            return Color(red: 0.95, green: 0.83, blue: 0.04)
         case .watchlist:
             return Color(red: 0.62, green: 0.31, blue: 0.96)
+        case .comingSoon:
+            return Color(red: 0.18, green: 0.78, blue: 0.38)
         case .favorites:
             return Color(red: 0.92, green: 0.24, blue: 0.28)
-        case .finished:
-            return Color(red: 0.18, green: 0.78, blue: 0.38)
-        case .stopped:
+        case .seen:
             return Color(red: 0.45, green: 0.45, blue: 0.49)
         }
     }
@@ -57,8 +52,27 @@ struct LibraryMediaItem: Identifiable, Equatable {
     let tmdbID: Int
     let title: String
     let year: String?
+    let releaseDate: String?
     let posterPath: String?
     let subtitle: String?
+
+    init(
+        id: String,
+        tmdbID: Int,
+        title: String,
+        year: String?,
+        releaseDate: String? = nil,
+        posterPath: String?,
+        subtitle: String?
+    ) {
+        self.id = id
+        self.tmdbID = tmdbID
+        self.title = title
+        self.year = year
+        self.releaseDate = releaseDate
+        self.posterPath = posterPath
+        self.subtitle = subtitle
+    }
 
     var posterURL: URL? {
         TMDBImageURL.url(path: posterPath, width: .poster)
@@ -72,7 +86,7 @@ struct LibraryMediaItem: Identifiable, Equatable {
             overview: "",
             posterPath: posterPath,
             backdropPath: nil,
-            releaseDate: year,
+            releaseDate: releaseDate ?? year,
             firstAirDate: nil,
             voteAverage: 0,
             voteCount: nil,
@@ -84,7 +98,7 @@ struct LibraryMediaItem: Identifiable, Equatable {
 @MainActor
 final class LibraryViewModel: ObservableObject {
     @Published var searchText: String = ""
-    @Published var selectedFolder: LibraryFolder = .upNext
+    @Published var selectedFolder: LibraryFolder = .watchlist
     @Published private(set) var itemsByFolder: [LibraryFolder: [LibraryMediaItem]] = [:]
 
     private let watchlistRepository: WatchlistRepository
@@ -129,23 +143,41 @@ final class LibraryViewModel: ObservableObject {
             let watched = (try? await watchlistRepository.fetchAll(list: .watched)) ?? []
             let favorites = await favoritesRepository.fetchTopFavorites()
 
-            let watchlistMapped = watchlist.map {
-                LibraryMediaItem(
-                    id: "watchlist-\($0.id.uuidString)",
-                    tmdbID: $0.tmdbID,
-                    title: $0.title,
-                    year: $0.year,
-                    posterPath: $0.posterPath,
-                    subtitle: $0.year
-                )
-            }
+            let watchlistMapped = watchlist
+                .filter { !$0.isUnreleased }
+                .map {
+                    LibraryMediaItem(
+                        id: "watchlist-\($0.id.uuidString)",
+                        tmdbID: $0.tmdbID,
+                        title: $0.title,
+                        year: $0.year,
+                        releaseDate: $0.releaseDate,
+                        posterPath: $0.posterPath,
+                        subtitle: $0.year
+                    )
+                }
 
-            let finishedMapped = watched.map {
+            let comingSoonMapped = watchlist
+                .filter(\.isUnreleased)
+                .map {
+                    LibraryMediaItem(
+                        id: "coming-soon-\($0.id.uuidString)",
+                        tmdbID: $0.tmdbID,
+                        title: $0.title,
+                        year: $0.year,
+                        releaseDate: $0.releaseDate,
+                        posterPath: $0.posterPath,
+                        subtitle: $0.releaseDate ?? $0.year
+                    )
+                }
+
+            let seenMapped = watched.map {
                 LibraryMediaItem(
-                    id: "finished-\($0.id.uuidString)",
+                    id: "seen-\($0.id.uuidString)",
                     tmdbID: $0.tmdbID,
                     title: $0.title,
                     year: $0.year,
+                    releaseDate: $0.releaseDate,
                     posterPath: $0.posterPath,
                     subtitle: $0.year
                 )
@@ -162,13 +194,10 @@ final class LibraryViewModel: ObservableObject {
                 )
             }
 
-            itemsByFolder[.upNext] = Array(watchlistMapped.prefix(6))
             itemsByFolder[.watchlist] = watchlistMapped
+            itemsByFolder[.comingSoon] = comingSoonMapped
             itemsByFolder[.favorites] = favoritesMapped
-            itemsByFolder[.finished] = finishedMapped
-            if itemsByFolder[.stopped] == nil {
-                itemsByFolder[.stopped] = []
-            }
+            itemsByFolder[.seen] = seenMapped
         }
     }
 }
