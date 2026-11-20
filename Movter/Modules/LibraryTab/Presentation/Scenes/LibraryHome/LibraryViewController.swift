@@ -254,13 +254,6 @@ private struct LibraryPosterCard: View {
                 .font(Font(UIFont.cellTitle))
                 .foregroundStyle(Color(uiColor: .textPrimary))
                 .lineLimit(1)
-
-            if let subtitle = item.subtitle, !subtitle.isEmpty {
-                Text(subtitle)
-                    .font(Font(UIFont.caption))
-                    .foregroundStyle(Color(uiColor: .textSecondary))
-                    .lineLimit(1)
-            }
         }
         .task(id: item.id) {
             guard let url = item.posterURL else { return }

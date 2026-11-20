@@ -11,6 +11,7 @@ import UIKit
 final class MediaListViewController: UIViewController {
     private let viewModel: MediaListViewModel
     private let watchlistStore: WatchlistStoring
+    private let watchedStore: WatchlistStoring
     private let coordinator: MoviesCoordinator?
 
     private let heroView = HeroCarouselView()
@@ -37,16 +38,26 @@ final class MediaListViewController: UIViewController {
     init(
         viewModel: MediaListViewModel,
         watchlistStore: WatchlistStoring = WatchlistStoreFactory.makeStore(),
+        watchedStore: WatchlistStoring = WatchedFilmsStoreFactory.makeStore(),
         coordinator: MoviesCoordinator? = nil
     ) {
         self.viewModel = viewModel
         self.watchlistStore = watchlistStore
+        self.watchedStore = watchedStore
         self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
 
-    convenience init(watchlistStore: WatchlistStoring = WatchlistStoreFactory.makeStore()) {
-        self.init(viewModel: MediaListViewModel(), watchlistStore: watchlistStore, coordinator: nil)
+    convenience init(
+        watchlistStore: WatchlistStoring = WatchlistStoreFactory.makeStore(),
+        watchedStore: WatchlistStoring = WatchedFilmsStoreFactory.makeStore()
+    ) {
+        self.init(
+            viewModel: MediaListViewModel(),
+            watchlistStore: watchlistStore,
+            watchedStore: watchedStore,
+            coordinator: nil
+        )
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -183,6 +194,10 @@ final class MediaListViewController: UIViewController {
             guard let self = self, case let .success(items) = result else { return }
             self.watchlistItemIDs = Dictionary(items.map { ($0.tmdbID, $0.id) }, uniquingKeysWith: { first, _ in first })
             self.heroView.setWatchlistedIDs(Set(self.watchlistItemIDs.keys))
+        }
+        watchedStore.fetchAll { [weak self] result in
+            guard let self = self, case let .success(items) = result else { return }
+            self.heroView.setWatchedIDs(Set(items.map(\.tmdbID)))
         }
     }
 

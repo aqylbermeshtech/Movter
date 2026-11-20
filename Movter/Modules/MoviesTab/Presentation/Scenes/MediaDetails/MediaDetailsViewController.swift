@@ -75,19 +75,20 @@ final class MediaDetailsViewController: UIViewController {
     private lazy var trailerButton: UIButton = {
         var config = UIButton.Configuration.filled()
         config.cornerStyle = .capsule
-        config.baseBackgroundColor = .accent
-        config.baseForegroundColor = .onAccent
+        config.baseBackgroundColor = .white
+        config.baseForegroundColor = .black
         config.imagePadding = 6
         config.image = UIImage(
             systemName: "play.fill",
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .bold)
         )
         config.attributedTitle = AttributedString(
-            "Trailer",
-            attributes: AttributeContainer([.font: UIFont.capsuleButton])
+            "Play",
+            attributes: AttributeContainer([.font: UIFont.movter(size: 15, weight: .semibold)])
         )
-        config.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 18)
+        config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 22)
         let button = UIButton(configuration: config)
+        button.setContentHuggingPriority(.required, for: .horizontal)
         button.addTarget(self, action: #selector(trailerTapped), for: .touchUpInside)
         button.isHidden = true
         button.accessibilityHint = "Plays the trailer"
@@ -300,7 +301,7 @@ final class MediaDetailsViewController: UIViewController {
         configure()
         bindViewModel()
         renderWatchedState()
-        renderWatchlistState()
+        renderFavoriteState()
         viewModel.loadWatchedState()
         viewModel.loadWatchlistState()
         viewModel.fetchTrailer()
@@ -346,12 +347,11 @@ final class MediaDetailsViewController: UIViewController {
         viewModel.onWatchedChange = { [weak self] in
             self?.renderWatchedState()
         }
-        viewModel.onWatchlistChange = { [weak self] in
-            self?.renderWatchlistState()
+        viewModel.onFavoriteChange = { [weak self] in
+            self?.renderFavoriteState()
         }
         viewModel.onVideoUpdate = { [weak self] _ in
-            guard let self = self else { return }
-            self.trailerButton.isHidden = self.viewModel.trailerRequest == nil
+            self?.renderWatchedState()
         }
         viewModel.onCreditsUpdate = { [weak self] in
             DispatchQueue.main.async {
@@ -431,36 +431,38 @@ final class MediaDetailsViewController: UIViewController {
     @objc private func themeDidChange() {
         renderMetadata()
         renderWatchedState()
-        renderWatchlistState()
+        renderFavoriteState()
     }
 
     @objc private func watchedTapped() {
-        viewModel.toggleWatched()
+        viewModel.advanceTrackingState()
     }
 
     @objc private func watchlistTapped() {
-        viewModel.toggleWatchlist()
+        viewModel.toggleFavorite()
     }
 
-    private func renderWatchlistState() {
-        let isInWatchlist = viewModel.isInWatchlist
+    private func renderFavoriteState() {
+        let isFavorite = viewModel.isFavorite
         watchlistButton.configuration?.baseBackgroundColor = UIColor.black.withAlphaComponent(0.55)
-        watchlistButton.configuration?.baseForegroundColor = isInWatchlist ? .accent : .white
+        watchlistButton.configuration?.baseForegroundColor = isFavorite
+            ? UIColor(red: 0.92, green: 0.24, blue: 0.28, alpha: 1)
+            : .white
         watchlistButton.configuration?.background.strokeColor = UIColor.white.withAlphaComponent(0.22)
         watchlistButton.configuration?.background.strokeWidth = 1
         watchlistButton.configuration?.image = UIImage(
-            systemName: viewModel.watchlistButtonSymbol,
+            systemName: viewModel.favoriteButtonSymbol,
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold)
         )
         watchlistButton.configuration?.attributedTitle = nil
-        watchlistButton.accessibilityLabel = isInWatchlist
-            ? "In your watchlist. Double tap to remove." : "Add to watchlist"
+        watchlistButton.accessibilityLabel = isFavorite
+            ? "In your favorites. Double tap to remove." : "Add to favorites"
     }
 
     private func renderWatchedState() {
         let isWatched = viewModel.isWatched
         watchedButton.configuration?.baseBackgroundColor = isWatched
-            ? .white
+            ? UIColor(red: 0.95, green: 0.83, blue: 0.04, alpha: 1)
             : UIColor.black.withAlphaComponent(0.55)
         watchedButton.configuration?.baseForegroundColor = isWatched ? .black : .white
         watchedButton.configuration?.background.strokeColor = isWatched
@@ -475,8 +477,17 @@ final class MediaDetailsViewController: UIViewController {
             viewModel.watchedButtonTitle,
             attributes: AttributeContainer([.font: UIFont.movter(size: 15, weight: .semibold)])
         )
-        watchedButton.accessibilityLabel = isWatched
-            ? "Seen. Double tap to unmark." : "Mark as Seen"
+        if isWatched {
+            watchedButton.accessibilityLabel = "Seen. Double tap to unmark."
+        } else if viewModel.isInWatchlist {
+            watchedButton.accessibilityLabel = "Mark as Seen"
+        } else {
+            watchedButton.accessibilityLabel = "Add to Watchlist"
+        }
+
+        let isTracked = viewModel.isInWatchlist || isWatched
+        watchlistButton.isHidden = !isTracked
+        trailerButton.isHidden = isTracked || viewModel.trailerRequest == nil
     }
 
     @objc private func connectivityChanged() {
@@ -534,7 +545,7 @@ final class MediaDetailsViewController: UIViewController {
         metadataLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         trailerButton.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        let posterActionRow = UIStackView(arrangedSubviews: [watchedButton, watchlistButton])
+        let posterActionRow = UIStackView(arrangedSubviews: [watchedButton, trailerButton, watchlistButton])
         posterActionRow.axis = .horizontal
         posterActionRow.spacing = 10
         posterActionRow.alignment = .fill
@@ -553,13 +564,8 @@ final class MediaDetailsViewController: UIViewController {
         imageView.addSubview(posterScrimView)
         imageView.addSubview(posterStack)
 
-        let headerRow = UIStackView(arrangedSubviews: [metadataLabel, trailerButton])
-        headerRow.axis = .horizontal
-        headerRow.spacing = 12
-        headerRow.alignment = .center
-
         let stack = UIStackView(arrangedSubviews: [
-            headerRow,
+            metadataLabel,
             descriptionView,
             reviewLabel,
             miniReviewView,
@@ -607,6 +613,7 @@ final class MediaDetailsViewController: UIViewController {
             logoImageView.heightAnchor.constraint(lessThanOrEqualToConstant: 76),
 
             watchedButton.heightAnchor.constraint(equalToConstant: 50),
+            trailerButton.heightAnchor.constraint(equalToConstant: 50),
             watchlistButton.widthAnchor.constraint(equalToConstant: 50),
             watchlistButton.heightAnchor.constraint(equalToConstant: 50),
             posterActionRow.widthAnchor.constraint(equalTo: imageView.widthAnchor, constant: -32),

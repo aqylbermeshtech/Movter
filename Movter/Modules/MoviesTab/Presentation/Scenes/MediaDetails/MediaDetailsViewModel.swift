@@ -19,6 +19,7 @@ final class MediaDetailsViewModel {
     private let toggleWatchedUseCase: ToggleWatchedUseCase
     private let getReviewUseCase: GetUserReviewForMovieUseCase
     private let saveReviewUseCase: SaveUserReviewUseCase
+    private let favoritesRepository: TopFavoritesRepository
     private weak var coordinator: MoviesCoordinator?
     private let monitor: NetworkMonitoring
 
@@ -55,11 +56,22 @@ final class MediaDetailsViewModel {
     var watchlistButtonTitle: String { isInWatchlist ? "In watchlist" : "Add to watchlist" }
     var watchlistButtonSymbol: String { isInWatchlist ? "heart.fill" : "heart" }
 
+    // MARK: - Favorites
+    private(set) var isFavorite = false
+    var onFavoriteChange: (() -> Void)?
+    var favoriteButtonSymbol: String { isFavorite ? "heart.fill" : "heart" }
+
     // MARK: - Watched
     private(set) var isWatched = false
     var onWatchedChange: (() -> Void)?
-    var watchedButtonTitle: String { isWatched ? "Seen" : "Mark as Seen" }
-    var watchedButtonSymbol: String { "checkmark" }
+    var watchedButtonTitle: String {
+        if isWatched { return "Seen" }
+        if isInWatchlist { return "Mark as Seen" }
+        return "Add to Watchlist"
+    }
+    var watchedButtonSymbol: String {
+        (isWatched || isInWatchlist) ? "checkmark" : "plus"
+    }
 
     // MARK: - Review
     private(set) var existingReview: Review?
@@ -76,6 +88,7 @@ final class MediaDetailsViewModel {
         toggleWatchedUseCase: ToggleWatchedUseCase = DefaultToggleWatchedUseCase(),
         getReviewUseCase: GetUserReviewForMovieUseCase = DefaultGetUserReviewForMovieUseCase(),
         saveReviewUseCase: SaveUserReviewUseCase = DefaultSaveUserReviewUseCase(),
+        favoritesRepository: TopFavoritesRepository = DefaultTopFavoritesRepository(),
         coordinator: MoviesCoordinator? = nil,
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
@@ -89,6 +102,7 @@ final class MediaDetailsViewModel {
         self.toggleWatchedUseCase = toggleWatchedUseCase
         self.getReviewUseCase = getReviewUseCase
         self.saveReviewUseCase = saveReviewUseCase
+        self.favoritesRepository = favoritesRepository
         self.coordinator = coordinator
         self.monitor = monitor
     }
@@ -129,6 +143,26 @@ final class MediaDetailsViewModel {
                 self.onWatchlistChange?()
                 self.onWatchedChange?()
             } catch {}
+
+            let favorites = await self.favoritesRepository.fetchTopFavorites()
+            self.isFavorite = favorites.contains { $0.id == self.media.id }
+            self.onFavoriteChange?()
+        }
+    }
+
+    func toggleFavorite() {
+        Task { [weak self] in
+            guard let self = self else { return }
+            var favorites = await self.favoritesRepository.fetchTopFavorites()
+            if favorites.contains(where: { $0.id == self.media.id }) {
+                favorites.removeAll { $0.id == self.media.id }
+                self.isFavorite = false
+            } else {
+                favorites.append(FavoriteFilm(media: self.media))
+                self.isFavorite = true
+            }
+            await self.favoritesRepository.saveTopFavorites(favorites)
+            self.onFavoriteChange?()
         }
     }
 
@@ -139,12 +173,21 @@ final class MediaDetailsViewModel {
                 let inWatchlist = try await self.toggleWatchlistUseCase.execute(for: self.media)
                 self.isInWatchlist = inWatchlist
                 self.onWatchlistChange?()
+                self.onWatchedChange?()
             } catch {}
         }
     }
 
     func loadWatchedState() {
         loadWatchlistState()
+    }
+
+    func advanceTrackingState() {
+        if !isInWatchlist && !isWatched {
+            toggleWatchlist()
+        } else {
+            toggleWatched()
+        }
     }
 
     func toggleWatched() {
