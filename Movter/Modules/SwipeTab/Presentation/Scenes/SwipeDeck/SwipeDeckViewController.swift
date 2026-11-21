@@ -18,10 +18,27 @@ final class SwipeDeckViewController: UIViewController {
     private static let cardTopInset: CGFloat = 28
     private static let cardBottomInset: CGFloat = 96
 
+    private struct StackAppearance {
+        let scale: CGFloat
+        let offsetY: CGFloat
+        let tilt: CGFloat
+        let alpha: CGFloat
+    }
+
+    private static func stackAppearance(forIndex index: Int) -> StackAppearance {
+        StackAppearance(
+            scale: 1 - CGFloat(index) * stackScaleStep,
+            offsetY: CGFloat(index) * stackOffsetStep,
+            tilt: stackTilts[safe: index] ?? 0,
+            alpha: 1 - CGFloat(index) * stackAlphaStep
+        )
+    }
+
     private let viewModel: SwipeDeckViewModel
     private var coordinator: SwipeCoordinator?
+    private let cardViewFactory: (Media) -> SwipeCardView
 
-    private var cardViews: [SwipeCardView] = []
+    private(set) var cardViews: [SwipeCardView] = []
     private let posterTransition = PosterTransitionController()
 
     private let cardContainer = UIView()
@@ -54,9 +71,11 @@ final class SwipeDeckViewController: UIViewController {
 
     init(
         viewModel: SwipeDeckViewModel,
-        coordinator: SwipeCoordinator? = nil
+        coordinator: SwipeCoordinator? = nil,
+        cardViewFactory: @escaping (Media) -> SwipeCardView = { SwipeCardView(media: $0) }
     ) {
         self.viewModel = viewModel
+        self.cardViewFactory = cardViewFactory
         super.init(nibName: nil, bundle: nil)
         let actualCoordinator = coordinator ?? DefaultSwipeCoordinator(viewController: self)
         self.coordinator = actualCoordinator
@@ -80,6 +99,11 @@ final class SwipeDeckViewController: UIViewController {
         bindViewModel()
         loadingIndicator.startAnimating()
         viewModel.start()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        viewModel.reconcileQueueWithLatestExclusions()
     }
 
     private func setupNavigationBar() {
@@ -155,22 +179,54 @@ final class SwipeDeckViewController: UIViewController {
 
     // MARK: - Stack management
 
-    private func syncCardsFromQueue() {
+    func syncCardsFromQueue() {
         loadingIndicator.stopAnimating()
 
         let target = viewModel.peek(Self.maxVisibleCards)
-        let existingIDs = Set(cardViews.map { $0.media.id })
-        for media in target where !existingIDs.contains(media.id) {
-            appendCardView(for: media)
+        let targetIDs = Set(target.map(\.id))
+
+        var retainedByID: [Int: SwipeCardView] = [:]
+        for card in cardViews {
+            if targetIDs.contains(card.media.id), retainedByID[card.media.id] == nil {
+                retainedByID[card.media.id] = card
+            } else {
+                card.removeFromSuperview()
+            }
         }
+
+        var updatedCards: [SwipeCardView] = []
+        for media in target {
+            if let existing = retainedByID.removeValue(forKey: media.id) {
+                updatedCards.append(existing)
+            } else {
+                updatedCards.append(makeCardView(for: media))
+            }
+        }
+
+        cardViews = updatedCards
+        for card in updatedCards.reversed() {
+            if card.superview !== cardContainer {
+                cardContainer.addSubview(card)
+                NSLayoutConstraint.activate([
+                    card.topAnchor.constraint(equalTo: cardContainer.topAnchor),
+                    card.leadingAnchor.constraint(equalTo: cardContainer.leadingAnchor),
+                    card.trailingAnchor.constraint(equalTo: cardContainer.trailingAnchor),
+                    card.bottomAnchor.constraint(equalTo: cardContainer.bottomAnchor)
+                ])
+            } else {
+                cardContainer.bringSubviewToFront(card)
+            }
+        }
+
         updateStackTransforms(animated: true)
         updateEmptyState()
-        passButton.isEnabled = true
-        likeButton.isEnabled = true
+        let hasCard = !cardViews.isEmpty && !viewModel.isSessionComplete
+        passButton.isEnabled = hasCard
+        likeButton.isEnabled = hasCard
     }
 
-    private func appendCardView(for media: Media) {
-        let card = SwipeCardView(media: media)
+    private func makeCardView(for media: Media) -> SwipeCardView {
+        let card = cardViewFactory(media)
         card.translatesAutoresizingMaskIntoConstraints = false
         card.onSwiped = { [weak self] direction in
             self?.frontCardDidSwipe(direction: direction)
@@ -178,32 +234,44 @@ final class SwipeDeckViewController: UIViewController {
         card.onTapped = { [weak self] media in
             self?.showDetails(for: media)
         }
-        cardContainer.insertSubview(card, at: 0)
-        cardViews.append(card)
-
-        NSLayoutConstraint.activate([
-            card.topAnchor.constraint(equalTo: cardContainer.topAnchor),
-            card.leadingAnchor.constraint(equalTo: cardContainer.leadingAnchor),
-            card.trailingAnchor.constraint(equalTo: cardContainer.trailingAnchor),
-            card.bottomAnchor.constraint(equalTo: cardContainer.bottomAnchor)
-        ])
+        card.onDragProgress = { [weak self, weak card] progress in
+            guard let self, let card, self.cardViews.first === card else { return }
+            self.interpolateBackgroundCards(progress: progress)
+        }
+        return card
     }
 
     private func updateStackTransforms(animated: Bool) {
         let updates = {
             for (index, card) in self.cardViews.enumerated() {
-                let scale = 1 - CGFloat(index) * Self.stackScaleStep
-                let offsetY = CGFloat(index) * Self.stackOffsetStep
-                let tilt = Self.stackTilts[safe: index] ?? 0
-                card.transform = CGAffineTransform(scaleX: scale, y: scale)
-                    .translatedBy(x: 0, y: offsetY)
-                    .rotated(by: tilt)
-                card.alpha = 1 - CGFloat(index) * Self.stackAlphaStep
+                let appearance = Self.stackAppearance(forIndex: index)
+                card.transform = CGAffineTransform(scaleX: appearance.scale, y: appearance.scale)
+                    .translatedBy(x: 0, y: appearance.offsetY)
+                    .rotated(by: appearance.tilt)
+                card.alpha = appearance.alpha
                 card.isUserInteractionEnabled = (index == 0)
             }
         }
         guard animated else { updates(); return }
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.4, options: [.curveEaseOut], animations: updates)
+    }
+
+    func interpolateBackgroundCards(progress: CGFloat) {
+        guard cardViews.count > 1 else { return }
+        let clamped = progress.isFinite ? progress.clamped(to: 0...1) : 0
+        for index in 1..<cardViews.count {
+            let card = cardViews[index]
+            let from = Self.stackAppearance(forIndex: index)
+            let to = Self.stackAppearance(forIndex: index - 1)
+            let scale = from.scale + (to.scale - from.scale) * clamped
+            let offsetY = from.offsetY + (to.offsetY - from.offsetY) * clamped
+            let tilt = from.tilt + (to.tilt - from.tilt) * clamped
+            let alpha = from.alpha + (to.alpha - from.alpha) * clamped
+            card.transform = CGAffineTransform(scaleX: scale, y: scale)
+                .translatedBy(x: 0, y: offsetY)
+                .rotated(by: tilt)
+            card.alpha = alpha
+        }
     }
 
     private func frontCardDidSwipe(direction: SwipeDirection) {
