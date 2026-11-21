@@ -35,6 +35,8 @@ final class Task2ExclusionAndReconciliationTests: UserDefaultsTestCase {
         let popularRepo = MockPopularMoviesRepository(items: popularItems, isLastPage: isLastPage, pages: popularPages)
         let monitor = MockNetworkMonitor(isOnline: isOnline)
 
+        let cursorStore = MockSwipePaginationCursorStore()
+
         let vm = SwipeDeckViewModel(
             fetchDeckUseCase: DefaultFetchPopularSwipeDeckUseCase(popularMoviesRepository: popularRepo),
             swipeCardUseCase: DefaultSwipeCardUseCase(seenFilmsRepository: seenRepo, watchlistRepository: watchlistRepo),
@@ -44,7 +46,8 @@ final class Task2ExclusionAndReconciliationTests: UserDefaultsTestCase {
                 reviewsRepository: reviewsRepo,
                 topFavoritesRepository: favoritesRepo
             ),
-            monitor: monitor
+            monitor: monitor,
+            paginationCursorStore: cursorStore
         )
         let vc = SwipeDeckViewController(
             viewModel: vm,

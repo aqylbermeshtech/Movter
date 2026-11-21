@@ -8,29 +8,146 @@ enum MockRepositoryError: Error, Equatable {
 final class MockSeenFilmsRepository: SeenFilmsRepository, @unchecked Sendable {
     private let lock = NSLock()
     private var seenIDs: Set<Int>
+    private var entries: [Int: SwipeHistoryEntry]
     private(set) var fetchSeenIDsCallCount = 0
     private(set) var markedSeenIDs: [Int] = []
+    private(set) var recordedSwipes: [(tmdbID: Int, direction: SwipeDirection, date: Date)] = []
 
-    init(seenIDs: Set<Int> = []) {
+    init(seenIDs: Set<Int> = [], entries: [Int: SwipeHistoryEntry] = [:]) {
         self.seenIDs = seenIDs
+        var initialEntries = entries
+        for id in seenIDs where id > 0 && initialEntries[id] == nil {
+            initialEntries[id] = SwipeHistoryEntry(
+                tmdbID: id,
+                lastDirection: .like,
+                updatedAt: Date(timeIntervalSince1970: 0),
+                passCount: 0
+            )
+        }
+        self.entries = initialEntries
     }
 
     func fetchSeenIDs() -> Set<Int> {
         lock.withLock {
             fetchSeenIDsCallCount += 1
-            return seenIDs
+            return seenIDs.filter { $0 <= 0 }.union(fetchExcludedIDsUnlocked(asOf: Date()))
         }
+    }
+
+    func fetchExcludedIDs(asOf now: Date) -> Set<Int> {
+        lock.withLock {
+            fetchExcludedIDsUnlocked(asOf: now)
+        }
+    }
+
+    func fetchHistoryEntries() -> [Int: SwipeHistoryEntry] {
+        lock.withLock { entries }
     }
 
     func markSeen(tmdbID: Int) {
         lock.withLock {
-            seenIDs.insert(tmdbID)
             markedSeenIDs.append(tmdbID)
+            recordSwipeUnlocked(tmdbID: tmdbID, direction: .like, at: Date())
+        }
+    }
+
+    func recordSwipe(tmdbID: Int, direction: SwipeDirection, at date: Date) {
+        lock.withLock {
+            recordedSwipes.append((tmdbID: tmdbID, direction: direction, date: date))
+            recordSwipeUnlocked(tmdbID: tmdbID, direction: direction, at: date)
+        }
+    }
+
+    func removeSwipeRecord(tmdbID: Int) {
+        lock.withLock {
+            seenIDs.remove(tmdbID)
+            entries.removeValue(forKey: tmdbID)
         }
     }
 
     func setSeenIDs(_ ids: Set<Int>) {
-        lock.withLock { seenIDs = ids }
+        lock.withLock {
+            seenIDs = ids
+            var updated: [Int: SwipeHistoryEntry] = [:]
+            for id in ids where id > 0 {
+                updated[id] = entries[id] ?? SwipeHistoryEntry(
+                    tmdbID: id,
+                    lastDirection: .like,
+                    updatedAt: Date(timeIntervalSince1970: 0),
+                    passCount: 0
+                )
+            }
+            entries = updated
+        }
+    }
+
+    private func recordSwipeUnlocked(tmdbID: Int, direction: SwipeDirection, at date: Date) {
+        guard tmdbID > 0 else { return }
+        seenIDs.insert(tmdbID)
+        let existing = entries[tmdbID]
+        switch direction {
+        case .like:
+            entries[tmdbID] = SwipeHistoryEntry(
+                tmdbID: tmdbID,
+                lastDirection: .like,
+                updatedAt: date,
+                passCount: existing?.passCount ?? 0
+            )
+        case .pass:
+            entries[tmdbID] = SwipeHistoryEntry(
+                tmdbID: tmdbID,
+                lastDirection: .pass,
+                updatedAt: date,
+                passCount: (existing?.passCount ?? 0) + 1
+            )
+        }
+    }
+
+    private func fetchExcludedIDsUnlocked(asOf now: Date) -> Set<Int> {
+        var excluded: Set<Int> = []
+        for entry in entries.values where entry.tmdbID > 0 {
+            switch entry.lastDirection {
+            case .like:
+                excluded.insert(entry.tmdbID)
+            case .pass:
+                if entry.passCount >= 2 {
+                    excluded.insert(entry.tmdbID)
+                } else if entry.passCount == 1,
+                          now.timeIntervalSince(entry.updatedAt) < DefaultSeenFilmsRepository.passCooldownInterval {
+                    excluded.insert(entry.tmdbID)
+                }
+            }
+        }
+        return excluded
+    }
+}
+
+final class MockSwipePaginationCursorStore: SwipePaginationCursorStoring, @unchecked Sendable {
+    private let lock = NSLock()
+    private var cursor: Int
+    private(set) var savedCursors: [Int] = []
+
+    init(initialCursor: Int = UserDefaultsSwipePaginationCursorStore.defaultPage) {
+        self.cursor = Self.normalizedPage(initialCursor)
+    }
+
+    func loadPageCursor() -> Int {
+        lock.withLock { cursor }
+    }
+
+    func savePageCursor(_ page: Int) {
+        lock.withLock {
+            let normalized = Self.normalizedPage(page)
+            cursor = normalized
+            savedCursors.append(normalized)
+        }
+    }
+
+    private static func normalizedPage(_ page: Int) -> Int {
+        if page < UserDefaultsSwipePaginationCursorStore.defaultPage || page > UserDefaultsSwipePaginationCursorStore.maxPage {
+            return UserDefaultsSwipePaginationCursorStore.defaultPage
+        }
+        return page
     }
 }
 
