@@ -42,7 +42,7 @@ final class SwipeDeckViewController: UIViewController {
     private let posterTransition = PosterTransitionController()
 
     private let cardContainer = UIView()
-    private let loadingIndicator: UIActivityIndicatorView = {
+    private(set) lazy var loadingIndicator: UIActivityIndicatorView = {
         let indicator = UIActivityIndicatorView(style: .large)
         indicator.color = .textSecondary
         indicator.translatesAutoresizingMaskIntoConstraints = false
@@ -55,7 +55,7 @@ final class SwipeDeckViewController: UIViewController {
 
     // MARK: - Placeholder cards
 
-    private lazy var emptyStateCard = SwipeDeckViewController.makePlaceholderCard(
+    private(set) lazy var emptyStateCard = SwipeDeckViewController.makePlaceholderCard(
         title: "You're all caught up",
         body: "Check back later for more films to swipe through."
     )
@@ -145,11 +145,13 @@ final class SwipeDeckViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        navigationController?.navigationBar.prefersLargeTitles = false
         viewModel.reconcileQueueWithLatestExclusions()
     }
 
     private func setupNavigationBar() {
         navigationItem.title = "Swipe"
+        navigationItem.largeTitleDisplayMode = .never
         navigationController?.navigationBar.prefersLargeTitles = false
 
         let appearance = UINavigationBarAppearance()
@@ -218,6 +220,7 @@ final class SwipeDeckViewController: UIViewController {
         viewModel.onQueueChange = { [weak self] in self?.syncCardsFromQueue() }
         viewModel.onError = { [weak self] message in
             self?.loadingIndicator.stopAnimating()
+            self?.updateEmptyState()
             self?.presentError(message)
         }
     }
@@ -225,16 +228,21 @@ final class SwipeDeckViewController: UIViewController {
     // MARK: - Stack management
 
     func syncCardsFromQueue() {
-        loadingIndicator.stopAnimating()
+        if cardViews.isEmpty && viewModel.isLoading && !viewModel.isSessionComplete {
+            loadingIndicator.startAnimating()
+        } else {
+            loadingIndicator.stopAnimating()
+        }
 
         let target = viewModel.peek(Self.maxVisibleCards)
         let targetIDs = Set(target.map(\.id))
 
         var retainedByID: [Int: SwipeCardView] = [:]
         for card in cardViews {
-            if targetIDs.contains(card.media.id), retainedByID[card.media.id] == nil {
+            if !card.hasCommitted, targetIDs.contains(card.media.id), retainedByID[card.media.id] == nil {
                 retainedByID[card.media.id] = card
             } else {
+                card.onSwiped = nil
                 card.removeFromSuperview()
             }
         }
@@ -273,8 +281,9 @@ final class SwipeDeckViewController: UIViewController {
     private func makeCardView(for media: Media) -> SwipeCardView {
         let card = cardViewFactory(media)
         card.translatesAutoresizingMaskIntoConstraints = false
-        card.onSwiped = { [weak self] direction in
-            self?.frontCardDidSwipe(direction: direction)
+        card.onSwiped = { [weak self, weak card] direction in
+            guard let self, let card, self.cardViews.first === card else { return }
+            self.frontCardDidSwipe(direction: direction)
         }
         card.onTapped = { [weak self] media in
             self?.showDetails(for: media)
@@ -329,7 +338,12 @@ final class SwipeDeckViewController: UIViewController {
     private func updateEmptyState() {
         let sessionComplete = viewModel.isSessionComplete
         let offline = cardViews.isEmpty && viewModel.isOffline && !sessionComplete
-        let ranOut = cardViews.isEmpty && viewModel.isExhausted && !sessionComplete && !offline
+        let ranOut = cardViews.isEmpty
+            && viewModel.hasLoadedInitialExclusions
+            && !viewModel.isLoading
+            && !sessionComplete
+            && !offline
+            && (viewModel.isExhausted || viewModel.queue.isEmpty)
         offlineCard.isHidden = !offline
         sessionCompleteCard.isHidden = !(sessionComplete && cardViews.isEmpty)
         if sessionComplete {
@@ -359,6 +373,7 @@ final class SwipeDeckViewController: UIViewController {
     }
 
     @objc func undoTapped() {
+        guard cardViews.first?.hasCommitted != true else { return }
         viewModel.undoLastSwipe()
     }
 

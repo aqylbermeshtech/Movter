@@ -96,12 +96,14 @@ final class SwipeCardView: UIView {
     private(set) var lastCommittedDirection: SwipeDirection?
     private(set) var didTriggerThresholdHaptic = false
     private(set) var posterCrossDissolveCount = 0
+    private(set) var hasAppliedUpgradedPoster = false
     private lazy var impactGenerator = UIImpactFeedbackGenerator(style: .light)
     private let loadRemoteArtwork: Bool
     private let genreProvider: GenreProviding
     private var artworkTask: Task<Void, Never>?
 
     var gradientLocations: [NSNumber]? { gradientLayer.locations }
+    var posterImage: UIImage? { imageView.image }
     var ratingPillText: String? { ratingPill.isHidden ? nil : ratingPill.label.text }
     var genrePillText: String? { genrePill.isHidden ? nil : genrePill.label.text }
     var yearPillText: String? { yearPill.isHidden ? nil : yearPill.label.text }
@@ -268,6 +270,12 @@ final class SwipeCardView: UIView {
     }
 
     func applyPosterImage(_ image: UIImage, isUpgrade: Bool) {
+        if isUpgrade {
+            hasAppliedUpgradedPoster = true
+        } else if hasAppliedUpgradedPoster {
+            return
+        }
+
         if isUpgrade && imageView.image != nil {
             posterCrossDissolveCount += 1
             UIView.transition(

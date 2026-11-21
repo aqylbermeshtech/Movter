@@ -32,9 +32,11 @@ final class SwipeDeckViewModel {
     private var sessionSwipedIDs: Set<Int> = []
     private var prefetchedArtworkIDs: Set<Int> = []
     private var isStarting = false
-    private var hasLoadedInitialExclusions = false
+    private(set) var hasLoadedInitialExclusions = false
     private var reconcileTask: Task<Void, Never>?
     private var persistenceTask: Task<Void, Never>?
+
+    var isLoading: Bool { isFetching || isStarting }
 
     private(set) var sessionSwipeCount = 0
     private(set) var sessionLikesCount = 0
@@ -273,10 +275,10 @@ final class SwipeDeckViewModel {
                 let nextPage = (result.isLastPage || self.page >= UserDefaultsSwipePaginationCursorStore.maxPage) ? UserDefaultsSwipePaginationCursorStore.defaultPage : (self.page + 1)
                 self.page = nextPage
                 self.paginationCursorStore.savePageCursor(nextPage)
-                self.onQueueChange?()
                 if self.queue.isEmpty && !self.isLastPage && self.consecutiveEmptyPages < Self.maxConsecutiveEmptyPages {
                     self.fetchNextPage()
                 }
+                self.onQueueChange?()
             } catch {
                 self.isFetching = false
                 self.onError?("Couldn't load more films. Check your connection and try again.")

@@ -612,6 +612,90 @@ final class Task6CardUIAndSessionLoopTests: UserDefaultsTestCase {
             watchlistRepo.removedWatchlistMediaIDs == [1]
         }
     }
+
+    // MARK: - Reviewer Regression Fixes
+
+    @MainActor
+    func test_SwipeCard_LateStandardPoster_DoesNotOverwriteAlreadyAppliedTextlessPoster() {
+        let media = TestFixtures.makeMedia(id: 90, posterPath: "/poster.jpg")
+        let card = SwipeCardView(media: media, loadRemoteArtwork: false)
+
+        let textlessImage = makeSolidImage(color: .green)
+        let regularPoster = makeSolidImage(color: .blue)
+
+        card.applyPosterImage(textlessImage, isUpgrade: true)
+        XCTAssertTrue(card.hasAppliedUpgradedPoster)
+        XCTAssertTrue(card.posterImage === textlessImage)
+
+        card.applyPosterImage(regularPoster, isUpgrade: false)
+        XCTAssertTrue(card.posterImage === textlessImage)
+    }
+
+    func test_SwipeDeckVC_UndoIgnoredWhileFrontCardIsCommittingAnimation() async throws {
+        let items = TestFixtures.makeMediaList(count: 3, startingID: 1)
+        let harness = await MainActor.run {
+            let h = makeHarness(popularItems: items, isLastPage: true)
+            h.vc.loadViewIfNeeded()
+            h.vc.view.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+            h.vc.view.layoutIfNeeded()
+            return h
+        }
+
+        try await waitUntil { harness.vc.cardViews.map(\.media.id) == [1, 2, 3] }
+
+        await MainActor.run {
+            harness.vm.consumeFrontCard(direction: .like)
+            XCTAssertTrue(harness.vm.canUndo)
+            XCTAssertEqual(harness.vc.cardViews.map(\.media.id), [2, 3])
+
+            // Start committing card 2 offscreen; while mid-flight, undoTapped must be ignored.
+            harness.vc.cardViews[0].performSwipe(direction: .pass)
+            XCTAssertTrue(harness.vc.cardViews[0].hasCommitted)
+            harness.vc.undoTapped()
+            XCTAssertTrue(harness.vm.canUndo)
+            XCTAssertEqual(harness.vc.cardViews.map(\.media.id), [2, 3])
+        }
+
+        try await waitUntil { harness.vc.cardViews.map(\.media.id) == [3] }
+        await MainActor.run {
+            XCTAssertEqual(harness.vm.sessionSwipeCount, 2)
+        }
+    }
+
+    func test_SwipeDeckVC_ShowsEmptyStateCardAfterThreeConsecutiveEmptyPages() async throws {
+        let emptyPage = MediaPage(items: [], isLastPage: false)
+        let harness = await MainActor.run {
+            let h = makeHarness(popularPages: [1: emptyPage, 2: emptyPage, 3: emptyPage])
+            h.vc.loadViewIfNeeded()
+            return h
+        }
+
+        try await waitUntil {
+            harness.popularRepo.requestedPages == [1, 2, 3] && !harness.vm.isLoading
+        }
+
+        await MainActor.run {
+            XCTAssertTrue(harness.vc.cardViews.isEmpty)
+            XCTAssertFalse(harness.vc.emptyStateCard.isHidden)
+            XCTAssertFalse(harness.vc.loadingIndicator.isAnimating)
+        }
+    }
+
+    @MainActor
+    func test_SwipeDeckVC_NavigationBarKeepsCompactTitleMode() {
+        let harness = makeHarness(popularItems: [], isLastPage: true)
+        let nav = UINavigationController(rootViewController: harness.vc)
+        nav.navigationBar.prefersLargeTitles = true
+        harness.vc.loadViewIfNeeded()
+
+        XCTAssertEqual(harness.vc.navigationItem.largeTitleDisplayMode, .never)
+        XCTAssertFalse(nav.navigationBar.prefersLargeTitles)
+
+        nav.navigationBar.prefersLargeTitles = true
+        harness.vc.beginAppearanceTransition(true, animated: false)
+        harness.vc.endAppearanceTransition()
+        XCTAssertFalse(nav.navigationBar.prefersLargeTitles)
+    }
 }
 
 private final class MockHeroArtworkPrefetcher: HeroArtworkPrefetching, @unchecked Sendable {
