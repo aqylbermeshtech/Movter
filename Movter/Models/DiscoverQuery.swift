@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct DiscoverQuery {
+struct DiscoverQuery: Sendable {
 
     let path: String
     let queryItems: [URLQueryItem]
@@ -32,6 +32,34 @@ struct DiscoverQuery {
         "with_original_language": "ja",
         "sort_by": "popularity.desc"
     ])
+
+    // MARK: - Swipe Discovery
+
+    static func swipeTasteGenres(_ genreIDs: [Int]) -> DiscoverQuery {
+        var items: [String: String] = [
+            "vote_count.gte": "200",
+            "sort_by": "popularity.desc"
+        ]
+        let genres = genreIDs.map(String.init).joined(separator: "|")
+        if !genres.isEmpty {
+            items["with_genres"] = genres
+        }
+        return discover(items)
+    }
+
+    static let swipeTrendingThisWeek = DiscoverQuery("/trending/movie/week")
+
+    static func swipeSerendipity(excludingGenreID: Int?) -> DiscoverQuery {
+        var items: [String: String] = [
+            "vote_average.gte": "7.5",
+            "vote_count.gte": "1500",
+            "sort_by": "vote_average.desc"
+        ]
+        if let excludingGenreID {
+            items["without_genres"] = "\(excludingGenreID)"
+        }
+        return discover(items)
+    }
 
     static func make(category: String, value: String) -> DiscoverQuery? {
         switch category {

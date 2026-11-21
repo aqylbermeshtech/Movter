@@ -327,10 +327,27 @@ final class MockPopularMoviesRepository: PopularMoviesRepository, @unchecked Sen
     private var defaultPage: MediaPage
     var error: Error?
     var fetchHandler: (@Sendable (Int) async throws -> MediaPage)?
+    var discoverPagesByPath: [String: [Int: MediaPage]] = [:]
+    var discoverPages: [Int: MediaPage] = [:]
+    var discoverQueryHandler: (@Sendable (DiscoverQuery, Int) async throws -> MediaPage)?
+    var similarByID: [Int: [Media]] = [:]
+    var similarHandler: (@Sendable (Int) async throws -> [Media])?
+    var discoverError: Error?
+    var similarError: Error?
     private var _requestedPages: [Int] = []
+    private var _requestedDiscoverQueries: [(path: String, queryItems: [URLQueryItem], page: Int)] = []
+    private var _requestedSimilarIDs: [Int] = []
 
     var requestedPages: [Int] {
         lock.withLock { _requestedPages }
+    }
+
+    var requestedDiscoverQueries: [(path: String, queryItems: [URLQueryItem], page: Int)] {
+        lock.withLock { _requestedDiscoverQueries }
+    }
+
+    var requestedSimilarIDs: [Int] {
+        lock.withLock { _requestedSimilarIDs }
     }
 
     init(
@@ -357,6 +374,40 @@ final class MockPopularMoviesRepository: PopularMoviesRepository, @unchecked Sen
         return try lock.withLock {
             if let error { throw error }
             return pages[page] ?? defaultPage
+        }
+    }
+
+    func fetchDiscoverMovies(query: DiscoverQuery, page: Int) async throws -> MediaPage {
+        let handler: (@Sendable (DiscoverQuery, Int) async throws -> MediaPage)? = lock.withLock {
+            _requestedDiscoverQueries.append((path: query.path, queryItems: query.queryItems, page: page))
+            return discoverQueryHandler
+        }
+        if let handler {
+            return try await handler(query, page)
+        }
+        return try lock.withLock {
+            if let discoverError { throw discoverError }
+            if let pathPages = discoverPagesByPath[query.path], let matched = pathPages[page] {
+                return matched
+            }
+            if let fallback = discoverPages[page] {
+                return fallback
+            }
+            return MediaPage(items: [], isLastPage: true)
+        }
+    }
+
+    func fetchSimilarMovies(for movieID: Int) async throws -> [Media] {
+        let handler: (@Sendable (Int) async throws -> [Media])? = lock.withLock {
+            _requestedSimilarIDs.append(movieID)
+            return similarHandler
+        }
+        if let handler {
+            return try await handler(movieID)
+        }
+        return try lock.withLock {
+            if let similarError { throw similarError }
+            return similarByID[movieID] ?? []
         }
     }
 }
