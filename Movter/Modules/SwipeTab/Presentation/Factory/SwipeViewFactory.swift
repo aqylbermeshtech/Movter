@@ -17,10 +17,12 @@ enum SwipeViewFactory {
         popularMoviesRepository: PopularMoviesRepository = DefaultPopularMoviesRepository(),
         reviewsRepository: ReviewsRepository = DefaultReviewsRepository(),
         topFavoritesRepository: TopFavoritesRepository = DefaultTopFavoritesRepository(),
+        artworkPrefetcher: HeroArtworkPrefetching? = DefaultHeroArtworkPrefetcher(),
         cardViewFactory: @escaping (Media) -> SwipeCardView = { SwipeCardView(media: $0) }
     ) -> UIViewController {
         let fetchDeckUseCase = DefaultFetchPopularSwipeDeckUseCase(popularMoviesRepository: popularMoviesRepository)
         let swipeCardUseCase = DefaultSwipeCardUseCase(seenFilmsRepository: seenFilmsRepository, watchlistRepository: watchlistRepository)
+        let undoSwipeCardUseCase = DefaultUndoSwipeCardUseCase(seenFilmsRepository: seenFilmsRepository, watchlistRepository: watchlistRepository)
         let getExcludedIDsUseCase = DefaultGetExcludedSwipeMediaIDsUseCase(
             seenFilmsRepository: seenFilmsRepository,
             watchlistRepository: watchlistRepository,
@@ -38,7 +40,9 @@ enum SwipeViewFactory {
             fetchDeckUseCase: fetchDeckUseCase,
             swipeCardUseCase: swipeCardUseCase,
             getExcludedIDsUseCase: getExcludedIDsUseCase,
-            buildTasteProfileUseCase: buildTasteProfileUseCase
+            buildTasteProfileUseCase: buildTasteProfileUseCase,
+            undoSwipeCardUseCase: undoSwipeCardUseCase,
+            artworkPrefetcher: artworkPrefetcher
         )
 
         let actualCoordinator = coordinator ?? DefaultSwipeCoordinator()

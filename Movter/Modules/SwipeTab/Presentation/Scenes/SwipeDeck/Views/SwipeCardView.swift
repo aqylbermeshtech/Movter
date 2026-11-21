@@ -44,8 +44,12 @@ final class SwipeCardView: UIView {
 
     private let gradientLayer: CAGradientLayer = {
         let layer = CAGradientLayer()
-        layer.colors = [UIColor.clear.cgColor, UIColor.black.withAlphaComponent(0.8).cgColor]
-        layer.locations = [0, 1]
+        layer.colors = [
+            UIColor.clear.cgColor,
+            UIColor.black.withAlphaComponent(0.55).cgColor,
+            UIColor.black.withAlphaComponent(0.92).cgColor
+        ]
+        layer.locations = [0.0, 0.55, 1.0]
         return layer
     }()
 
@@ -67,6 +71,19 @@ final class SwipeCardView: UIView {
         return label
     }()
 
+    private let ratingPill = MetadataPillView()
+    private let genrePill = MetadataPillView()
+    private let yearPill = MetadataPillView()
+
+    private lazy var metadataStackView: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [ratingPill, genrePill, yearPill])
+        stack.axis = .horizontal
+        stack.alignment = .center
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
     private let likeDestinationView = SwipeCardView.makeDestinationOverlay(
         systemImage: "bookmark.fill", caption: "Watchlist", tint: .accent
     )
@@ -78,13 +95,26 @@ final class SwipeCardView: UIView {
     private(set) var hasCommitted = false
     private(set) var lastCommittedDirection: SwipeDirection?
     private(set) var didTriggerThresholdHaptic = false
+    private(set) var posterCrossDissolveCount = 0
     private lazy var impactGenerator = UIImpactFeedbackGenerator(style: .light)
     private let loadRemoteArtwork: Bool
+    private let genreProvider: GenreProviding
     private var artworkTask: Task<Void, Never>?
 
-    init(media: Media, loadRemoteArtwork: Bool = true) {
+    var gradientLocations: [NSNumber]? { gradientLayer.locations }
+    var ratingPillText: String? { ratingPill.isHidden ? nil : ratingPill.label.text }
+    var genrePillText: String? { genrePill.isHidden ? nil : genrePill.label.text }
+    var yearPillText: String? { yearPill.isHidden ? nil : yearPill.label.text }
+    var isMetadataStackHidden: Bool { metadataStackView.isHidden }
+
+    init(
+        media: Media,
+        loadRemoteArtwork: Bool = true,
+        genreProvider: GenreProviding = GenreProvider.shared
+    ) {
         self.media = media
         self.loadRemoteArtwork = loadRemoteArtwork
+        self.genreProvider = genreProvider
         super.init(frame: .zero)
         setupUI()
         configure()
@@ -115,8 +145,14 @@ final class SwipeCardView: UIView {
         imageView.layer.addSublayer(gradientLayer)
         imageView.addSubview(logoImageView)
         imageView.addSubview(fallbackTitleLabel)
+        imageView.addSubview(metadataStackView)
         addSubview(likeDestinationView)
         addSubview(passDestinationView)
+
+        ratingPill.setContentCompressionResistancePriority(.required, for: .horizontal)
+        ratingPill.label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        yearPill.setContentCompressionResistancePriority(.required, for: .horizontal)
+        yearPill.label.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: topAnchor),
@@ -124,15 +160,20 @@ final class SwipeCardView: UIView {
             imageView.trailingAnchor.constraint(equalTo: trailingAnchor),
             imageView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
+            metadataStackView.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
+            metadataStackView.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -20),
+            metadataStackView.leadingAnchor.constraint(greaterThanOrEqualTo: imageView.leadingAnchor, constant: 20),
+            metadataStackView.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -20),
+
             logoImageView.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
-            logoImageView.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -24),
+            logoImageView.bottomAnchor.constraint(equalTo: metadataStackView.topAnchor, constant: -10),
             logoImageView.leadingAnchor.constraint(greaterThanOrEqualTo: imageView.leadingAnchor, constant: 24),
             logoImageView.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -24),
             logoImageView.widthAnchor.constraint(lessThanOrEqualToConstant: 240),
             logoImageView.heightAnchor.constraint(lessThanOrEqualToConstant: 76),
 
             fallbackTitleLabel.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
-            fallbackTitleLabel.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -24),
+            fallbackTitleLabel.bottomAnchor.constraint(equalTo: metadataStackView.topAnchor, constant: -10),
             fallbackTitleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: imageView.leadingAnchor, constant: 20),
             fallbackTitleLabel.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -20),
 
@@ -150,6 +191,8 @@ final class SwipeCardView: UIView {
 
     private func configure() {
         fallbackTitleLabel.text = media.displayName
+        configureMetadataPills()
+
         guard loadRemoteArtwork else {
             if media.posterPath == nil {
                 showPosterPlaceholder()
@@ -167,7 +210,7 @@ final class SwipeCardView: UIView {
                 if let textlessPath = artwork.textlessPosterPath,
                    textlessPath != media.posterPath,
                    let textlessURL = TMDBImageURL.url(path: textlessPath, width: .wide) {
-                    self.loadPoster(from: textlessURL)
+                    self.loadPoster(from: textlessURL, isUpgrade: true)
                 }
                 if let logoPath = artwork.logoPath,
                    let logoURL = TMDBImageURL.url(path: logoPath, width: .poster) {
@@ -177,22 +220,90 @@ final class SwipeCardView: UIView {
         }
     }
 
-    private func loadPoster(from url: URL?) {
+    private func configureMetadataPills() {
+        if WatchlistItem(from: media).isUnreleased || media.ratingState.isUpcoming {
+            ratingPill.configure(text: "Upcoming")
+        } else {
+            switch media.ratingState {
+            case .rated(let score, _), .provisional(let score, _):
+                ratingPill.configure(text: String(format: "★ %.1f", score))
+            case .unrated, .upcoming:
+                ratingPill.configure(text: nil)
+            }
+        }
+
+        genrePill.configure(text: nil)
+        if let year = media.year, !year.isEmpty {
+            yearPill.configure(text: year)
+        } else {
+            yearPill.configure(text: nil)
+        }
+        updateMetadataStackVisibility()
+
+        if loadRemoteArtwork || (genreProvider !== GenreProvider.shared) {
+            genreProvider.primaryGenreName(for: media.genreIds, type: media.mediaType) { [weak self] genre in
+                if Thread.isMainThread {
+                    MainActor.assumeIsolated {
+                        self?.applyGenreName(genre)
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        MainActor.assumeIsolated {
+                            self?.applyGenreName(genre)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func applyGenreName(_ genre: String?) {
+        let trimmed = genre?.trimmingCharacters(in: .whitespacesAndNewlines)
+        genrePill.configure(text: (trimmed?.isEmpty == false) ? trimmed : nil)
+        updateMetadataStackVisibility()
+    }
+
+    private func updateMetadataStackVisibility() {
+        metadataStackView.isHidden = ratingPill.isHidden && genrePill.isHidden && yearPill.isHidden
+    }
+
+    func applyPosterImage(_ image: UIImage, isUpgrade: Bool) {
+        if isUpgrade && imageView.image != nil {
+            posterCrossDissolveCount += 1
+            UIView.transition(
+                with: imageView,
+                duration: 0.25,
+                options: [.transitionCrossDissolve, .allowUserInteraction],
+                animations: {
+                    self.imageView.contentMode = .scaleAspectFill
+                    self.imageView.image = image
+                }
+            )
+        } else {
+            imageView.contentMode = .scaleAspectFill
+            imageView.image = image
+        }
+    }
+
+    private func loadPoster(from url: URL?, isUpgrade: Bool = false) {
         guard let url else {
-            showPosterPlaceholder()
+            if !isUpgrade {
+                showPosterPlaceholder()
+            }
             return
         }
         ImageLoader.load(url: url) { [weak self] image in
             DispatchQueue.main.async {
-                guard let self = self else { return }
-                guard let image = image else {
-                    if self.imageView.image == nil {
-                        self.showPosterPlaceholder()
+                MainActor.assumeIsolated {
+                    guard let self = self else { return }
+                    guard let image = image else {
+                        if self.imageView.image == nil {
+                            self.showPosterPlaceholder()
+                        }
+                        return
                     }
-                    return
+                    self.applyPosterImage(image, isUpgrade: isUpgrade)
                 }
-                self.imageView.contentMode = .scaleAspectFill
-                self.imageView.image = image
             }
         }
     }
@@ -200,10 +311,12 @@ final class SwipeCardView: UIView {
     private func loadLogo(from url: URL) {
         ImageLoader.load(url: url) { [weak self] image in
             DispatchQueue.main.async {
-                guard let self = self, let image else { return }
-                self.logoImageView.image = image
-                self.logoImageView.isHidden = false
-                self.fallbackTitleLabel.isHidden = true
+                MainActor.assumeIsolated {
+                    guard let self = self, let image else { return }
+                    self.logoImageView.image = image
+                    self.logoImageView.isHidden = false
+                    self.fallbackTitleLabel.isHidden = true
+                }
             }
         }
     }
@@ -435,5 +548,52 @@ final class SwipeCardView: UIView {
             stack.centerYAnchor.constraint(equalTo: container.centerYAnchor)
         ])
         return container
+    }
+}
+
+private final class MetadataPillView: UIView {
+    let label: UILabel = {
+        let label = UILabel()
+        label.font = .badge
+        label.textColor = .white
+        label.lineBreakMode = .byTruncatingTail
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        layer.cornerCurve = .continuous
+        layer.borderWidth = 1
+        layer.borderColor = UIColor.white.withAlphaComponent(0.18).cgColor
+        clipsToBounds = true
+        isHidden = true
+        translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: topAnchor, constant: 4),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10)
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layer.cornerRadius = bounds.height / 2
+    }
+
+    func configure(text: String?) {
+        if let text, !text.isEmpty {
+            label.text = text
+            isHidden = false
+        } else {
+            label.text = nil
+            isHidden = true
+        }
     }
 }

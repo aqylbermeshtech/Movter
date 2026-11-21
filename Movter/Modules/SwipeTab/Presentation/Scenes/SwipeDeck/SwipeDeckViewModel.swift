@@ -17,6 +17,8 @@ final class SwipeDeckViewModel {
     private let swipeCardUseCase: SwipeCardUseCase
     private let getExcludedIDsUseCase: GetExcludedSwipeMediaIDsUseCase
     private let buildTasteProfileUseCase: BuildUserTasteProfileUseCase
+    private let undoSwipeCardUseCase: UndoSwipeCardUseCase
+    private let artworkPrefetcher: HeroArtworkPrefetching?
     private let monitor: NetworkMonitoring
     private let paginationCursorStore: SwipePaginationCursorStoring
 
@@ -28,11 +30,16 @@ final class SwipeDeckViewModel {
     private(set) var isLastPage = false
     private(set) var excludedIDs: Set<Int> = []
     private var sessionSwipedIDs: Set<Int> = []
+    private var prefetchedArtworkIDs: Set<Int> = []
     private var isStarting = false
     private var hasLoadedInitialExclusions = false
     private var reconcileTask: Task<Void, Never>?
+    private var persistenceTask: Task<Void, Never>?
 
     private(set) var sessionSwipeCount = 0
+    private(set) var sessionLikesCount = 0
+    private(set) var lastSwipedCard: (media: Media, direction: SwipeDirection)?
+    var canUndo: Bool { lastSwipedCard != nil }
     var isSessionComplete: Bool { sessionSwipeCount >= Self.sessionCardLimit }
 
     var onQueueChange: (() -> Void)?
@@ -44,7 +51,9 @@ final class SwipeDeckViewModel {
         getExcludedIDsUseCase: GetExcludedSwipeMediaIDsUseCase = DefaultGetExcludedSwipeMediaIDsUseCase(),
         buildTasteProfileUseCase: BuildUserTasteProfileUseCase = DefaultBuildUserTasteProfileUseCase(),
         monitor: NetworkMonitoring = NetworkMonitor.shared,
-        paginationCursorStore: SwipePaginationCursorStoring = UserDefaultsSwipePaginationCursorStore()
+        paginationCursorStore: SwipePaginationCursorStoring = UserDefaultsSwipePaginationCursorStore(),
+        undoSwipeCardUseCase: UndoSwipeCardUseCase = DefaultUndoSwipeCardUseCase(),
+        artworkPrefetcher: HeroArtworkPrefetching? = DefaultHeroArtworkPrefetcher()
     ) {
         self.fetchDeckUseCase = fetchDeckUseCase
         self.swipeCardUseCase = swipeCardUseCase
@@ -52,6 +61,8 @@ final class SwipeDeckViewModel {
         self.buildTasteProfileUseCase = buildTasteProfileUseCase
         self.monitor = monitor
         self.paginationCursorStore = paginationCursorStore
+        self.undoSwipeCardUseCase = undoSwipeCardUseCase
+        self.artworkPrefetcher = artworkPrefetcher
         self.page = paginationCursorStore.loadPageCursor()
     }
 
@@ -74,14 +85,18 @@ final class SwipeDeckViewModel {
         swipeCardUseCase: SwipeCardUseCase = DefaultSwipeCardUseCase(),
         getSeenIDsUseCase: GetSeenFilmIDsUseCase,
         monitor: NetworkMonitoring = NetworkMonitor.shared,
-        paginationCursorStore: SwipePaginationCursorStoring = UserDefaultsSwipePaginationCursorStore()
+        paginationCursorStore: SwipePaginationCursorStoring = UserDefaultsSwipePaginationCursorStore(),
+        undoSwipeCardUseCase: UndoSwipeCardUseCase = DefaultUndoSwipeCardUseCase(),
+        artworkPrefetcher: HeroArtworkPrefetching? = DefaultHeroArtworkPrefetcher()
     ) {
         self.init(
             fetchDeckUseCase: fetchDeckUseCase,
             swipeCardUseCase: swipeCardUseCase,
             getExcludedIDsUseCase: SeenIDsExclusionAdapter(useCase: getSeenIDsUseCase),
             monitor: monitor,
-            paginationCursorStore: paginationCursorStore
+            paginationCursorStore: paginationCursorStore,
+            undoSwipeCardUseCase: undoSwipeCardUseCase,
+            artworkPrefetcher: artworkPrefetcher
         )
     }
 
@@ -150,6 +165,7 @@ final class SwipeDeckViewModel {
         }
 
         if removedAny {
+            prefetchArtworkForUpcomingCards()
             onQueueChange?()
         }
     }
@@ -157,20 +173,72 @@ final class SwipeDeckViewModel {
     func consumeFrontCard(direction: SwipeDirection) {
         guard !queue.isEmpty, !isSessionComplete else { return }
         let media = queue.removeFirst()
+        lastSwipedCard = (media: media, direction: direction)
         sessionSwipeCount += 1
+        if direction == .like {
+            sessionLikesCount += 1
+        }
         sessionSwipedIDs.insert(media.id)
         excludedIDs.insert(media.id)
         tasteProfile.applySessionSwipe(media: media, direction: direction)
 
-        Task { [weak self] in
+        let previousTask = persistenceTask
+        persistenceTask = Task { [weak self] in
+            await previousTask?.value
             try? await self?.swipeCardUseCase.execute(media: media, direction: direction)
         }
 
         let remainingInSession = Self.sessionCardLimit - sessionSwipeCount
-        if !isSessionComplete && queue.count <= Self.prefetchThreshold && queue.count < remainingInSession {
-            fetchNextPage()
+        if !isSessionComplete {
+            prefetchArtworkForUpcomingCards()
+            if queue.count <= Self.prefetchThreshold && queue.count < remainingInSession {
+                fetchNextPage()
+            }
         }
         onQueueChange?()
+    }
+
+    func undoLastSwipe() {
+        guard let last = lastSwipedCard else { return }
+        lastSwipedCard = nil
+        queue.insert(last.media, at: 0)
+        sessionSwipeCount = max(0, sessionSwipeCount - 1)
+        if last.direction == .like {
+            sessionLikesCount = max(0, sessionLikesCount - 1)
+        }
+        sessionSwipedIDs.remove(last.media.id)
+        excludedIDs.remove(last.media.id)
+        tasteProfile.revertSessionSwipe(media: last.media, direction: last.direction)
+
+        let previousTask = persistenceTask
+        persistenceTask = Task { [weak self] in
+            await previousTask?.value
+            try? await self?.undoSwipeCardUseCase.execute(media: last.media, direction: last.direction)
+        }
+        onQueueChange?()
+    }
+
+    func startNewSessionBatch() {
+        sessionSwipeCount = 0
+        sessionLikesCount = 0
+        lastSwipedCard = nil
+        consecutiveEmptyPages = 0
+        let remainingInSession = Self.sessionCardLimit
+        if queue.count <= Self.prefetchThreshold && queue.count < remainingInSession {
+            fetchNextPage()
+        }
+        prefetchArtworkForUpcomingCards()
+        onQueueChange?()
+    }
+
+    private func prefetchArtworkForUpcomingCards() {
+        guard let artworkPrefetcher else { return }
+        for media in queue.prefix(5) {
+            guard prefetchedArtworkIDs.insert(media.id).inserted else { continue }
+            Task {
+                await artworkPrefetcher.prefetchHeroArtwork(for: media)
+            }
+        }
     }
 
     private func fetchNextPage() {
@@ -184,7 +252,11 @@ final class SwipeDeckViewModel {
         Task { [weak self] in
             guard let self = self else { return }
             do {
-                let result = try await self.fetchDeckUseCase.execute(page: self.page, excludingIDs: self.excludedIDs)
+                let result = try await self.fetchDeckUseCase.execute(
+                    page: self.page,
+                    excludingIDs: self.excludedIDs,
+                    tasteProfile: self.tasteProfile
+                )
                 self.isFetching = false
                 let existingQueueIDs = Set(self.queue.map(\.id))
                 let freshItems = result.items.filter {
@@ -195,6 +267,7 @@ final class SwipeDeckViewModel {
                 } else {
                     self.consecutiveEmptyPages = 0
                     self.queue.append(contentsOf: freshItems)
+                    self.prefetchArtworkForUpcomingCards()
                 }
                 self.isLastPage = result.isLastPage
                 let nextPage = (result.isLastPage || self.page >= UserDefaultsSwipePaginationCursorStore.maxPage) ? UserDefaultsSwipePaginationCursorStore.defaultPage : (self.page + 1)
