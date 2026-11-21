@@ -7,20 +7,25 @@
 
 import Foundation
 
+@MainActor
 final class SwipeDeckViewModel {
     private static let prefetchThreshold = 3
     static let sessionCardLimit = 10
 
     private let fetchDeckUseCase: FetchPopularSwipeDeckUseCase
     private let swipeCardUseCase: SwipeCardUseCase
-    private let getSeenIDsUseCase: GetSeenFilmIDsUseCase
+    private let getExcludedIDsUseCase: GetExcludedSwipeMediaIDsUseCase
     private let monitor: NetworkMonitoring
 
-    private var queue: [Media] = []
+    private(set) var queue: [Media] = []
     private var page = 1
-    private var isFetching = false
-    private var isLastPage = false
-    private var excludedIDs: Set<Int> = []
+    private(set) var isFetching = false
+    private(set) var isLastPage = false
+    private(set) var excludedIDs: Set<Int> = []
+    private var sessionSwipedIDs: Set<Int> = []
+    private var isStarting = false
+    private var hasLoadedInitialExclusions = false
+    private var reconcileTask: Task<Void, Never>?
 
     private(set) var sessionSwipeCount = 0
     var isSessionComplete: Bool { sessionSwipeCount >= Self.sessionCardLimit }
@@ -31,12 +36,12 @@ final class SwipeDeckViewModel {
     init(
         fetchDeckUseCase: FetchPopularSwipeDeckUseCase = DefaultFetchPopularSwipeDeckUseCase(),
         swipeCardUseCase: SwipeCardUseCase = DefaultSwipeCardUseCase(),
-        getSeenIDsUseCase: GetSeenFilmIDsUseCase = DefaultGetSeenFilmIDsUseCase(),
+        getExcludedIDsUseCase: GetExcludedSwipeMediaIDsUseCase = DefaultGetExcludedSwipeMediaIDsUseCase(),
         monitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.fetchDeckUseCase = fetchDeckUseCase
         self.swipeCardUseCase = swipeCardUseCase
-        self.getSeenIDsUseCase = getSeenIDsUseCase
+        self.getExcludedIDsUseCase = getExcludedIDsUseCase
         self.monitor = monitor
     }
 
@@ -49,7 +54,21 @@ final class SwipeDeckViewModel {
         self.init(
             fetchDeckUseCase: DefaultFetchPopularSwipeDeckUseCase(),
             swipeCardUseCase: DefaultSwipeCardUseCase(),
-            getSeenIDsUseCase: DefaultGetSeenFilmIDsUseCase(),
+            getExcludedIDsUseCase: DefaultGetExcludedSwipeMediaIDsUseCase(),
+            monitor: monitor
+        )
+    }
+
+    convenience init(
+        fetchDeckUseCase: FetchPopularSwipeDeckUseCase = DefaultFetchPopularSwipeDeckUseCase(),
+        swipeCardUseCase: SwipeCardUseCase = DefaultSwipeCardUseCase(),
+        getSeenIDsUseCase: GetSeenFilmIDsUseCase,
+        monitor: NetworkMonitoring = NetworkMonitor.shared
+    ) {
+        self.init(
+            fetchDeckUseCase: fetchDeckUseCase,
+            swipeCardUseCase: swipeCardUseCase,
+            getExcludedIDsUseCase: SeenIDsExclusionAdapter(useCase: getSeenIDsUseCase),
             monitor: monitor
         )
     }
@@ -59,6 +78,12 @@ final class SwipeDeckViewModel {
     func connectivityDidChange() {
         guard monitor.isOnline else {
             onQueueChange?()
+            return
+        }
+        guard hasLoadedInitialExclusions else {
+            if !isStarting && queue.isEmpty {
+                start()
+            }
             return
         }
         fetchNextPage()
@@ -73,22 +98,60 @@ final class SwipeDeckViewModel {
     }
 
     func start() {
-        guard queue.isEmpty else { return }
-        excludedIDs.formUnion(getSeenIDsUseCase.execute())
-        fetchNextPage()
+        guard !isStarting, !hasLoadedInitialExclusions, queue.isEmpty else { return }
+        isStarting = true
+
+        Task { [weak self] in
+            guard let self else { return }
+            let excluded = await self.getExcludedIDsUseCase.execute()
+            self.excludedIDs = excluded.union(self.sessionSwipedIDs)
+            self.hasLoadedInitialExclusions = true
+            self.isStarting = false
+            self.fetchNextPage()
+        }
+    }
+
+    func reconcileQueueWithLatestExclusions() {
+        guard hasLoadedInitialExclusions, !isStarting else { return }
+        reconcileTask?.cancel()
+        reconcileTask = Task { [weak self] in
+            await self?.performQueueReconciliation()
+        }
+    }
+
+    func performQueueReconciliation() async {
+        guard hasLoadedInitialExclusions, !isStarting else { return }
+        let latestExcluded = await getExcludedIDsUseCase.execute()
+        guard !Task.isCancelled else { return }
+
+        excludedIDs = latestExcluded.union(sessionSwipedIDs)
+
+        let originalCount = queue.count
+        queue.removeAll { excludedIDs.contains($0.id) }
+        let removedAny = queue.count != originalCount
+
+        if !isSessionComplete && queue.count <= Self.prefetchThreshold {
+            fetchNextPage()
+        }
+
+        if removedAny {
+            onQueueChange?()
+        }
     }
 
     func consumeFrontCard(direction: SwipeDirection) {
         guard !queue.isEmpty, !isSessionComplete else { return }
         let media = queue.removeFirst()
         sessionSwipeCount += 1
+        sessionSwipedIDs.insert(media.id)
         excludedIDs.insert(media.id)
 
         Task { [weak self] in
             try? await self?.swipeCardUseCase.execute(media: media, direction: direction)
         }
 
-        if !isSessionComplete && queue.count <= Self.prefetchThreshold {
+        let remainingInSession = Self.sessionCardLimit - sessionSwipeCount
+        if !isSessionComplete && queue.count <= Self.prefetchThreshold && queue.count < remainingInSession {
             fetchNextPage()
         }
         onQueueChange?()
@@ -106,22 +169,34 @@ final class SwipeDeckViewModel {
             guard let self = self else { return }
             do {
                 let result = try await self.fetchDeckUseCase.execute(page: self.page, excludingIDs: self.excludedIDs)
-                await MainActor.run {
-                    self.isFetching = false
-                    self.queue.append(contentsOf: result.items)
-                    self.isLastPage = result.isLastPage
-                    self.page += 1
-                    self.onQueueChange?()
-                    if self.queue.isEmpty && !self.isLastPage {
-                        self.fetchNextPage()
-                    }
+                self.isFetching = false
+                let existingQueueIDs = Set(self.queue.map(\.id))
+                let freshItems = result.items.filter {
+                    !self.excludedIDs.contains($0.id) && !existingQueueIDs.contains($0.id)
+                }
+                self.queue.append(contentsOf: freshItems)
+                self.isLastPage = result.isLastPage
+                self.page += 1
+                self.onQueueChange?()
+                if self.queue.isEmpty && !self.isLastPage {
+                    self.fetchNextPage()
                 }
             } catch {
-                await MainActor.run {
-                    self.isFetching = false
-                    self.onError?("Couldn't load more films. Check your connection and try again.")
-                }
+                self.isFetching = false
+                self.onError?("Couldn't load more films. Check your connection and try again.")
             }
         }
+    }
+}
+
+private final class SeenIDsExclusionAdapter: GetExcludedSwipeMediaIDsUseCase {
+    private let useCase: GetSeenFilmIDsUseCase
+
+    init(useCase: GetSeenFilmIDsUseCase) {
+        self.useCase = useCase
+    }
+
+    func execute() async -> Set<Int> {
+        useCase.execute().filter { $0 > 0 }
     }
 }
