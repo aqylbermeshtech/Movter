@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum SwipeDirection: Equatable {
+enum SwipeDirection: String, Codable, Equatable, Sendable {
     case like
     case pass
 }

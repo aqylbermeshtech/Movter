@@ -18,5 +18,13 @@ final class DefaultPopularMoviesRepository: PopularMoviesRepository {
     func fetchPopularMovies(page: Int) async throws -> MediaPage {
         try await remoteDataSource.fetchPopularMovies(page: page)
     }
+
+    func fetchDiscoverMovies(query: DiscoverQuery, page: Int) async throws -> MediaPage {
+        try await remoteDataSource.fetchDiscoverMovies(query: query, page: page)
+    }
+
+    func fetchSimilarMovies(for movieID: Int) async throws -> [Media] {
+        try await remoteDataSource.fetchSimilarMovies(for: movieID)
+    }
 }
 

@@ -25,7 +25,7 @@ final class DefaultSwipeCardUseCase: SwipeCardUseCase {
     }
 
     func execute(media: Media, direction: SwipeDirection) async throws {
-        seenFilmsRepository.markSeen(tmdbID: media.id)
+        seenFilmsRepository.recordSwipe(tmdbID: media.id, direction: direction, at: Date())
         if direction == .like {
             let item = WatchlistItem(from: media)
             try await watchlistRepository.save(item, to: .watchlist)

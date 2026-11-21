@@ -9,15 +9,26 @@ import UIKit
 
 final class SwipeCardView: UIView {
 
+    nonisolated enum PanReleaseDecision: Equatable {
+        case tap
+        case commit(SwipeDirection)
+        case springBack
+    }
+
     let media: Media
     var onSwiped: ((SwipeDirection) -> Void)?
     var onTapped: ((Media) -> Void)?
+    var onDragProgress: ((CGFloat) -> Void)?
+    var onThresholdHaptic: (() -> Void)?
 
-    private static let rotationDivisor: CGFloat = 320
-    private static let maxRotation: CGFloat = .pi / 8
-    private static let commitDistanceFraction: CGFloat = 0.32
-    private static let commitVelocity: CGFloat = 700
-    private static let tapMovementTolerance: CGFloat = 6
+    nonisolated static let rotationDivisor: CGFloat = 320
+    nonisolated static let maxRotation: CGFloat = .pi / 8
+    nonisolated static let commitDistanceFraction: CGFloat = 0.32
+    nonisolated static let commitVelocity: CGFloat = 700
+    nonisolated static let tapMovementTolerance: CGFloat = 6
+    nonisolated static let velocityProjectionTime: CGFloat = 0.12
+    nonisolated static let opposingMomentumLimit: CGFloat = -15_000
+    nonisolated static let hapticResetThreshold: CGFloat = 0.85
 
     private let imageView: UIImageView = {
         let iv = UIImageView()
@@ -33,8 +44,12 @@ final class SwipeCardView: UIView {
 
     private let gradientLayer: CAGradientLayer = {
         let layer = CAGradientLayer()
-        layer.colors = [UIColor.clear.cgColor, UIColor.black.withAlphaComponent(0.8).cgColor]
-        layer.locations = [0, 1]
+        layer.colors = [
+            UIColor.clear.cgColor,
+            UIColor.black.withAlphaComponent(0.55).cgColor,
+            UIColor.black.withAlphaComponent(0.92).cgColor
+        ]
+        layer.locations = [0.0, 0.55, 1.0]
         return layer
     }()
 
@@ -56,6 +71,19 @@ final class SwipeCardView: UIView {
         return label
     }()
 
+    private let ratingPill = MetadataPillView()
+    private let genrePill = MetadataPillView()
+    private let yearPill = MetadataPillView()
+
+    private lazy var metadataStackView: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [ratingPill, genrePill, yearPill])
+        stack.axis = .horizontal
+        stack.alignment = .center
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
     private let likeDestinationView = SwipeCardView.makeDestinationOverlay(
         systemImage: "bookmark.fill", caption: "Watchlist", tint: .accent
     )
@@ -63,12 +91,32 @@ final class SwipeCardView: UIView {
         systemImage: "clock.arrow.circlepath", caption: "Maybe Later", tint: .destructive
     )
 
-    private var initialCenter: CGPoint = .zero
-    private var hasCommitted = false
+    private var panStartCenter: CGPoint?
+    private(set) var hasCommitted = false
+    private(set) var lastCommittedDirection: SwipeDirection?
+    private(set) var didTriggerThresholdHaptic = false
+    private(set) var posterCrossDissolveCount = 0
+    private(set) var hasAppliedUpgradedPoster = false
+    private lazy var impactGenerator = UIImpactFeedbackGenerator(style: .light)
+    private let loadRemoteArtwork: Bool
+    private let genreProvider: GenreProviding
     private var artworkTask: Task<Void, Never>?
 
-    init(media: Media) {
+    var gradientLocations: [NSNumber]? { gradientLayer.locations }
+    var posterImage: UIImage? { imageView.image }
+    var ratingPillText: String? { ratingPill.isHidden ? nil : ratingPill.label.text }
+    var genrePillText: String? { genrePill.isHidden ? nil : genrePill.label.text }
+    var yearPillText: String? { yearPill.isHidden ? nil : yearPill.label.text }
+    var isMetadataStackHidden: Bool { metadataStackView.isHidden }
+
+    init(
+        media: Media,
+        loadRemoteArtwork: Bool = true,
+        genreProvider: GenreProviding = GenreProvider.shared
+    ) {
         self.media = media
+        self.loadRemoteArtwork = loadRemoteArtwork
+        self.genreProvider = genreProvider
         super.init(frame: .zero)
         setupUI()
         configure()
@@ -99,8 +147,14 @@ final class SwipeCardView: UIView {
         imageView.layer.addSublayer(gradientLayer)
         imageView.addSubview(logoImageView)
         imageView.addSubview(fallbackTitleLabel)
+        imageView.addSubview(metadataStackView)
         addSubview(likeDestinationView)
         addSubview(passDestinationView)
+
+        ratingPill.setContentCompressionResistancePriority(.required, for: .horizontal)
+        ratingPill.label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        yearPill.setContentCompressionResistancePriority(.required, for: .horizontal)
+        yearPill.label.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: topAnchor),
@@ -108,15 +162,20 @@ final class SwipeCardView: UIView {
             imageView.trailingAnchor.constraint(equalTo: trailingAnchor),
             imageView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
+            metadataStackView.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
+            metadataStackView.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -20),
+            metadataStackView.leadingAnchor.constraint(greaterThanOrEqualTo: imageView.leadingAnchor, constant: 20),
+            metadataStackView.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -20),
+
             logoImageView.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
-            logoImageView.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -24),
+            logoImageView.bottomAnchor.constraint(equalTo: metadataStackView.topAnchor, constant: -10),
             logoImageView.leadingAnchor.constraint(greaterThanOrEqualTo: imageView.leadingAnchor, constant: 24),
             logoImageView.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -24),
             logoImageView.widthAnchor.constraint(lessThanOrEqualToConstant: 240),
             logoImageView.heightAnchor.constraint(lessThanOrEqualToConstant: 76),
 
             fallbackTitleLabel.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
-            fallbackTitleLabel.bottomAnchor.constraint(equalTo: imageView.bottomAnchor, constant: -24),
+            fallbackTitleLabel.bottomAnchor.constraint(equalTo: metadataStackView.topAnchor, constant: -10),
             fallbackTitleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: imageView.leadingAnchor, constant: 20),
             fallbackTitleLabel.trailingAnchor.constraint(lessThanOrEqualTo: imageView.trailingAnchor, constant: -20),
 
@@ -134,6 +193,14 @@ final class SwipeCardView: UIView {
 
     private func configure() {
         fallbackTitleLabel.text = media.displayName
+        configureMetadataPills()
+
+        guard loadRemoteArtwork else {
+            if media.posterPath == nil {
+                showPosterPlaceholder()
+            }
+            return
+        }
         loadPoster(from: media.largePosterURL ?? media.fullPosterURL)
 
         artworkTask = Task { [weak self, media] in
@@ -145,7 +212,7 @@ final class SwipeCardView: UIView {
                 if let textlessPath = artwork.textlessPosterPath,
                    textlessPath != media.posterPath,
                    let textlessURL = TMDBImageURL.url(path: textlessPath, width: .wide) {
-                    self.loadPoster(from: textlessURL)
+                    self.loadPoster(from: textlessURL, isUpgrade: true)
                 }
                 if let logoPath = artwork.logoPath,
                    let logoURL = TMDBImageURL.url(path: logoPath, width: .poster) {
@@ -155,22 +222,96 @@ final class SwipeCardView: UIView {
         }
     }
 
-    private func loadPoster(from url: URL?) {
+    private func configureMetadataPills() {
+        if WatchlistItem(from: media).isUnreleased || media.ratingState.isUpcoming {
+            ratingPill.configure(text: "Upcoming")
+        } else {
+            switch media.ratingState {
+            case .rated(let score, _), .provisional(let score, _):
+                ratingPill.configure(text: String(format: "★ %.1f", score))
+            case .unrated, .upcoming:
+                ratingPill.configure(text: nil)
+            }
+        }
+
+        genrePill.configure(text: nil)
+        if let year = media.year, !year.isEmpty {
+            yearPill.configure(text: year)
+        } else {
+            yearPill.configure(text: nil)
+        }
+        updateMetadataStackVisibility()
+
+        if loadRemoteArtwork || (genreProvider !== GenreProvider.shared) {
+            genreProvider.primaryGenreName(for: media.genreIds, type: media.mediaType) { [weak self] genre in
+                if Thread.isMainThread {
+                    MainActor.assumeIsolated {
+                        self?.applyGenreName(genre)
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        MainActor.assumeIsolated {
+                            self?.applyGenreName(genre)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func applyGenreName(_ genre: String?) {
+        let trimmed = genre?.trimmingCharacters(in: .whitespacesAndNewlines)
+        genrePill.configure(text: (trimmed?.isEmpty == false) ? trimmed : nil)
+        updateMetadataStackVisibility()
+    }
+
+    private func updateMetadataStackVisibility() {
+        metadataStackView.isHidden = ratingPill.isHidden && genrePill.isHidden && yearPill.isHidden
+    }
+
+    func applyPosterImage(_ image: UIImage, isUpgrade: Bool) {
+        if isUpgrade {
+            hasAppliedUpgradedPoster = true
+        } else if hasAppliedUpgradedPoster {
+            return
+        }
+
+        if isUpgrade && imageView.image != nil {
+            posterCrossDissolveCount += 1
+            UIView.transition(
+                with: imageView,
+                duration: 0.25,
+                options: [.transitionCrossDissolve, .allowUserInteraction],
+                animations: {
+                    self.imageView.contentMode = .scaleAspectFill
+                    self.imageView.image = image
+                }
+            )
+        } else {
+            imageView.contentMode = .scaleAspectFill
+            imageView.image = image
+        }
+    }
+
+    private func loadPoster(from url: URL?, isUpgrade: Bool = false) {
         guard let url else {
-            showPosterPlaceholder()
+            if !isUpgrade {
+                showPosterPlaceholder()
+            }
             return
         }
         ImageLoader.load(url: url) { [weak self] image in
             DispatchQueue.main.async {
-                guard let self = self else { return }
-                guard let image = image else {
-                    if self.imageView.image == nil {
-                        self.showPosterPlaceholder()
+                MainActor.assumeIsolated {
+                    guard let self = self else { return }
+                    guard let image = image else {
+                        if self.imageView.image == nil {
+                            self.showPosterPlaceholder()
+                        }
+                        return
                     }
-                    return
+                    self.applyPosterImage(image, isUpgrade: isUpgrade)
                 }
-                self.imageView.contentMode = .scaleAspectFill
-                self.imageView.image = image
             }
         }
     }
@@ -178,10 +319,12 @@ final class SwipeCardView: UIView {
     private func loadLogo(from url: URL) {
         ImageLoader.load(url: url) { [weak self] image in
             DispatchQueue.main.async {
-                guard let self = self, let image else { return }
-                self.logoImageView.image = image
-                self.logoImageView.isHidden = false
-                self.fallbackTitleLabel.isHidden = true
+                MainActor.assumeIsolated {
+                    guard let self = self, let image else { return }
+                    self.logoImageView.image = image
+                    self.logoImageView.isHidden = false
+                    self.fallbackTitleLabel.isHidden = true
+                }
             }
         }
     }
@@ -202,47 +345,131 @@ final class SwipeCardView: UIView {
 
     // MARK: - Gesture
 
+    nonisolated static func dragProgress(forTranslationX translationX: CGFloat, cardWidth: CGFloat) -> CGFloat {
+        guard cardWidth > 0, cardWidth.isFinite, translationX.isFinite else { return 0 }
+        let threshold = cardWidth * commitDistanceFraction
+        guard threshold > 0, threshold.isFinite else { return 0 }
+        return min(abs(translationX) / threshold, 1.0)
+    }
+
+    nonisolated static func evaluatePanRelease(
+        translation: CGPoint,
+        velocity: CGPoint,
+        cardWidth: CGFloat,
+        isCancelled: Bool = false
+    ) -> PanReleaseDecision {
+        guard !isCancelled else { return .springBack }
+        guard translation.x.isFinite, translation.y.isFinite,
+              velocity.x.isFinite, velocity.y.isFinite else {
+            return .springBack
+        }
+        if abs(translation.x) < tapMovementTolerance && abs(translation.y) < tapMovementTolerance {
+            return .tap
+        }
+        guard cardWidth > 0, cardWidth.isFinite else { return .springBack }
+
+        let projectedX = translation.x + velocity.x * velocityProjectionTime
+        let momentum = translation.x * velocity.x
+        let distanceCommitted = abs(translation.x) > cardWidth * commitDistanceFraction
+            && momentum >= opposingMomentumLimit
+        let velocityCommitted = abs(velocity.x) > commitVelocity && momentum > 0
+
+        if distanceCommitted || velocityCommitted {
+            return .commit(projectedX > 0 ? .like : .pass)
+        }
+        return .springBack
+    }
+
     @objc private func handleTap() {
         onTapped?(media)
     }
 
-    @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
-        guard let superview = superview else { return }
-        switch gesture.state {
+    @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
+        let referenceView = superview ?? self
+        handlePanUpdate(
+            translation: gesture.translation(in: referenceView),
+            velocity: gesture.velocity(in: referenceView),
+            state: gesture.state
+        )
+    }
+
+    func handlePanUpdate(
+        translation: CGPoint,
+        velocity: CGPoint = .zero,
+        state: UIGestureRecognizer.State
+    ) {
+        guard !hasCommitted else { return }
+
+        switch state {
         case .began:
-            initialCenter = center
+            panStartCenter = center
+            didTriggerThresholdHaptic = false
+            impactGenerator.prepare()
 
         case .changed:
-            let translation = gesture.translation(in: superview)
-            center = CGPoint(x: initialCenter.x + translation.x, y: initialCenter.y + translation.y)
+            guard translation.x.isFinite, translation.y.isFinite else { return }
+            let startCenter = panStartCenter ?? center
+            if panStartCenter == nil {
+                panStartCenter = startCenter
+            }
+
+            center = CGPoint(x: startCenter.x + translation.x, y: startCenter.y + translation.y)
             let rotation = (translation.x / Self.rotationDivisor).clamped(to: -Self.maxRotation...Self.maxRotation)
             transform = CGAffineTransform(rotationAngle: rotation)
 
-            let progress = min(abs(translation.x) / (bounds.width * Self.commitDistanceFraction), 1)
+            let progress = Self.dragProgress(forTranslationX: translation.x, cardWidth: bounds.width)
             likeDestinationView.alpha = translation.x > 0 ? progress : 0
             passDestinationView.alpha = translation.x < 0 ? progress : 0
+            onDragProgress?(progress)
 
-        case .ended, .cancelled:
-            let translation = gesture.translation(in: superview)
-            let velocity = gesture.velocity(in: superview)
-
-            guard abs(translation.x) >= Self.tapMovementTolerance || abs(translation.y) >= Self.tapMovementTolerance else {
-                transform = .identity
-                onTapped?(media)
-                return
+            if bounds.width > 0, bounds.width.isFinite {
+                if progress >= 1.0, !didTriggerThresholdHaptic {
+                    didTriggerThresholdHaptic = true
+                    triggerThresholdHaptic()
+                } else if progress < Self.hapticResetThreshold, didTriggerThresholdHaptic {
+                    didTriggerThresholdHaptic = false
+                }
             }
 
-            let distanceCommitted = abs(translation.x) > bounds.width * Self.commitDistanceFraction
-            let velocityCommitted = abs(velocity.x) > Self.commitVelocity
-            if distanceCommitted || velocityCommitted {
-                commitSwipe(direction: translation.x > 0 ? .like : .pass, exitVelocity: velocity)
-            } else {
+        case .ended:
+            didTriggerThresholdHaptic = false
+            let decision = Self.evaluatePanRelease(
+                translation: translation,
+                velocity: velocity,
+                cardWidth: bounds.width,
+                isCancelled: false
+            )
+            switch decision {
+            case .tap:
+                if let startCenter = panStartCenter {
+                    center = startCenter
+                }
+                panStartCenter = nil
+                transform = .identity
+                likeDestinationView.alpha = 0
+                passDestinationView.alpha = 0
+                onDragProgress?(0)
+                onTapped?(media)
+
+            case .commit(let direction):
+                commitSwipe(direction: direction, exitVelocity: velocity)
+
+            case .springBack:
                 springBack()
             }
+
+        case .cancelled, .failed:
+            didTriggerThresholdHaptic = false
+            springBack()
 
         default:
             break
         }
+    }
+
+    private func triggerThresholdHaptic() {
+        impactGenerator.impactOccurred()
+        onThresholdHaptic?()
     }
 
     func performSwipe(direction: SwipeDirection) {
@@ -250,25 +477,35 @@ final class SwipeCardView: UIView {
     }
 
     private func commitSwipe(direction: SwipeDirection, exitVelocity: CGPoint) {
-        guard !hasCommitted, let superview = superview else { return }
+        guard !hasCommitted else { return }
         hasCommitted = true
+        lastCommittedDirection = direction
+        didTriggerThresholdHaptic = false
+        panStartCenter = nil
         isUserInteractionEnabled = false
 
-        let travel = superview.bounds.width
+        let travel = superview?.bounds.width ?? bounds.width
         let destinationX = center.x + (direction == .like ? travel : -travel)
         let rotation = direction == .like ? Self.maxRotation : -Self.maxRotation
+        let safeVelocityY = exitVelocity.y.isFinite ? exitVelocity.y : 0
 
         UIView.animate(withDuration: 0.35, delay: 0, options: [.curveEaseIn], animations: {
-            self.center = CGPoint(x: destinationX, y: self.center.y + exitVelocity.y * 0.15)
+            self.center = CGPoint(x: destinationX, y: self.center.y + safeVelocityY * 0.15)
             self.transform = CGAffineTransform(rotationAngle: rotation)
             self.likeDestinationView.alpha = direction == .like ? 1 : 0
             self.passDestinationView.alpha = direction == .pass ? 1 : 0
+            self.onDragProgress?(1)
         }, completion: { [weak self] _ in
             self?.onSwiped?(direction)
         })
     }
 
-    private func springBack() {
+    func springBack() {
+        guard !hasCommitted else { return }
+        let targetCenter = panStartCenter ?? center
+        panStartCenter = nil
+        didTriggerThresholdHaptic = false
+
         UIView.animate(
             withDuration: 0.4,
             delay: 0,
@@ -276,10 +513,11 @@ final class SwipeCardView: UIView {
             initialSpringVelocity: 0.5,
             options: [.allowUserInteraction],
             animations: {
-                self.center = self.initialCenter
+                self.center = targetCenter
                 self.transform = .identity
                 self.likeDestinationView.alpha = 0
                 self.passDestinationView.alpha = 0
+                self.onDragProgress?(0)
             }
         )
     }
@@ -318,5 +556,52 @@ final class SwipeCardView: UIView {
             stack.centerYAnchor.constraint(equalTo: container.centerYAnchor)
         ])
         return container
+    }
+}
+
+private final class MetadataPillView: UIView {
+    let label: UILabel = {
+        let label = UILabel()
+        label.font = .badge
+        label.textColor = .white
+        label.lineBreakMode = .byTruncatingTail
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        layer.cornerCurve = .continuous
+        layer.borderWidth = 1
+        layer.borderColor = UIColor.white.withAlphaComponent(0.18).cgColor
+        clipsToBounds = true
+        isHidden = true
+        translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: topAnchor, constant: 4),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10)
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layer.cornerRadius = bounds.height / 2
+    }
+
+    func configure(text: String?) {
+        if let text, !text.isEmpty {
+            label.text = text
+            isHidden = false
+        } else {
+            label.text = nil
+            isHidden = true
+        }
     }
 }

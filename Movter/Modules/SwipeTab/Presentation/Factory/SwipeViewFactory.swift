@@ -14,22 +14,42 @@ enum SwipeViewFactory {
         coordinator: SwipeCoordinator? = nil,
         watchlistRepository: WatchlistRepository = DefaultWatchlistRepository(),
         seenFilmsRepository: SeenFilmsRepository = DefaultSeenFilmsRepository(),
-        popularMoviesRepository: PopularMoviesRepository = DefaultPopularMoviesRepository()
+        popularMoviesRepository: PopularMoviesRepository = DefaultPopularMoviesRepository(),
+        reviewsRepository: ReviewsRepository = DefaultReviewsRepository(),
+        topFavoritesRepository: TopFavoritesRepository = DefaultTopFavoritesRepository(),
+        artworkPrefetcher: HeroArtworkPrefetching? = DefaultHeroArtworkPrefetcher(),
+        cardViewFactory: @escaping (Media) -> SwipeCardView = { SwipeCardView(media: $0) }
     ) -> UIViewController {
         let fetchDeckUseCase = DefaultFetchPopularSwipeDeckUseCase(popularMoviesRepository: popularMoviesRepository)
         let swipeCardUseCase = DefaultSwipeCardUseCase(seenFilmsRepository: seenFilmsRepository, watchlistRepository: watchlistRepository)
-        let getSeenIDsUseCase = DefaultGetSeenFilmIDsUseCase(repository: seenFilmsRepository)
+        let undoSwipeCardUseCase = DefaultUndoSwipeCardUseCase(seenFilmsRepository: seenFilmsRepository, watchlistRepository: watchlistRepository)
+        let getExcludedIDsUseCase = DefaultGetExcludedSwipeMediaIDsUseCase(
+            seenFilmsRepository: seenFilmsRepository,
+            watchlistRepository: watchlistRepository,
+            reviewsRepository: reviewsRepository,
+            topFavoritesRepository: topFavoritesRepository
+        )
+        let buildTasteProfileUseCase = DefaultBuildUserTasteProfileUseCase(
+            topFavoritesRepository: topFavoritesRepository,
+            reviewsRepository: reviewsRepository,
+            watchlistRepository: watchlistRepository,
+            seenFilmsRepository: seenFilmsRepository
+        )
 
         let viewModel = SwipeDeckViewModel(
             fetchDeckUseCase: fetchDeckUseCase,
             swipeCardUseCase: swipeCardUseCase,
-            getSeenIDsUseCase: getSeenIDsUseCase
+            getExcludedIDsUseCase: getExcludedIDsUseCase,
+            buildTasteProfileUseCase: buildTasteProfileUseCase,
+            undoSwipeCardUseCase: undoSwipeCardUseCase,
+            artworkPrefetcher: artworkPrefetcher
         )
 
         let actualCoordinator = coordinator ?? DefaultSwipeCoordinator()
         let viewController = SwipeDeckViewController(
             viewModel: viewModel,
-            coordinator: actualCoordinator
+            coordinator: actualCoordinator,
+            cardViewFactory: cardViewFactory
         )
         if let defaultCoord = actualCoordinator as? DefaultSwipeCoordinator, defaultCoord.viewController == nil {
             defaultCoord.viewController = viewController
