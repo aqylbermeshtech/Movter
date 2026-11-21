@@ -27,11 +27,18 @@ enum SwipeViewFactory {
             reviewsRepository: reviewsRepository,
             topFavoritesRepository: topFavoritesRepository
         )
+        let buildTasteProfileUseCase = DefaultBuildUserTasteProfileUseCase(
+            topFavoritesRepository: topFavoritesRepository,
+            reviewsRepository: reviewsRepository,
+            watchlistRepository: watchlistRepository,
+            seenFilmsRepository: seenFilmsRepository
+        )
 
         let viewModel = SwipeDeckViewModel(
             fetchDeckUseCase: fetchDeckUseCase,
             swipeCardUseCase: swipeCardUseCase,
-            getExcludedIDsUseCase: getExcludedIDsUseCase
+            getExcludedIDsUseCase: getExcludedIDsUseCase,
+            buildTasteProfileUseCase: buildTasteProfileUseCase
         )
 
         let actualCoordinator = coordinator ?? DefaultSwipeCoordinator()

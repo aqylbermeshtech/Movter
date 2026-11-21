@@ -11,14 +11,19 @@ import Foundation
 final class SwipeDeckViewModel {
     private static let prefetchThreshold = 3
     static let sessionCardLimit = 10
+    static let maxConsecutiveEmptyPages = 3
 
     private let fetchDeckUseCase: FetchPopularSwipeDeckUseCase
     private let swipeCardUseCase: SwipeCardUseCase
     private let getExcludedIDsUseCase: GetExcludedSwipeMediaIDsUseCase
+    private let buildTasteProfileUseCase: BuildUserTasteProfileUseCase
     private let monitor: NetworkMonitoring
+    private let paginationCursorStore: SwipePaginationCursorStoring
 
     private(set) var queue: [Media] = []
-    private var page = 1
+    private(set) var tasteProfile: UserTasteProfile = .empty
+    private var page: Int
+    private var consecutiveEmptyPages = 0
     private(set) var isFetching = false
     private(set) var isLastPage = false
     private(set) var excludedIDs: Set<Int> = []
@@ -37,12 +42,17 @@ final class SwipeDeckViewModel {
         fetchDeckUseCase: FetchPopularSwipeDeckUseCase = DefaultFetchPopularSwipeDeckUseCase(),
         swipeCardUseCase: SwipeCardUseCase = DefaultSwipeCardUseCase(),
         getExcludedIDsUseCase: GetExcludedSwipeMediaIDsUseCase = DefaultGetExcludedSwipeMediaIDsUseCase(),
-        monitor: NetworkMonitoring = NetworkMonitor.shared
+        buildTasteProfileUseCase: BuildUserTasteProfileUseCase = DefaultBuildUserTasteProfileUseCase(),
+        monitor: NetworkMonitoring = NetworkMonitor.shared,
+        paginationCursorStore: SwipePaginationCursorStoring = UserDefaultsSwipePaginationCursorStore()
     ) {
         self.fetchDeckUseCase = fetchDeckUseCase
         self.swipeCardUseCase = swipeCardUseCase
         self.getExcludedIDsUseCase = getExcludedIDsUseCase
+        self.buildTasteProfileUseCase = buildTasteProfileUseCase
         self.monitor = monitor
+        self.paginationCursorStore = paginationCursorStore
+        self.page = paginationCursorStore.loadPageCursor()
     }
 
     convenience init(
@@ -63,13 +73,15 @@ final class SwipeDeckViewModel {
         fetchDeckUseCase: FetchPopularSwipeDeckUseCase = DefaultFetchPopularSwipeDeckUseCase(),
         swipeCardUseCase: SwipeCardUseCase = DefaultSwipeCardUseCase(),
         getSeenIDsUseCase: GetSeenFilmIDsUseCase,
-        monitor: NetworkMonitoring = NetworkMonitor.shared
+        monitor: NetworkMonitoring = NetworkMonitor.shared,
+        paginationCursorStore: SwipePaginationCursorStoring = UserDefaultsSwipePaginationCursorStore()
     ) {
         self.init(
             fetchDeckUseCase: fetchDeckUseCase,
             swipeCardUseCase: swipeCardUseCase,
             getExcludedIDsUseCase: SeenIDsExclusionAdapter(useCase: getSeenIDsUseCase),
-            monitor: monitor
+            monitor: monitor,
+            paginationCursorStore: paginationCursorStore
         )
     }
 
@@ -103,8 +115,11 @@ final class SwipeDeckViewModel {
 
         Task { [weak self] in
             guard let self else { return }
-            let excluded = await self.getExcludedIDsUseCase.execute()
-            self.excludedIDs = excluded.union(self.sessionSwipedIDs)
+            async let excluded = self.getExcludedIDsUseCase.execute()
+            async let profile = self.buildTasteProfileUseCase.execute()
+            let (resolvedExcluded, resolvedProfile) = await (excluded, profile)
+            self.excludedIDs = resolvedExcluded.union(self.sessionSwipedIDs)
+            self.tasteProfile = resolvedProfile
             self.hasLoadedInitialExclusions = true
             self.isStarting = false
             self.fetchNextPage()
@@ -145,6 +160,7 @@ final class SwipeDeckViewModel {
         sessionSwipeCount += 1
         sessionSwipedIDs.insert(media.id)
         excludedIDs.insert(media.id)
+        tasteProfile.applySessionSwipe(media: media, direction: direction)
 
         Task { [weak self] in
             try? await self?.swipeCardUseCase.execute(media: media, direction: direction)
@@ -174,11 +190,18 @@ final class SwipeDeckViewModel {
                 let freshItems = result.items.filter {
                     !self.excludedIDs.contains($0.id) && !existingQueueIDs.contains($0.id)
                 }
-                self.queue.append(contentsOf: freshItems)
+                if freshItems.isEmpty {
+                    self.consecutiveEmptyPages += 1
+                } else {
+                    self.consecutiveEmptyPages = 0
+                    self.queue.append(contentsOf: freshItems)
+                }
                 self.isLastPage = result.isLastPage
-                self.page += 1
+                let nextPage = (result.isLastPage || self.page >= UserDefaultsSwipePaginationCursorStore.maxPage) ? UserDefaultsSwipePaginationCursorStore.defaultPage : (self.page + 1)
+                self.page = nextPage
+                self.paginationCursorStore.savePageCursor(nextPage)
                 self.onQueueChange?()
-                if self.queue.isEmpty && !self.isLastPage {
+                if self.queue.isEmpty && !self.isLastPage && self.consecutiveEmptyPages < Self.maxConsecutiveEmptyPages {
                     self.fetchNextPage()
                 }
             } catch {
