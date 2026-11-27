@@ -1,35 +1,33 @@
 # Movter (not final product, under construction)
 
+
 **Keep the ticket.** An iOS film app: browse what's trending, keep a watchlist, and score
 what you've seen — and every review you save becomes a ticket stub worth keeping.
 
-(Temporarily works with Firebase, since writing custom backend with GO is at testing stage)
 
-## 📱 App Preview
+## App Preview
 
 <table>
   <tr>
     <td colspan="3" align="center">
-      <img src="https://github.com/user-attachments/assets/35dfedb8-40f4-4866-9f55-72e58e81b335" width="220"/>
-      <br/><sub><b>Home</b></sub>
+     <img width="1080" height="1920" alt="6_1-Frame-en-1" src="https://github.com/user-attachments/assets/e792dfa6-087d-4c2c-8806-915f25ab9a5b" />
     </td>
     <td colspan="3" align="center">
-      <img src="https://github.com/user-attachments/assets/f1d40b06-6687-44cf-a56b-55f15795e360" width="220"/>
-      <br/><sub><b>Movie Details</b></sub>
+      <img width="1080" height="1920" alt="6_1-Frame-en-2" src="https://github.com/user-attachments/assets/aa892887-9a08-49fa-8433-09afc13530a4" />
     </td>
   </tr>
   <tr>
     <td colspan="2" align="center">
-      <img src="https://github.com/user-attachments/assets/98e3bc49-4e92-4807-b2dd-85bdf251aef0" width="220"/>
-      <br/><sub><b>Search</b></sub>
+      <img width="1080" height="1920" alt="6_1-Frame-en-3" src="https://github.com/user-attachments/assets/de0096e6-992d-4079-9b73-c63413c61f17" />
+      <br/><sub><b>Share</b></sub>
     </td>
     <td colspan="2" align="center">
-      <img src="https://github.com/user-attachments/assets/3c4da820-498a-4aa8-b696-07d1334b9bcc" width="220"/>
+      <img width="1080" height="1920" alt="6_1-Frame-en-4" src="https://github.com/user-attachments/assets/71cf6055-f36c-4b7e-b32e-57e085f55853" />
       <br/><sub><b>Swipe</b></sub>
     </td>
     <td colspan="2" align="center">
-      <img src="https://github.com/user-attachments/assets/2ed36e2b-bcf5-432b-8df5-a4dd428e4604" width="220"/>
-      <br/><sub><b>Profile</b></sub>
+      <img width="1080" height="1920" alt="6_1-Frame-en-5" src="https://github.com/user-attachments/assets/6ad97b6f-2ce6-438c-b135-81441abc7387" />
+      <br/><sub><b>Details</b></sub>
     </td>
   </tr>
 </table>
